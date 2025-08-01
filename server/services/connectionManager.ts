@@ -142,11 +142,27 @@ class ElasticsearchDriver implements DatabaseDriver {
   }
   
   async execute(query: string): Promise<any> {
-    // Mock execution for demonstration
+    // Mock execution for demonstration with actual documents
     return {
       hits: {
         total: { value: 847 },
-        hits: []
+        hits: [
+          {
+            _index: "users",
+            _id: "1",
+            _source: { status: "active", age: 32, name: "John Doe", created_at: "2023-01-15", order_count: 8 }
+          },
+          {
+            _index: "users", 
+            _id: "2",
+            _source: { status: "premium", age: 45, name: "Jane Smith", created_at: "2023-02-20", order_count: 12 }
+          },
+          {
+            _index: "users",
+            _id: "3", 
+            _source: { status: "active", age: 28, name: "Bob Johnson", created_at: "2023-03-10", order_count: 5 }
+          }
+        ]
       },
       aggregations: {
         group_by: {
@@ -205,8 +221,22 @@ class RedisDriver implements DatabaseDriver {
   }
   
   async execute(query: string): Promise<any> {
-    // Mock execution for demonstration
-    return { status: "OK", data: "Limited Redis query support" };
+    // Mock execution for demonstration - Redis typically returns key-value data
+    return {
+      keys: [
+        "user:1001:profile",
+        "user:1002:profile", 
+        "user:1003:profile",
+        "session:abc123",
+        "cache:products:electronics"
+      ],
+      values: {
+        "user:1001:profile": { name: "John Doe", age: 32, status: "active" },
+        "user:1002:profile": { name: "Jane Smith", age: 28, status: "premium" },
+        "user:1003:profile": { name: "Bob Johnson", age: 35, status: "active" }
+      },
+      count: 5
+    };
   }
   
   isConnected(): boolean {

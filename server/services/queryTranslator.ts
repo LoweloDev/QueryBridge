@@ -317,4 +317,38 @@ export class QueryTranslator {
     };
     return mapping[sqlOp] || '=';
   }
+  
+  static toRedis(query: QueryLanguage): object {
+    const redisQuery: any = {
+      operation: 'SCAN',
+      pattern: '*',
+    };
+    
+    if (query.operation === 'FIND') {
+      // Redis has limited querying capabilities, mainly key-based operations
+      if (query.where && query.where.length > 0) {
+        // For Redis, we'll construct a pattern-based search
+        const conditions = query.where.map(condition => {
+          if (condition.operator === '=' && condition.field === 'key') {
+            return condition.value;
+          } else if (condition.operator === 'LIKE' && condition.field === 'key') {
+            return condition.value.replace('%', '*');
+          }
+          return '*';
+        });
+        redisQuery.pattern = conditions.length > 0 ? conditions[0] : '*';
+      }
+      
+      if (query.limit) {
+        redisQuery.count = query.limit;
+      }
+      
+      // Redis doesn't support complex aggregations in basic operations
+      if (query.aggregate) {
+        redisQuery.note = 'Redis has limited aggregation support. Consider using Redis modules like RedisGraph or RediSearch for complex queries.';
+      }
+    }
+    
+    return redisQuery;
+  }
 }

@@ -107,6 +107,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         case 'dynamodb':
           translatedQuery = QueryTranslator.toDynamoDB(parsedQuery);
           break;
+        case 'redis':
+          translatedQuery = QueryTranslator.toRedis(parsedQuery);
+          break;
         default:
           return res.status(400).json({ error: "Unsupported target type" });
       }
@@ -155,6 +158,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           break;
         case 'dynamodb':
           translatedQuery = QueryTranslator.toDynamoDB(parsedQuery);
+          break;
+        case 'redis':
+          translatedQuery = QueryTranslator.toRedis(parsedQuery);
           break;
         default:
           return res.status(400).json({ error: "Unsupported database type" });

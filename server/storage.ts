@@ -34,7 +34,7 @@ export class MemStorage implements IStorage {
     this.initSampleData();
   }
   
-  private initSampleData() {
+  private async initSampleData() {
     const sampleConnections: Connection[] = [
       {
         id: "1",
@@ -85,7 +85,7 @@ export class MemStorage implements IStorage {
         username: "aws_access_key",
         password: "aws_secret_key",
         config: { region: "us-east-1" },
-        isActive: false,
+        isActive: true,
         createdAt: new Date(),
       },
       {
@@ -98,7 +98,7 @@ export class MemStorage implements IStorage {
         username: "",
         password: "redis_password",
         config: null,
-        isActive: false,
+        isActive: true,
         createdAt: new Date(),
       },
     ];

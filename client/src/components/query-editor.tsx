@@ -276,7 +276,7 @@ GROUP BY status`);
               <Checkbox
                 id="explain"
                 checked={showExecutionPlan}
-                onCheckedChange={setShowExecutionPlan}
+                onCheckedChange={(checked) => setShowExecutionPlan(checked === true)}
               />
               <label htmlFor="explain" className="text-sm text-muted-foreground">
                 Show execution plan
@@ -286,7 +286,7 @@ GROUP BY status`);
               <Checkbox
                 id="timing"
                 checked={showTiming}
-                onCheckedChange={setShowTiming}
+                onCheckedChange={(checked) => setShowTiming(checked === true)}
               />
               <label htmlFor="timing" className="text-sm text-muted-foreground">
                 Show query timing
