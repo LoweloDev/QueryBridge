@@ -1,0 +1,121 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(0, 0%, 100%);
+  --foreground: hsl(26, 14.3%, 4.1%);
+  --muted: hsl(210, 4.8%, 95.9%);
+  --muted-foreground: hsl(215, 5.3%, 44.7%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(26, 14.3%, 4.1%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(26, 14.3%, 4.1%);
+  --border: hsl(214, 5.9%, 90%);
+  --input: hsl(214, 5.9%, 90%);
+  --primary: hsl(207, 64%, 21%);
+  --primary-foreground: hsl(210, 100%, 99%);
+  --secondary: hsl(207, 90%, 54%);
+  --secondary-foreground: hsl(210, 100%, 99%);
+  --accent: hsl(177, 50%, 47%);
+  --accent-foreground: hsl(210, 100%, 99%);
+  --success: hsl(142, 48%, 57%);
+  --success-foreground: hsl(210, 100%, 99%);
+  --destructive: hsl(0, 84.2%, 60.2%);
+  --destructive-foreground: hsl(60, 9.1%, 97.8%);
+  --ring: hsl(26, 14.3%, 4.1%);
+  --radius: 0.5rem;
+
+  /* Custom variables for QueryFlow */
+  --primary-slate: hsl(207, 64%, 21%);
+  --secondary-blue: hsl(207, 90%, 54%);
+  --accent-teal: hsl(177, 50%, 47%);
+  --success-green: hsl(142, 48%, 57%);
+  --background-light: hsl(210, 6%, 97%);
+  --text-dark: hsl(26, 14.3%, 4.1%);
+}
+
+.dark {
+  --background: hsl(240, 10%, 3.9%);
+  --foreground: hsl(0, 0%, 98%);
+  --muted: hsl(240, 3.7%, 15.9%);
+  --muted-foreground: hsl(240, 5%, 64.9%);
+  --popover: hsl(240, 10%, 3.9%);
+  --popover-foreground: hsl(0, 0%, 98%);
+  --card: hsl(240, 10%, 3.9%);
+  --card-foreground: hsl(0, 0%, 98%);
+  --border: hsl(240, 3.7%, 15.9%);
+  --input: hsl(240, 3.7%, 15.9%);
+  --primary: hsl(207, 64%, 21%);
+  --primary-foreground: hsl(210, 100%, 99%);
+  --secondary: hsl(207, 90%, 54%);
+  --secondary-foreground: hsl(210, 100%, 99%);
+  --accent: hsl(177, 50%, 47%);
+  --accent-foreground: hsl(210, 100%, 99%);
+  --success: hsl(142, 48%, 57%);
+  --success-foreground: hsl(210, 100%, 99%);
+  --destructive: hsl(0, 62.8%, 30.6%);
+  --destructive-foreground: hsl(0, 0%, 98%);
+  --ring: hsl(240, 4.9%, 83.9%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+}
+
+@layer components {
+  .syntax-highlight {
+    background: linear-gradient(135deg, hsl(26, 14.3%, 4.1%) 0%, hsl(207, 64%, 21%) 100%);
+  }
+
+  .query-editor {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    line-height: 1.6;
+  }
+
+  .json-viewer {
+    background: hsl(26, 14.3%, 4.1%);
+    color: hsl(210, 40%, 85%);
+  }
+
+  .connection-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  .tab-active {
+    border-bottom: 2px solid hsl(177, 50%, 47%);
+    color: hsl(177, 50%, 47%);
+  }
+
+  .code-keyword {
+    color: hsl(207, 90%, 77%);
+  }
+
+  .code-string {
+    color: hsl(142, 70%, 70%);
+  }
+
+  .code-number {
+    color: hsl(45, 90%, 70%);
+  }
+
+  .code-operator {
+    color: hsl(142, 50%, 70%);
+  }
+
+  .code-function {
+    color: hsl(280, 70%, 80%);
+  }
+
+  .code-comment {
+    color: hsl(210, 20%, 60%);
+  }
+}
