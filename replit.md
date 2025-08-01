@@ -30,7 +30,7 @@ Preferred communication style: Simple, everyday language.
 - **Primary Database**: PostgreSQL (configured via Drizzle)
 - **ORM**: Drizzle ORM with code-first schema definitions
 - **Schema Management**: Database migrations through Drizzle Kit
-- **Multi-Database Support**: Connection manager supports PostgreSQL, MySQL, MongoDB, Elasticsearch, DynamoDB, and Redis
+- **Multi-Database Support**: Connection manager supports PostgreSQL, MySQL, MongoDB, Elasticsearch, DynamoDB, and Redis (with RedisSearch and RedisGraph modules)
 
 ### Authentication and Authorization
 - **Session Management**: Express sessions with PostgreSQL session store (connect-pg-simple)
@@ -49,3 +49,9 @@ Preferred communication style: Simple, everyday language.
 - **Component Architecture**: Modular React components with consistent UI patterns
 - **Type Safety**: End-to-end TypeScript with shared type definitions
 - **Error Handling**: Centralized error handling with proper HTTP status codes and user feedback
+
+### Advanced Redis Integration
+- **RedisSearch Support**: Automatic detection of complex queries with filtering and aggregation, translating to FT.SEARCH and FT.AGGREGATE commands
+- **RedisGraph Support**: Relational-style queries with ordering translate to Cypher-like syntax for graph operations
+- **Intelligent Module Selection**: Query complexity determines whether to use basic Redis, RedisSearch, or RedisGraph
+- **Mock Data Integration**: Realistic sample responses for both RedisSearch aggregation results and RedisGraph node data

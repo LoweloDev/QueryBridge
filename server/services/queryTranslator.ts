@@ -319,15 +319,28 @@ export class QueryTranslator {
   }
   
   static toRedis(query: QueryLanguage): object {
+    const hasComplexQuery = query.where && query.where.length > 0;
+    const hasAggregation = query.aggregate && query.aggregate.length > 0;
+    const hasGroupBy = query.groupBy && query.groupBy.length > 0;
+    
+    // Use RedisSearch for complex queries with filtering and aggregation
+    if (hasComplexQuery || hasAggregation || hasGroupBy) {
+      return this.toRedisSearch(query);
+    }
+    
+    // Use RedisGraph for relational-style queries
+    if (query.orderBy && query.orderBy.length > 0) {
+      return this.toRedisGraph(query);
+    }
+    
+    // Fallback to basic Redis operations
     const redisQuery: any = {
       operation: 'SCAN',
       pattern: '*',
     };
     
     if (query.operation === 'FIND') {
-      // Redis has limited querying capabilities, mainly key-based operations
       if (query.where && query.where.length > 0) {
-        // For Redis, we'll construct a pattern-based search
         const conditions = query.where.map(condition => {
           if (condition.operator === '=' && condition.field === 'key') {
             return condition.value;
@@ -342,13 +355,163 @@ export class QueryTranslator {
       if (query.limit) {
         redisQuery.count = query.limit;
       }
-      
-      // Redis doesn't support complex aggregations in basic operations
-      if (query.aggregate) {
-        redisQuery.note = 'Redis has limited aggregation support. Consider using Redis modules like RedisGraph or RediSearch for complex queries.';
-      }
     }
     
     return redisQuery;
+  }
+  
+  private static toRedisSearch(query: QueryLanguage): object {
+    const searchQuery: any = {
+      module: 'RediSearch',
+      command: 'FT.SEARCH',
+      index: query.table,
+      query: '*',
+      options: {}
+    };
+    
+    // Build search query string
+    if (query.where && query.where.length > 0) {
+      const queryParts = query.where.map(condition => {
+        switch (condition.operator) {
+          case '=':
+            return `@${condition.field}:{${condition.value}}`;
+          case '!=':
+            return `-@${condition.field}:{${condition.value}}`;
+          case '>':
+            return `@${condition.field}:[${condition.value} +inf]`;
+          case '<':
+            return `@${condition.field}:[-inf ${condition.value}]`;
+          case '>=':
+            return `@${condition.field}:[${condition.value} +inf]`;
+          case '<=':
+            return `@${condition.field}:[-inf ${condition.value}]`;
+          case 'LIKE':
+            return `@${condition.field}:*${condition.value}*`;
+          case 'IN':
+            const values = Array.isArray(condition.value) ? condition.value : [condition.value];
+            return `@${condition.field}:{${values.join('|')}}`;
+          default:
+            return `@${condition.field}:{${condition.value}}`;
+        }
+      });
+      
+      searchQuery.query = queryParts.join(' ');
+    }
+    
+    // Add aggregation if present
+    if (query.aggregate && query.aggregate.length > 0) {
+      searchQuery.command = 'FT.AGGREGATE';
+      searchQuery.pipeline = [];
+      
+      // Group by clause
+      if (query.groupBy && query.groupBy.length > 0) {
+        const groupBy = query.groupBy.map(field => `@${field}`);
+        const reducers = query.aggregate.map(agg => {
+          const func = agg.function.toLowerCase();
+          return `REDUCE ${func.toUpperCase()} 1 @${agg.field} AS ${agg.alias || agg.field}`;
+        });
+        
+        searchQuery.pipeline.push({
+          operation: 'GROUPBY',
+          fields: groupBy,
+          reducers: reducers
+        });
+      } else {
+        // Global aggregation
+        const reducers = query.aggregate.map(agg => {
+          const func = agg.function.toLowerCase();
+          return `REDUCE ${func.toUpperCase()} 1 @${agg.field} AS ${agg.alias || agg.field}`;
+        });
+        
+        searchQuery.pipeline.push({
+          operation: 'GROUPBY',
+          fields: [],
+          reducers: reducers
+        });
+      }
+    }
+    
+    // Sort by clause
+    if (query.orderBy && query.orderBy.length > 0) {
+      const sortBy = query.orderBy.map(order => `@${order.field} ${order.direction}`);
+      searchQuery.pipeline = searchQuery.pipeline || [];
+      searchQuery.pipeline.push({
+        operation: 'SORTBY',
+        fields: sortBy
+      });
+    }
+    
+    // Limit
+    if (query.limit) {
+      searchQuery.options.LIMIT = [0, query.limit];
+    }
+    
+    return searchQuery;
+  }
+  
+  private static toRedisGraph(query: QueryLanguage): object {
+    const graphQuery: any = {
+      module: 'RedisGraph',
+      command: 'GRAPH.QUERY',
+      graph: query.table,
+      query: ''
+    };
+    
+    // Build Cypher-like query
+    let cypherQuery = `MATCH (n:${query.table})`;
+    
+    // WHERE clause
+    if (query.where && query.where.length > 0) {
+      const whereConditions = query.where.map(condition => {
+        let value = condition.value;
+        if (typeof value === 'string') {
+          value = `"${value}"`;
+        }
+        
+        switch (condition.operator) {
+          case '=': return `n.${condition.field} = ${value}`;
+          case '!=': return `n.${condition.field} <> ${value}`;
+          case '>': return `n.${condition.field} > ${value}`;
+          case '<': return `n.${condition.field} < ${value}`;
+          case '>=': return `n.${condition.field} >= ${value}`;
+          case '<=': return `n.${condition.field} <= ${value}`;
+          case 'LIKE': return `n.${condition.field} CONTAINS ${value}`;
+          default: return `n.${condition.field} = ${value}`;
+        }
+      });
+      
+      cypherQuery += ` WHERE ${whereConditions.join(' AND ')}`;
+    }
+    
+    // RETURN clause with aggregation
+    if (query.aggregate && query.aggregate.length > 0) {
+      const aggregations = query.aggregate.map(agg => {
+        const func = agg.function.toLowerCase();
+        return `${func}(n.${agg.field}) AS ${agg.alias || agg.field}`;
+      });
+      
+      if (query.groupBy && query.groupBy.length > 0) {
+        const groupFields = query.groupBy.map(field => `n.${field}`);
+        cypherQuery += ` RETURN ${groupFields.join(', ')}, ${aggregations.join(', ')}`;
+      } else {
+        cypherQuery += ` RETURN ${aggregations.join(', ')}`;
+      }
+    } else {
+      cypherQuery += ' RETURN n';
+    }
+    
+    // ORDER BY clause
+    if (query.orderBy && query.orderBy.length > 0) {
+      const orderFields = query.orderBy.map(order => `n.${order.field} ${order.direction}`);
+      cypherQuery += ` ORDER BY ${orderFields.join(', ')}`;
+    }
+    
+    // LIMIT clause
+    if (query.limit) {
+      cypherQuery += ` LIMIT ${query.limit}`;
+    }
+    
+    graphQuery.query = cypherQuery;
+    return graphQuery;
   }
 }

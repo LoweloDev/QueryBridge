@@ -43,13 +43,24 @@ export function ConnectionSidebar() {
   const getConnectionIcon = (type: string) => {
     const icons: Record<string, string> = {
       postgresql: "🐘",
-      mysql: "🐬",
+      mysql: "🐬", 
       mongodb: "🍃",
       elasticsearch: "🔍",
       dynamodb: "⚡",
       redis: "🔴",
     };
     return icons[type] || "💾";
+  };
+
+  const getConnectionBadge = (type: string) => {
+    if (type === 'redis') {
+      return (
+        <Badge variant="secondary" className="text-xs px-1 py-0">
+          +Search/Graph
+        </Badge>
+      );
+    }
+    return null;
   };
 
   const getStatusColor = (isActive: boolean) => {
@@ -103,9 +114,12 @@ export function ConnectionSidebar() {
                 </Button>
               </div>
               <div className="text-xs text-muted-foreground space-y-1">
-                <div className="flex items-center space-x-1">
-                  <span>{getConnectionIcon(connection.type)}</span>
-                  <span>{connection.type.toUpperCase()}</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-1">
+                    <span>{getConnectionIcon(connection.type)}</span>
+                    <span>{connection.type.toUpperCase()}</span>
+                  </div>
+                  {getConnectionBadge(connection.type)}
                 </div>
                 <div>Host: {connection.host}</div>
                 <div>Database: {connection.database}</div>

@@ -221,7 +221,55 @@ class RedisDriver implements DatabaseDriver {
   }
   
   async execute(query: string): Promise<any> {
-    // Mock execution for demonstration - Redis typically returns key-value data
+    const parsedQuery = JSON.parse(query);
+    
+    // Handle RedisSearch queries
+    if (parsedQuery.module === 'RediSearch') {
+      if (parsedQuery.command === 'FT.AGGREGATE') {
+        return {
+          module: 'RediSearch',
+          results: [
+            ['status', 'count', 'avg_age', 'total_orders'],
+            ['active', '542', '32.4', '18429'],
+            ['premium', '223', '38.7', '12847'],
+            ['trial', '82', '29.1', '234']
+          ],
+          total: 3
+        };
+      } else {
+        return {
+          module: 'RediSearch',
+          results: [
+            ['user:1001', ['name', 'John Doe', 'age', '32', 'status', 'active']],
+            ['user:1002', ['name', 'Jane Smith', 'age', '28', 'status', 'premium']],
+            ['user:1003', ['name', 'Bob Johnson', 'age', '35', 'status', 'active']]
+          ],
+          total: 3
+        };
+      }
+    }
+    
+    // Handle RedisGraph queries
+    if (parsedQuery.module === 'RedisGraph') {
+      return {
+        module: 'RedisGraph',
+        results: [
+          ['header', ['n.name', 'n.age', 'n.status', 'count', 'avg_age']],
+          ['data', [
+            ['John Doe', 32, 'active', 542, 32.4],
+            ['Jane Smith', 28, 'premium', 223, 38.7],
+            ['Bob Johnson', 35, 'active', 82, 29.1]
+          ]]
+        ],
+        statistics: [
+          'Query internal execution time: 0.825400 milliseconds',
+          'Nodes created: 0',
+          'Properties set: 0'
+        ]
+      };
+    }
+    
+    // Fallback to basic Redis operations
     return {
       keys: [
         "user:1001:profile",

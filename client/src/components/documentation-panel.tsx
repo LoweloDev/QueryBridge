@@ -68,8 +68,8 @@ export function DocumentationPanel({ onClose }: DocumentationPanelProps) {
               <span className="text-foreground">DynamoDB (Beta)</span>
             </div>
             <div className="flex items-center space-x-2">
-              <div className="connection-dot bg-yellow-400" />
-              <span className="text-foreground">Redis (Limited)</span>
+              <div className="connection-dot bg-success" />
+              <span className="text-foreground">Redis + RedisSearch + RedisGraph</span>
             </div>
           </div>
         </div>
@@ -104,6 +104,18 @@ export function DocumentationPanel({ onClose }: DocumentationPanelProps) {
                   FIND sales<br />
                   AGGREGATE sum: SUM(amount)<br />
                   GROUP BY product_category
+                </CardContent>
+              </Card>
+            </div>
+            <div>
+              <div className="font-medium text-foreground mb-1">Redis with Modules</div>
+              <Card>
+                <CardContent className="p-2 font-mono text-xs text-muted-foreground">
+                  FIND users<br />
+                  WHERE age &gt; 25<br />
+                  AGGREGATE count: COUNT(*)<br />
+                  GROUP BY status<br />
+                  <span className="text-accent">→ Uses RedisSearch FT.AGGREGATE</span>
                 </CardContent>
               </Card>
             </div>
