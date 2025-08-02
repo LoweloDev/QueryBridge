@@ -1,7 +1,8 @@
 import type { Request, Response } from "express";
 import type { Express } from "express";
 import { storage } from "./storage";
-import { ConnectionManager } from "./services/connection-manager";
+// Import from the library (temporarily using relative path for demonstration)
+import { ConnectionManager } from "../lib/src/connection-manager";
 
 /**
  * Clean API routes that use the library as intended:

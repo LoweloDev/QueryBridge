@@ -31,6 +31,9 @@ Preferred communication style: Simple, everyday language.
 - **Database Integration**: PostgreSQL database configured with comprehensive test data (users, orders, products tables)
 - **SQL Compliance**: Fixed GROUP BY/ORDER BY compatibility issues and string value handling
 - **Library Architecture**: System now works as standalone npm package with clean connection management
+- **Library Separation**: Created standalone universal-query-translator library in `/lib` directory, separated from REST API testing service
+- **Clean Architecture**: Library exports ConnectionManager, QueryParser, QueryTranslator classes for external consumption
+- **Testing API Service**: REST endpoints exist only for testing the library, demonstrating proper library usage patterns
 
 ### Data Storage Solutions
 - **Primary Database**: PostgreSQL with Neon serverless driver

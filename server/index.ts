@@ -3,7 +3,9 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { storage } from "./storage";
 // Note: RealDatabaseManager and localDatabaseConfig removed - using simplified ConnectionManager
-import { ConnectionManager } from "./services/connection-manager";
+// Import from the library (temporarily using relative path)
+import { ConnectionManager } from "../lib/src/connection-manager";
+import { DatabaseSetup } from "./services/database-setup";
 
 const app = express();
 app.use(express.json());
