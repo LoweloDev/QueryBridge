@@ -1,321 +1,121 @@
+import type { Request, Response } from "express";
 import type { Express } from "express";
-import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { QueryParser } from "./services/queryParser";
-import { QueryTranslator } from "./services/queryTranslator";
-// connectionManager will be passed from server initialization
-import { insertConnectionSchema, insertQuerySchema, insertQueryHistorySchema } from "@shared/schema";
+import { ConnectionManager } from "./services/connection-manager";
 
-export async function registerRoutes(app: Express, connectionManager?: any): Promise<Server> {
+/**
+ * Clean API routes that use the library as intended:
+ * - Accept database connections by reference
+ * - Library handles all query parsing and translation internally
+ * - Routes are thin interfaces to the core library
+ */
+
+export async function registerRoutes(app: Express, connectionManager: ConnectionManager) {
   // Get all connections
-  app.get("/api/connections", async (req, res) => {
+  app.get("/api/connections", async (req: Request, res: Response) => {
     try {
       const connections = await storage.getConnections();
       res.json(connections);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch connections" });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
     }
   });
 
-  // Create new connection
-  app.post("/api/connections", async (req, res) => {
-    try {
-      const connectionData = insertConnectionSchema.parse(req.body);
-      const connection = await storage.createConnection(connectionData);
-      
-      // Test the connection if connectionManager is available
-      if (connectionManager) {
-        const connected = await connectionManager.connect(connection);
-        if (connected) {
-          await storage.updateConnection(connection.id, { isActive: true });
-        }
-      }
-      
-      res.json(connection);
-    } catch (error) {
-      res.status(400).json({ error: "Invalid connection data" });
-    }
-  });
-
-  // Test connection
-  app.post("/api/connections/:id/test", async (req, res) => {
+  // Get single connection
+  app.get("/api/connections/:id", async (req: Request, res: Response) => {
     try {
       const connection = await storage.getConnection(req.params.id);
       if (!connection) {
         return res.status(404).json({ error: "Connection not found" });
       }
+      res.json(connection);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
 
-      if (connectionManager) {
-        const connected = await connectionManager.connect(connection);
-        await storage.updateConnection(connection.id, { isActive: connected });
-        res.json({ connected });
-      } else {
-        res.status(503).json({ error: "Connection manager not available" });
+  // Create new connection
+  app.post("/api/connections", async (req: Request, res: Response) => {
+    try {
+      const connection = await storage.createConnection(req.body);
+      res.status(201).json(connection);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Update connection
+  app.put("/api/connections/:id", async (req: Request, res: Response) => {
+    try {
+      const connection = await storage.updateConnection(req.params.id, req.body);
+      if (!connection) {
+        return res.status(404).json({ error: "Connection not found" });
       }
-    } catch (error) {
-      res.status(500).json({ error: "Failed to test connection" });
+      res.json(connection);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
     }
   });
 
   // Delete connection
-  app.delete("/api/connections/:id", async (req, res) => {
+  app.delete("/api/connections/:id", async (req: Request, res: Response) => {
     try {
-      if (connectionManager) {
-        await connectionManager.disconnect(req.params.id);
-      }
-      const deleted = await storage.deleteConnection(req.params.id);
-      
-      if (deleted) {
-        res.json({ success: true });
-      } else {
-        res.status(404).json({ error: "Connection not found" });
-      }
-    } catch (error) {
-      res.status(500).json({ error: "Failed to delete connection" });
+      await storage.deleteConnection(req.params.id);
+      res.status(204).send();
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
     }
   });
 
-  // Validate query syntax
-  app.post("/api/query/validate", async (req, res) => {
+  // Execute query using the library
+  app.post("/api/query/execute", async (req: Request, res: Response) => {
     try {
-      const { query } = req.body;
-      if (!query) {
-        return res.status(400).json({ error: "Query is required" });
-      }
+      const { query, connectionId } = req.body;
 
-      const validation = QueryParser.validate(query);
-      res.json(validation);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to validate query" });
-    }
-  });
-
-  // Translate query to specific database format
-  app.post("/api/query/translate", async (req, res) => {
-    try {
-      const { query, targetType } = req.body;
-      if (!query || !targetType) {
-        return res.status(400).json({ error: "Query and target type are required" });
-      }
-
-      const parsedQuery = QueryParser.parse(query);
-      let translatedQuery;
-
-      switch (targetType) {
-        case 'sql':
-          translatedQuery = QueryTranslator.toSQL(parsedQuery);
-          break;
-        case 'mongodb':
-          translatedQuery = QueryTranslator.toMongoDB(parsedQuery);
-          break;
-        case 'elasticsearch':
-          translatedQuery = QueryTranslator.toElasticsearch(parsedQuery);
-          break;
-        case 'dynamodb':
-          translatedQuery = QueryTranslator.toDynamoDB(parsedQuery);
-          break;
-        case 'redis':
-          translatedQuery = QueryTranslator.toRedis(parsedQuery);
-          break;
-        default:
-          return res.status(400).json({ error: "Unsupported target type" });
-      }
-
-      res.json({ 
-        originalQuery: query,
-        parsedQuery,
-        translatedQuery,
-        targetType 
-      });
-    } catch (error) {
-      res.status(400).json({ error: error instanceof Error ? error.message : "Failed to translate query" });
-    }
-  });
-
-  // Execute query
-  app.post("/api/query/execute", async (req, res) => {
-    try {
-      const { query, connectionId, targetType } = req.body;
       if (!query || !connectionId) {
-        return res.status(400).json({ error: "Query and connection ID are required" });
-      }
-
-      const connection = await storage.getConnection(connectionId);
-      if (!connection) {
-        return res.status(404).json({ error: "Connection not found" });
+        return res.status(400).json({ error: "Query and connectionId are required" });
       }
 
       const startTime = Date.now();
-      
-      // Parse and translate query using existing services
-      const { QueryParser } = await import("./services/queryParser");
-      const { QueryTranslator } = await import("./services/queryTranslator");
-      
-      const parsedQuery = QueryParser.parse(query);
-      
-      let translatedQuery;
-      switch (targetType || connection.type) {
-        case 'postgresql':
-        case 'mysql':
-        case 'sql':
-          translatedQuery = QueryTranslator.toSQL(parsedQuery);
-          break;
-        case 'mongodb':
-          translatedQuery = QueryTranslator.toMongoDB(parsedQuery);
-          break;
-        case 'elasticsearch':
-          translatedQuery = QueryTranslator.toElasticsearch(parsedQuery);
-          break;
-        case 'dynamodb':
-          translatedQuery = QueryTranslator.toDynamoDB(parsedQuery);
-          break;
-        case 'redis':
-          translatedQuery = QueryTranslator.toRedis(parsedQuery);
-          break;
-        default:
-          return res.status(400).json({ error: "Unsupported database type" });
-      }
 
-      // Execute query
-      let results;
-      try {
-        if (connectionManager) {
-          results = await connectionManager.execute(connectionId, JSON.stringify(translatedQuery));
-        } else {
-          return res.status(503).json({ error: "Connection manager not available" });
-        }
-      } catch (error) {
-        // If connection failed, try with mock database that can actually process queries
-        const { MockDatabaseManager } = await import("./services/mock-database-manager");
-        const mockManager = new MockDatabaseManager();
-        const mockDb = mockManager.createMockDatabase(connectionId, connection.type);
-        
-        console.log(`Connection failed for ${connection.name}, using mock database`);
-        results = await mockDb.execute(translatedQuery);
-      }
+      // This is the clean library interface - just pass the query and connection ID
+      // The library handles all parsing, translation, and execution internally
+      const results = await connectionManager.executeQuery(connectionId, query);
+      
       const executionTime = Date.now() - startTime;
 
-      // Save to history
-      await storage.createQueryHistory({
-        query,
-        results,
-        executionTime: `${executionTime}ms`,
-        status: 'success',
-      });
-
       res.json({
         results,
-        executionTime: `${executionTime}ms`,
-        translatedQuery,
-        rowCount: Array.isArray(results) ? results.length : results.rows?.length || results.Items?.length || 0,
-      });
-    } catch (error) {
-      const executionTime = Date.now() - (req.body.startTime || Date.now());
-      
-      // Save error to history
-      await storage.createQueryHistory({
-        query: req.body.query,
-        results: null,
-        executionTime: `${executionTime}ms`,
-        status: 'error',
-        error: error instanceof Error ? error.message : 'Unknown error',
+        executionTime: `${executionTime}ms`
       });
 
-      res.status(500).json({ 
-        error: error instanceof Error ? error.message : "Failed to execute query",
-        executionTime: `${executionTime}ms`,
-      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
     }
   });
 
-  // Get query history
-  app.get("/api/query/history", async (req, res) => {
+  // Query translation only (for debugging/preview)
+  app.post("/api/query/translate", async (req: Request, res: Response) => {
     try {
-      const history = await storage.getQueryHistory();
-      res.json(history.slice(-50)); // Return last 50 queries
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch query history" });
-    }
-  });
+      const { query, targetType } = req.body;
 
-  // Save query
-  app.post("/api/queries", async (req, res) => {
-    try {
-      const queryData = insertQuerySchema.parse(req.body);
-      const query = await storage.createQuery(queryData);
-      res.json(query);
-    } catch (error) {
-      res.status(400).json({ error: "Invalid query data" });
-    }
-  });
-
-  // Get saved queries
-  app.get("/api/queries", async (req, res) => {
-    try {
-      const queries = await storage.getQueries();
-      res.json(queries);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch queries" });
-    }
-  });
-
-  // Real database connections test endpoint
-  app.get("/api/real-databases/status", async (req, res) => {
-    try {
-      const { RealDatabaseManager } = await import("./database-manager");
-      const { localDatabaseConfig } = await import("./config/database-config");
-      const realDbManager = new RealDatabaseManager();
-      
-      try {
-        await realDbManager.connect(localDatabaseConfig);
-        const status = realDbManager.getConnectionStatus();
-        await realDbManager.disconnect();
-        
-        res.json({
-          available: true,
-          connections: status,
-          message: "Real database connections tested successfully"
-        });
-      } catch (error) {
-        res.json({
-          available: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
-          message: "Some real database connections failed"
-        });
+      if (!query || !targetType) {
+        return res.status(400).json({ error: "Query and targetType are required" });
       }
-    } catch (error) {
-      res.status(500).json({ 
-        available: false, 
-        error: error instanceof Error ? error.message : 'Unknown error',
-        message: "Failed to test real database connections"
-      });
-    }
-  });
 
-  // Initialize real databases
-  app.post("/api/real-databases/initialize", async (req, res) => {
-    try {
-      const { RealDatabaseManager } = await import("./database-manager");
-      const { localDatabaseConfig } = await import("./config/database-config");
-      const realDbManager = new RealDatabaseManager();
-      
-      await realDbManager.connect(localDatabaseConfig);
-      const status = realDbManager.getConnectionStatus();
-      
+      // This calls the library's translation service for preview purposes
+      const translatedQuery = await connectionManager.translateQuery(query, targetType);
+
       res.json({
-        initialized: true,
-        connections: status,
-        message: "Real database connections initialized"
+        originalQuery: query,
+        translatedQuery,
+        targetType
       });
-    } catch (error) {
-      res.status(500).json({ 
-        initialized: false, 
-        error: error instanceof Error ? error.message : 'Unknown error',
-        message: "Failed to initialize real database connections"
-      });
+
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
     }
   });
 
-  const httpServer = createServer(app);
-  return httpServer;
+  return app;
 }

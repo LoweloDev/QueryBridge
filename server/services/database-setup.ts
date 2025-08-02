@@ -84,13 +84,13 @@ export class DatabaseSetup {
   }
 
   private async setupRedis(connection: Connection): Promise<void> {
-    // Try to connect to real Redis
+    // Try to connect to local Redis
     try {
       const { createClient } = await import('redis');
       const client = createClient({
         socket: {
-          host: connection.host || '127.0.0.1',
-          port: parseInt(connection.port || '6379'),
+          host: '127.0.0.1',
+          port: 6379,
           connectTimeout: 5000
         }
       });
