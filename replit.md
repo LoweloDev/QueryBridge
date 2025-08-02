@@ -37,6 +37,7 @@ Preferred communication style: Simple, everyday language.
 - **Backend Cleanup**: Removed duplicated logic from server, now imports and uses library classes properly
 - **Database Setup Separation**: Database setup logic moved to test backend only, library accepts connections by reference
 - **Library Interface**: Test backend instantiates library, passes database connections, and uses library methods for query operations
+- **Project Structure Cleanup**: Removed unused testing-api, data, and shared folders - clean monorepo with only client, server, and lib directories
 
 ### Data Storage Solutions
 - **Primary Database**: PostgreSQL with Neon serverless driver
