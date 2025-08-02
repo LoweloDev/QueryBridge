@@ -5,7 +5,6 @@ server/public
 vite.config.ts.*
 *.tar.gz
 
-# Exclude only the large database binaries and data causing 2GB size
+# Exclude only the large Elasticsearch installation (1.1GB)
 server/elasticsearch/
-server/data/mongodb/journal/
 *.tar.gz
