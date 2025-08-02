@@ -42,14 +42,19 @@ export class QueryTranslator {
           } else {
             condStr += condition.value;
           }
-          
-          if (index < query.where!.length - 1 && condition.logical) {
-            condStr += ` ${condition.logical} `;
-          }
-          
           return condStr;
         });
-        sql += ` WHERE ${conditions.join('')}`;
+        
+        // Join conditions with logical operators
+        const whereClause = [];
+        for (let i = 0; i < query.where.length; i++) {
+          whereClause.push(conditions[i]);
+          if (i < query.where.length - 1 && query.where[i].logical) {
+            whereClause.push(` ${query.where[i].logical} `);
+          }
+        }
+        
+        sql += ` WHERE ${whereClause.join('')}`;
       }
       
       // GROUP BY clause

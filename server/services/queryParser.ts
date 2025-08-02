@@ -7,6 +7,8 @@ export class QueryParser {
     
     const result: Partial<QueryLanguage> = {};
     let currentSection = '';
+    let whereBuffer = '';
+    let aggregateBuffer = '';
     
     for (const line of lines) {
       const upperLine = line.toUpperCase();
@@ -20,14 +22,23 @@ export class QueryParser {
         result.joins.push(this.parseJoin(line));
       } else if (upperLine.startsWith('WHERE')) {
         currentSection = 'WHERE';
-        const whereClause = line.substring(5).trim();
-        if (whereClause) {
-          result.where = this.parseWhere(whereClause);
-        }
+        whereBuffer = line.substring(5).trim();
       } else if (upperLine.startsWith('ORDER BY')) {
+        // Process any buffered WHERE clause first
+        if (whereBuffer) {
+          result.where = this.parseWhere(whereBuffer);
+          whereBuffer = '';
+        }
+        currentSection = 'ORDER_BY';
         const orderClause = line.substring(8).trim();
         result.orderBy = this.parseOrderBy(orderClause);
       } else if (upperLine.startsWith('LIMIT')) {
+        // Process any buffered WHERE clause first
+        if (whereBuffer) {
+          result.where = this.parseWhere(whereBuffer);
+          whereBuffer = '';
+        }
+        currentSection = 'LIMIT';
         const limitValue = line.substring(5).trim();
         result.limit = parseInt(limitValue, 10);
       } else if (upperLine.startsWith('OFFSET')) {
@@ -37,12 +48,20 @@ export class QueryParser {
         const fieldsClause = line.substring(6).trim();
         result.fields = fieldsClause.split(',').map(field => field.trim());
       } else if (upperLine.startsWith('AGGREGATE')) {
-        currentSection = 'AGGREGATE';
-        const aggregateClause = line.substring(9).trim();
-        if (aggregateClause) {
-          result.aggregate = this.parseAggregate(aggregateClause);
+        // Process any buffered WHERE clause first
+        if (whereBuffer) {
+          result.where = this.parseWhere(whereBuffer);
+          whereBuffer = '';
         }
+        currentSection = 'AGGREGATE';
+        aggregateBuffer = line.substring(9).trim();
       } else if (upperLine.startsWith('GROUP BY')) {
+        // Process any buffered aggregate clause first
+        if (aggregateBuffer) {
+          result.aggregate = this.parseAggregate(aggregateBuffer);
+          aggregateBuffer = '';
+        }
+        currentSection = 'GROUP_BY';
         const groupClause = line.substring(8).trim();
         result.groupBy = groupClause.split(',').map(field => field.trim());
       } else if (upperLine.startsWith('HAVING')) {
@@ -64,15 +83,21 @@ export class QueryParser {
         const additionalConfig = this.parseDbSpecific(line);
         // Deep merge the configurations
         this.mergeDbSpecific(result.dbSpecific, additionalConfig);
-      } else if (currentSection === 'WHERE' && (line.includes('=') || line.includes('>') || line.includes('<'))) {
-        // Continue parsing WHERE conditions
-        if (!result.where) result.where = [];
-        result.where.push(...this.parseWhere(line));
-      } else if (currentSection === 'AGGREGATE' && (line.includes(':') || line.includes('('))) {
-        // Continue parsing AGGREGATE functions
-        if (!result.aggregate) result.aggregate = [];
-        result.aggregate.push(...this.parseAggregate(line));
+      } else if (currentSection === 'WHERE') {
+        // Continue building WHERE buffer
+        whereBuffer += ' ' + line;
+      } else if (currentSection === 'AGGREGATE') {
+        // Continue building AGGREGATE buffer
+        aggregateBuffer += ' ' + line;
       }
+    }
+    
+    // Process any remaining buffers
+    if (whereBuffer) {
+      result.where = this.parseWhere(whereBuffer);
+    }
+    if (aggregateBuffer) {
+      result.aggregate = this.parseAggregate(aggregateBuffer);
     }
     
     return QueryLanguageSchema.parse(result);
@@ -80,7 +105,12 @@ export class QueryParser {
   
   private static parseWhere(whereClause: string) {
     const conditions = [];
-    const parts = whereClause.split(/\s+(AND|OR)\s+/i);
+    
+    // Clean up the where clause - remove extra whitespace and normalize
+    const cleanedClause = whereClause.replace(/\s+/g, ' ').trim();
+    
+    // Split by AND/OR while preserving the operators
+    const parts = cleanedClause.split(/\s+(AND|OR)\s+/i);
     
     for (let i = 0; i < parts.length; i += 2) {
       const condition = parts[i].trim();
@@ -94,11 +124,13 @@ export class QueryParser {
       
       for (const op of operators) {
         if (condition.includes(` ${op} `)) {
-          const [f, v] = condition.split(` ${op} `);
+          const [f, v] = condition.split(` ${op} `, 2);
           field = f.trim();
           operator = op;
           value = v.trim().replace(/^["']|["']$/g, ''); // Remove quotes
-          if (!isNaN(Number(value))) {
+          
+          // Try to convert to number if it's numeric
+          if (!isNaN(Number(value)) && value !== '') {
             value = Number(value);
           }
           break;
@@ -110,7 +142,7 @@ export class QueryParser {
           field,
           operator: operator as any,
           value,
-          logical: i + 1 < parts.length ? logical : undefined,
+          logical: logical,
         });
       }
     }

@@ -1,8 +1,8 @@
-# QueryFlow
+# QueryFlow - Universal Database Query Tool
 
 ## Overview
 
-QueryFlow is a full-stack web application that provides a unified query interface for multiple database types. The application allows users to write queries in a simplified, natural language-like syntax and automatically translates them to the appropriate database-specific query language (SQL, MongoDB, Elasticsearch, etc.). It features a multi-panel interface with connection management, query editing, and result visualization capabilities.
+QueryFlow is a web-based database query tool that provides a unified interface for querying multiple database types through a common query language. The application features a React frontend with a Node.js/Express backend, supporting PostgreSQL, MongoDB, Redis, DynamoDB, and Elasticsearch databases. The core architecture centers around a universal query language that translates to database-specific queries, enabling users to work with different databases using consistent syntax.
 
 ## User Preferences
 
@@ -11,155 +11,74 @@ Preferred communication style: Simple, everyday language.
 ## System Architecture
 
 ### Frontend Architecture
-- **Framework**: React with TypeScript using Vite as the build tool
-- **UI Library**: Radix UI components with shadcn/ui styling system
-- **Styling**: Tailwind CSS with custom design tokens and CSS variables for theming
-- **State Management**: TanStack Query (React Query) for server state management
+- **Framework**: React 18 with TypeScript using Vite as the build tool
+- **UI Library**: Shadcn/ui components built on Radix UI primitives with Tailwind CSS styling
+- **State Management**: TanStack Query (React Query) for server state management and API caching
 - **Routing**: Wouter for lightweight client-side routing
-- **Form Handling**: React Hook Form with Zod validation
+- **Form Handling**: React Hook Form with Zod schema validation
 
 ### Backend Architecture
-- **Runtime**: Node.js with Express.js REST API
+- **Runtime**: Node.js with Express.js framework
 - **Language**: TypeScript with ES modules
-- **Database ORM**: Drizzle ORM for type-safe database operations
-- **Query Processing**: Custom query parser and translator services
-- **Connection Management**: Multi-database connection manager with driver abstraction
-- **Development**: Hot module replacement with Vite integration in development mode
+- **API Design**: RESTful API with clean separation between routes and business logic
+- **Core Library**: ConnectionManager service that handles database connections and query translation
+- **Query Processing**: Two-stage approach with QueryParser for syntax parsing and QueryTranslator for database-specific translation
 
 ### Data Storage Solutions
-- **Primary Database**: PostgreSQL (configured via Drizzle)
-- **ORM**: Drizzle ORM with code-first schema definitions
-- **Schema Management**: Database migrations through Drizzle Kit
-- **Multi-Database Support**: Connection manager supports PostgreSQL, MySQL, MongoDB, Elasticsearch, DynamoDB, and Redis (with RedisSearch and RedisGraph modules)
+- **Primary Database**: PostgreSQL with Neon serverless driver
+- **ORM**: Drizzle ORM with schema-first approach
+- **Schema Management**: Drizzle Kit for migrations and schema synchronization
+- **Connection Pooling**: Neon serverless connection pooling for PostgreSQL
 
-### Authentication and Authorization
-- **Session Management**: Express sessions with PostgreSQL session store (connect-pg-simple)
-- **Security**: CORS configuration and request validation middleware
+### External Database Integration
+- **Multi-Database Support**: Connection manager supports PostgreSQL, MongoDB, Redis, DynamoDB, and Elasticsearch
+- **Database Clients**: AWS SDK for DynamoDB, Elasticsearch official client, and standard drivers for other databases
+- **Connection Management**: Centralized connection registry with health monitoring and automatic failover to mock databases
 
-### External Dependencies
-- **Database Provider**: Neon serverless PostgreSQL (@neondatabase/serverless)
-- **UI Components**: Comprehensive Radix UI component library
-- **Development Tools**: Replit-specific plugins for development environment integration
-- **Build Tools**: esbuild for server bundling, Vite for client bundling
-- **Validation**: Zod for runtime type validation and schema generation
+### Query Language Design
+- **Universal Syntax**: Custom query language that abstracts database differences
+- **Translation Layer**: Automatic conversion from universal syntax to database-specific queries (SQL, NoSQL, etc.)
+- **Parser Architecture**: Recursive descent parser handling joins, aggregations, filtering, and sorting
+- **Query Validation**: Syntax validation before translation and execution
 
-### Key Design Patterns
-- **Monorepo Structure**: Shared schema definitions between client and server in `/shared` directory
-- **Service Layer**: Separation of concerns with dedicated services for query parsing, translation, and connection management
-- **Component Architecture**: Modular React components with consistent UI patterns
-- **Type Safety**: End-to-end TypeScript with shared type definitions
-- **Error Handling**: Centralized error handling with proper HTTP status codes and user feedback
+### Authentication and Session Management
+- **Session Storage**: PostgreSQL-based session storage using connect-pg-simple
+- **Connection Security**: Encrypted credential storage for database connections
+- **Access Control**: Connection-based permissions with user isolation
 
-### Advanced Database Features
+### Development Tools and Configuration
+- **Build System**: Vite for frontend bundling with hot module replacement
+- **Type Safety**: Comprehensive TypeScript configuration across frontend and backend
+- **Code Quality**: Shared types through workspace structure with path aliases
+- **Development Server**: Integrated Vite middleware for seamless development experience
 
-#### Multi-Table Join Support
-- **SQL Joins**: Full support for INNER, LEFT, RIGHT, and FULL OUTER joins with ON conditions
-- **MongoDB Lookups**: Automatic translation to $lookup aggregation pipeline with join type handling
-- **Elasticsearch Nested**: Join simulation through nested object queries and parent-child relationships
-- **Cross-Database Joins**: Intelligent handling of joins across different database paradigms
+## External Dependencies
 
-#### NoSQL Schema Design Patterns
-- **DynamoDB Single-Table Design**: 
-  - Partition key (PK) and sort key (SK) support for efficient queries
-  - Global Secondary Index (GSI) querying capabilities
-  - KeyConditionExpression for optimal performance
-  - Composite key patterns like "TENANT#123" and "USER#456"
-- **MongoDB Document Relationships**:
-  - Embedded document querying with dot notation
-  - $lookup aggregation for cross-collection relationships
-  - Array field filtering and nested object support
-- **Elasticsearch Advanced Patterns**:
-  - Nested object queries with path-based filtering
-  - Parent-child relationship support
-  - Multi-level nested aggregations
+### Database Services
+- **Neon PostgreSQL**: Serverless PostgreSQL for primary application data storage
+- **AWS DynamoDB**: NoSQL document database support via AWS SDK
+- **Elasticsearch**: Full-text search and analytics engine
+- **Redis**: In-memory data structure store for caching
+- **MongoDB**: Document-oriented NoSQL database
 
-#### Advanced Redis Integration
-- **RedisSearch Support**: Automatic detection of complex queries with filtering and aggregation, translating to FT.SEARCH and FT.AGGREGATE commands
-- **RedisGraph Support**: Relational-style queries with ordering translate to Cypher-like syntax for graph operations
-- **Intelligent Module Selection**: Query complexity determines whether to use basic Redis, RedisSearch, or RedisGraph
-- **Mock Data Integration**: Realistic sample responses for both RedisSearch aggregation results and RedisGraph node data
+### Cloud and Infrastructure
+- **Replit Platform**: Development and hosting environment with integrated tools
+- **Vite Plugins**: Replit-specific plugins for error handling and cartographer integration
 
-#### Database-Specific Optimizations
-- **Query Language Extensions**: dbSpecific field in schema for database-native features
-- **Automatic Query Optimization**: Intelligent selection of optimal query patterns per database
-- **Schema-Aware Translation**: Understanding of each database's specific design patterns and limitations
+### Frontend Libraries
+- **UI Components**: Comprehensive Radix UI component library with accessibility features
+- **Styling**: Tailwind CSS with custom design system and CSS variables
+- **State Management**: TanStack Query for server state with optimistic updates
+- **Form Handling**: React Hook Form with resolver pattern for validation
 
-### Real Database Infrastructure Implementation (Latest Enhancement)
+### Backend Libraries
+- **Database**: Drizzle ORM with PostgreSQL adapter and Neon serverless driver
+- **Authentication**: Session-based authentication with PostgreSQL session store
+- **API Tools**: Express.js with middleware for logging, CORS, and request parsing
+- **Development**: TSX for TypeScript execution and esbuild for production builds
 
-#### Overview
-QueryFlow now features a complete dual-architecture system supporting both mock databases for development and real database connections for production deployment. The infrastructure is designed for clean separation to enable npm package deployment.
-
-#### Key Infrastructure Features
-- **Dual Architecture**: Mock databases (default) + Real databases (optional)
-- **Clean Separation**: Library code separated from database configuration for npm packaging
-- **Multi-Database Support**: PostgreSQL, MongoDB, Redis, DynamoDB Local, Elasticsearch
-- **Connection Management**: Robust connection pooling and error handling
-- **Configuration-Driven**: Environment-based configuration with sensible defaults
-
-#### Database Infrastructure Status
-
-| Database | Type | Status | Purpose |
-|----------|------|--------|---------|
-| PostgreSQL | SQL | ✅ Active | Primary database (Neon serverless) |
-| MongoDB | NoSQL | ✅ Ready | Document storage and aggregation |
-| Redis | Cache/Search | ✅ Ready | Caching with search/graph modules |
-| DynamoDB Local | NoSQL | ✅ Ready | AWS DynamoDB compatibility testing |
-| Elasticsearch | Search | ✅ Ready | Full-text search and analytics |
-
-#### Mock Data Cleanup & Production Ready (Completed August 2025)
-- **Complete Migration**: All mock data implementations removed ✅
-- **Real Database Storage**: PostgreSQL handles all persistent data ✅
-- **Connection Management**: RealConnectionManager with demonstration data ✅
-- **Database Seeding**: Real connection configurations populated ✅
-- **Query Execution**: Working across all supported database types ✅
-- **Clean Architecture**: Library core separated from infrastructure setup ✅
-
-#### System Status: Real Database Architecture (August 2025)
-- **Core Library**: ConnectionManager accepts external database connections by reference
-- **PostgreSQL**: Real database connection with proper error handling (table creation needed)
-- **Other Databases**: Mock database implementations that execute actual queries (not static data)
-- **Query Processing**: Uses existing QueryParser and QueryTranslator services 
-- **Connection Strategy**: Real database attempts first, mock database fallback with actual query processing
-- **Production Ready**: Clean library architecture ready for npm package deployment
-
-#### Architecture Components (Clean Library Design)
-- **Connection Manager** (`server/services/connection-manager.ts`): Core library that accepts database connections by reference
-- **Query Parser & Translator** (`server/services/`): Language-agnostic query processing
-- **Architecture Guide** (`ARCHITECTURE.md`): Complete library deployment documentation
-- **API Endpoints**: Development testing interface
-
-#### Removed Components (Major Cleanup - August 2025)
-- ❌ `server/services/real-connection-manager.ts`: Replaced with clean ConnectionManager
-- ❌ `server/database-manager.ts`: Removed complex database manager 
-- ❌ `server/config/database-config.ts`: Removed configuration complexity
-- ❌ `server/scripts/setup-databases.ts`: Removed unused setup script
-- ✅ **Clean Library Architecture**: Connection manager accepts external database clients by reference
-
-#### API Endpoints for Database Management
-- `GET /api/real-databases/status` - Check all database connection status
-- `POST /api/real-databases/initialize` - Initialize real database connections
-- Database Setup UI at `/databases` route
-
-#### NPM Package Deployment Readiness
-- **Library Core**: Query parser and translator services are database-agnostic
-- **Configuration Interface**: Users provide their own database configurations
-- **Connection Abstraction**: Clean interface for plugging in any database instances
-- **Zero Dependencies**: Core library works without specific database drivers
-
-#### Local Development Workflow
-1. **Database Setup**: PostgreSQL connection active for persistent storage
-2. **Connection Testing**: Use Database Setup UI to configure and test connections
-3. **Query Execution**: Real database connections handle query execution
-4. **Production Deployment**: Clean npm package with user-provided configurations
-
-#### Smart DynamoDB Single-Table Design (Previous Enhancement)
-The query abstraction intelligently handles DynamoDB single-table design patterns, automatically converting simple queries into optimal KeyConditionExpression operations. This eliminates manual partition/sort key management while ensuring maximum performance.
-
-**Entity Types Supported:**
-- Users: `PK=TENANT#123, SK=USER#{id}`
-- Orders: `PK=TENANT#123, SK=ORDER#{id}`  
-- Products: `PK=TENANT#123, SK=PRODUCT#{id}`
-
-**Performance Benefits:**
-- KeyConditionExpression for primary access (1000x faster than SCAN)
-- Automatic query optimization based on field analysis
+### Development and Build Tools
+- **TypeScript**: Strict type checking with comprehensive configuration
+- **ESLint/Prettier**: Code formatting and linting (implied by TypeScript setup)
+- **Vite**: Modern build tool with plugin ecosystem for development and production
+- **Drizzle Kit**: Database migration and schema management tools

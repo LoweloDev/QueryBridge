@@ -96,13 +96,14 @@ export class ConnectionManager {
    * Clean up all connections
    */
   cleanup(): void {
-    for (const [connectionId, connection] of this.activeConnections) {
+    this.activeConnections.forEach((connection, connectionId) => {
       // Close connection if it has a close method
       if (connection.client && typeof connection.client.close === 'function') {
         connection.client.close();
       }
       this.connectionConfigs.delete(connectionId);
-    }
+    });
+    this.activeConnections.clear();
   }
 
   /**
