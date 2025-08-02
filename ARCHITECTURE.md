@@ -77,11 +77,15 @@ server/                      # Demo infrastructure (not part of library)
 ## Console Output
 
 ```
-Registered PostgreSQL connection: PostgreSQL - Production
-No active connection for MongoDB - Demo, using demonstration data
+Successfully connected to PostgreSQL: PostgreSQL - Production
+Failed to setup real database for MongoDB - Analytics: Error: MongoDB connection failed: ECONNREFUSED 127.0.0.1:27017
+Connection failed for MongoDB - Analytics, using mock database
 ```
 
-This clearly shows when actual connections are used vs demonstration data.
+This clearly shows:
+1. Real database connection attempts and their success/failure
+2. Mock database fallback with actual query processing (not static data)
+3. Proper error handling for real databases
 
 ## Production Usage
 

@@ -57,24 +57,15 @@ export class ConnectionManager {
    * Execute a query on a registered connection
    */
   async execute(connectionId: string, translatedQuery: string): Promise<any> {
-    // First check if we have an active connection
+    // Check if we have an active connection
     const activeConnection = this.activeConnections.get(connectionId);
     
-    if (activeConnection && activeConnection.isConnected) {
-      // Execute on actual connection
-      return await this.executeOnConnection(activeConnection, translatedQuery);
+    if (!activeConnection || !activeConnection.isConnected) {
+      throw new Error(`No active connection found for ${connectionId}. Connection must be registered first.`);
     }
 
-    // Fall back to getting connection config and using demonstration data
-    const { storage } = await import("../storage");
-    const connectionConfig = await storage.getConnection(connectionId);
-    
-    if (!connectionConfig) {
-      throw new Error(`Connection ${connectionId} not found`);
-    }
-
-    console.log(`No active connection for ${connectionConfig.name}, using demonstration data`);
-    return this.generateDemonstrationData(connectionConfig.type, JSON.parse(translatedQuery));
+    // Execute on actual connection only
+    return await this.executeOnConnection(activeConnection, translatedQuery);
   }
 
   /**
@@ -106,27 +97,37 @@ export class ConnectionManager {
       return { rows: result.rows };
     }
     
-    // Handle structured query object
-    const sqlQuery = this.buildSQLFromQuery(query);
-    const result = await client.query(sqlQuery);
-    return { rows: result.rows };
+    // If it's already a translated SQL string from queryTranslator
+    if (query.sql) {
+      const result = await client.query(query.sql);
+      return { rows: result.rows };
+    }
+    
+    throw new Error('Invalid query format for PostgreSQL');
   }
 
   private async executeMongoDBQuery(client: any, query: any): Promise<any> {
-    // Assume client is a connected MongoDB database instance
-    const collection = client.collection(query.collection || 'users');
-    
-    if (query.operation === 'find' || !query.operation) {
-      const cursor = collection.find(query.filter || {});
+    // Execute MongoDB query from queryTranslator output
+    if (query.collection && query.operation) {
+      const collection = client.collection(query.collection);
       
-      if (query.projection) cursor.project(query.projection);
-      if (query.sort) cursor.sort(query.sort);
-      if (query.limit) cursor.limit(query.limit);
-      
-      return await cursor.toArray();
+      switch (query.operation) {
+        case 'find':
+          const cursor = collection.find(query.filter || {});
+          if (query.projection) cursor.project(query.projection);
+          if (query.sort) cursor.sort(query.sort);
+          if (query.limit) cursor.limit(query.limit);
+          return await cursor.toArray();
+          
+        case 'aggregate':
+          return await collection.aggregate(query.pipeline).toArray();
+          
+        default:
+          throw new Error(`Unsupported MongoDB operation: ${query.operation}`);
+      }
     }
     
-    throw new Error(`Unsupported MongoDB operation: ${query.operation}`);
+    throw new Error('Invalid query format for MongoDB');
   }
 
   private async executeRedisQuery(client: any, query: any): Promise<any> {
@@ -173,92 +174,7 @@ export class ConnectionManager {
     return response.body || response;
   }
 
-  private buildSQLFromQuery(query: any): string {
-    // Simple SQL building - in production this would be more sophisticated
-    if (query.table && query.operation === 'select') {
-      let sql = `SELECT ${query.fields ? query.fields.join(', ') : '*'} FROM ${query.table}`;
-      
-      if (query.where) {
-        const conditions = Object.entries(query.where)
-          .map(([key, value]) => `${key} = '${value}'`)
-          .join(' AND ');
-        sql += ` WHERE ${conditions}`;
-      }
-      
-      if (query.limit) {
-        sql += ` LIMIT ${query.limit}`;
-      }
-      
-      return sql;
-    }
-    
-    // Default fallback
-    return 'SELECT 1 as test';
-  }
 
-  /**
-   * Generate demonstration data when no actual connection is available
-   * This is only used for development/demo purposes
-   */
-  private generateDemonstrationData(dbType: string, query: any): any {
-    switch (dbType) {
-      case 'postgresql':
-      case 'mysql':
-        return {
-          rows: [
-            { id: 1, name: "Demo User 1", email: "demo1@example.com", status: "active" },
-            { id: 2, name: "Demo User 2", email: "demo2@example.com", status: "active" },
-            { id: 3, name: "Demo User 3", email: "demo3@example.com", status: "inactive" }
-          ]
-        };
-        
-      case 'mongodb':
-        return [
-          { _id: "demo_id_001", name: "Demo User 1", email: "demo1@example.com", status: "active" },
-          { _id: "demo_id_002", name: "Demo User 2", email: "demo2@example.com", status: "active" },
-          { _id: "demo_id_003", name: "Demo User 3", email: "demo3@example.com", status: "inactive" }
-        ];
-        
-      case 'elasticsearch':
-        return {
-          hits: {
-            total: { value: 3, relation: "eq" },
-            hits: [
-              { _source: { name: "Demo User 1", email: "demo1@example.com", status: "active" } },
-              { _source: { name: "Demo User 2", email: "demo2@example.com", status: "active" } },
-              { _source: { name: "Demo User 3", email: "demo3@example.com", status: "inactive" } }
-            ]
-          }
-        };
-        
-      case 'dynamodb':
-        return {
-          Items: [
-            { 
-              PK: { S: "DEMO#001" }, 
-              SK: { S: "USER#1" }, 
-              name: { S: "Demo User 1" }, 
-              status: { S: "active" } 
-            },
-            { 
-              PK: { S: "DEMO#002" }, 
-              SK: { S: "USER#2" }, 
-              name: { S: "Demo User 2" }, 
-              status: { S: "active" } 
-            }
-          ]
-        };
-        
-      case 'redis':
-        return {
-          keys: ["demo:user:1", "demo:user:2", "demo:user:3"],
-          type: "demonstration_data"
-        };
-        
-      default:
-        return { message: `No demonstration data available for ${dbType}` };
-    }
-  }
 
   /**
    * Check if a connection is registered and active
