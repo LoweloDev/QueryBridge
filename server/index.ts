@@ -2,9 +2,8 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { storage } from "./storage";
-import { RealDatabaseManager } from "./database-manager";
-import { localDatabaseConfig } from "./config/database-config";
-import { RealConnectionManager } from "./services/real-connection-manager";
+// Note: RealDatabaseManager and localDatabaseConfig removed - using simplified ConnectionManager
+import { ConnectionManager } from "./services/connection-manager";
 
 const app = express();
 app.use(express.json());
@@ -40,24 +39,36 @@ app.use((req, res, next) => {
   next();
 });
 
-// Real connection manager for production use
-const connectionManager = new RealConnectionManager();
+// Connection manager for external database connections
+const connectionManager = new ConnectionManager();
 
-// Initialize connections on startup
-async function initializeConnections() {
-  // Initialize the real database infrastructure first
-  await connectionManager.initialize();
-  
-  // No need to get connections from storage initially - 
-  // we'll manage them through the UI
-  log(`Connection manager initialized`);
+// For demonstration: we can register a PostgreSQL connection using our Neon database
+async function setupDemonstrationConnections() {
+  try {
+    // Get existing connections from storage
+    const connections = await storage.getConnections();
+    
+    // For each PostgreSQL connection, register it with our actual Neon database
+    for (const connection of connections) {
+      if (connection.type === 'postgresql') {
+        // In a real deployment, the host application would pass their database clients
+        // For demo purposes, we'll use our Neon connection
+        const { db } = await import("./db");
+        connectionManager.registerConnection(connection.id, { query: db.execute.bind(db) }, connection);
+        log(`Registered PostgreSQL connection: ${connection.name}`);
+      }
+      // For other database types, we'll use demonstration data until actual clients are provided
+    }
+  } catch (error) {
+    log(`Could not setup demonstration connections: ${error}`);
+  }
 }
 
 (async () => {
   const server = await registerRoutes(app, connectionManager);
   
-  // Initialize all connections
-  await initializeConnections();
+  // Setup demonstration connections
+  await setupDemonstrationConnections();
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
