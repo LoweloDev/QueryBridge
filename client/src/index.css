@@ -25,6 +25,7 @@
   --destructive-foreground: hsl(60, 9.1%, 97.8%);
   --ring: hsl(26, 14.3%, 4.1%);
   --radius: 0.5rem;
+  --border: hsl(214, 5.9%, 90%);
 
   /* Custom variables for QueryFlow */
   --primary-slate: hsl(207, 64%, 21%);
@@ -57,6 +58,7 @@
   --destructive: hsl(0, 62.8%, 30.6%);
   --destructive-foreground: hsl(0, 0%, 98%);
   --ring: hsl(240, 4.9%, 83.9%);
+  --border: hsl(240, 3.7%, 15.9%);
 }
 
 @layer base {
