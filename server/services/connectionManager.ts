@@ -215,27 +215,83 @@ class ElasticsearchDriver implements DatabaseDriver {
   }
   
   async execute(query: string): Promise<any> {
-    // Mock execution for demonstration with actual documents
+    const esQuery = JSON.parse(query);
+    
+    // All available mock users
+    const allUsers = [
+      {
+        _index: "users",
+        _id: "1", 
+        _source: { status: "active", age: 32, name: "John Doe", email: "john@example.com", created_at: "2023-01-15", order_count: 8, orders: { total: 299.99 } }
+      },
+      {
+        _index: "users",
+        _id: "2",
+        _source: { status: "premium", age: 45, name: "Jane Smith", email: "jane@example.com", created_at: "2023-02-20", order_count: 12, orders: { total: 899.99 } }
+      },
+      {
+        _index: "users", 
+        _id: "3",
+        _source: { status: "active", age: 28, name: "Bob Johnson", email: "bob@example.com", created_at: "2023-03-10", order_count: 5, orders: { total: 156.50 } }
+      },
+      {
+        _index: "users",
+        _id: "4", 
+        _source: { status: "trial", age: 31, name: "Alice Wilson", email: "alice@example.com", created_at: "2023-04-05", order_count: 2, orders: { total: 45.00 } }
+      },
+      {
+        _index: "users",
+        _id: "5",
+        _source: { status: "active", age: 29, name: "Charlie Brown", email: "charlie@example.com", created_at: "2023-05-12", order_count: 6, orders: { total: 378.25 } }
+      }
+    ];
+    
+    // Filter users based on query conditions
+    let filteredUsers = allUsers;
+    
+    // Check for status filter in term query
+    if (esQuery.query?.bool?.must) {
+      for (const condition of esQuery.query.bool.must) {
+        if (condition.term && condition.term['users.status']) {
+          const requiredStatus = condition.term['users.status'];
+          filteredUsers = filteredUsers.filter(user => user._source.status === requiredStatus);
+        }
+        if (condition.term && condition.term.status) {
+          const requiredStatus = condition.term.status;
+          filteredUsers = filteredUsers.filter(user => user._source.status === requiredStatus);
+        }
+      }
+    }
+    
+    // Apply field selection if specified
+    if (esQuery._source && esQuery._source.length > 0) {
+      filteredUsers = filteredUsers.map(user => {
+        const filteredSource: any = {};
+        for (const field of esQuery._source) {
+          const fieldName = field.replace('users.', '').replace('orders.', '');
+          if ((user._source as any)[fieldName] !== undefined) {
+            filteredSource[fieldName] = (user._source as any)[fieldName];
+          }
+          // Handle nested fields like orders.total
+          if (field.includes('orders.') && (user._source as any).orders) {
+            const orderField = field.replace('orders.', '');
+            if ((user._source as any).orders[orderField] !== undefined) {
+              if (!filteredSource.orders) filteredSource.orders = {};
+              filteredSource.orders[orderField] = (user._source as any).orders[orderField];
+            }
+          }
+        }
+        return {
+          ...user,
+          _source: filteredSource
+        };
+      });
+    }
+    
     return {
       hits: {
-        total: { value: 847 },
-        hits: [
-          {
-            _index: "users",
-            _id: "1",
-            _source: { status: "active", age: 32, name: "John Doe", created_at: "2023-01-15", order_count: 8 }
-          },
-          {
-            _index: "users", 
-            _id: "2",
-            _source: { status: "premium", age: 45, name: "Jane Smith", created_at: "2023-02-20", order_count: 12 }
-          },
-          {
-            _index: "users",
-            _id: "3", 
-            _source: { status: "active", age: 28, name: "Bob Johnson", created_at: "2023-03-10", order_count: 5 }
-          }
-        ]
+        total: { value: filteredUsers.length },
+        hits: filteredUsers
       },
       aggregations: {
         group_by: {
