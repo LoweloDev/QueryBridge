@@ -2,8 +2,22 @@ import { QueryLanguage, QueryLanguageSchema } from "./types";
 
 export class QueryParser {
   static parse(queryString: string): QueryLanguage {
-    // Enhanced parser for the common query language with joins and database-specific features
-    const lines = queryString.trim().split('\n').map(line => line.trim()).filter(line => line);
+    // Enhanced parser that handles both single-line and multi-line queries
+    const input = queryString.trim();
+    
+    // Check if it's a single-line query by detecting keywords on the same line
+    const isSingleLine = input.includes('WHERE') || input.includes('ORDER BY') || 
+                        input.includes('LIMIT') || input.includes('AGGREGATE') || 
+                        input.includes('GROUP BY');
+    
+    let lines: string[];
+    if (isSingleLine) {
+      // Split single-line query into logical sections
+      lines = this.splitSingleLineQuery(input);
+    } else {
+      // Multi-line query
+      lines = input.split('\n').map(line => line.trim()).filter(line => line);
+    }
     
     const result: Partial<QueryLanguage> = {};
     let currentSection = '';
@@ -15,7 +29,10 @@ export class QueryParser {
       
       if (upperLine.startsWith('FIND ')) {
         result.operation = 'FIND';
-        result.table = line.substring(5).trim();
+        const tablePart = line.substring(5).trim();
+        // Extract just the table name, not everything after FIND
+        const firstSpace = tablePart.indexOf(' ');
+        result.table = firstSpace > 0 ? tablePart.substring(0, firstSpace) : tablePart;
       } else if (upperLine.includes('JOIN')) {
         // Parse JOIN clauses (handle both "JOIN" and "LEFT JOIN", "RIGHT JOIN", etc.)
         if (!result.joins) result.joins = [];
@@ -103,6 +120,61 @@ export class QueryParser {
     return QueryLanguageSchema.parse(result);
   }
   
+  private static splitSingleLineQuery(queryString: string): string[] {
+    // Split a single-line query into logical sections while preserving quoted strings
+    const sections = [];
+    let current = '';
+    let inQuotes = false;
+    let quoteChar = '';
+    
+    // Keywords that start new sections
+    const keywords = ['WHERE', 'ORDER BY', 'LIMIT', 'OFFSET', 'AGGREGATE', 'GROUP BY', 'HAVING', 'JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'INNER JOIN', 'FULL OUTER JOIN'];
+    
+    for (let i = 0; i < queryString.length; i++) {
+      const char = queryString[i];
+      
+      if ((char === '"' || char === "'") && !inQuotes) {
+        inQuotes = true;
+        quoteChar = char;
+        current += char;
+      } else if (char === quoteChar && inQuotes) {
+        inQuotes = false;
+        quoteChar = '';
+        current += char;
+      } else if (!inQuotes) {
+        // Check if we're at the start of a keyword
+        let foundKeyword = false;
+        for (const keyword of keywords) {
+          if (queryString.substring(i, i + keyword.length).toUpperCase() === keyword) {
+            // Make sure it's a word boundary
+            const prevChar = i > 0 ? queryString[i - 1] : ' ';
+            const nextChar = i + keyword.length < queryString.length ? queryString[i + keyword.length] : ' ';
+            if (/\s/.test(prevChar) && (/\s/.test(nextChar) || nextChar === ':')) {
+              if (current.trim()) {
+                sections.push(current.trim());
+              }
+              current = keyword;
+              i += keyword.length - 1;
+              foundKeyword = true;
+              break;
+            }
+          }
+        }
+        if (!foundKeyword) {
+          current += char;
+        }
+      } else {
+        current += char;
+      }
+    }
+    
+    if (current.trim()) {
+      sections.push(current.trim());
+    }
+    
+    return sections;
+  }
+  
   private static parseWhere(whereClause: string) {
     const conditions = [];
     
@@ -179,14 +251,54 @@ export class QueryParser {
     for (const part of parts) {
       const trimmed = part.trim();
       // Handle "COUNT(id) AS total_orders" format
-      const funcMatch = trimmed.match(/(\w+)\(([^)]*)\)(?:\s+AS\s+(\w+))?/i);
-      if (funcMatch) {
-        const [, func, field, alias] = funcMatch;
-        aggregates.push({
-          function: func.toUpperCase() as any,
-          field: field || '*',
-          alias: alias || field,
-        });
+      // Handle "alias: FUNCTION(field)" format
+      if (trimmed.includes(':')) {
+        const [alias, aggPart] = trimmed.split(':').map(s => s.trim());
+        const funcMatch = aggPart.match(/(\w+)\((.*?)\)/);
+        if (funcMatch) {
+          const field = funcMatch[2].trim();
+          const func = funcMatch[1].toUpperCase();
+          let finalAlias = alias;
+          
+          // Generate proper aliases for common cases
+          if (!finalAlias) {
+            if (field === '*' && func === 'COUNT') {
+              finalAlias = 'count';
+            } else {
+              finalAlias = field;
+            }
+          }
+          
+          aggregates.push({
+            function: func as any,
+            field: field,
+            alias: finalAlias
+          });
+        }
+      }
+      // Handle "COUNT(id) AS total_orders" format
+      else {
+        const funcMatch = trimmed.match(/(\w+)\(([^)]*)\)(?:\s+AS\s+(\w+))?/i);
+        if (funcMatch) {
+          const field = funcMatch[2].trim() || '*';
+          const func = funcMatch[1].toUpperCase();
+          let alias = funcMatch[3];
+          
+          // Generate proper aliases for common cases
+          if (!alias) {
+            if (field === '*' && func === 'COUNT') {
+              alias = 'count';
+            } else {
+              alias = field;
+            }
+          }
+          
+          aggregates.push({
+            function: func as any,
+            field: field,
+            alias: alias
+          });
+        }
       }
     }
     
