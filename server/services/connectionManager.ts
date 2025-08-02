@@ -382,61 +382,211 @@ class DynamoDBDriver implements DatabaseDriver {
   async execute(query: string): Promise<any> {
     const dynamoQuery = JSON.parse(query);
     
-    // Single-table design mock data with proper tenant/user key structure
-    const allUsers = [
+    // Single-table design mock data with multiple entity types
+    const allData = [
+      // User entities
       { 
         PK: { S: "TENANT#123" },
         SK: { S: "USER#456" },
+        entity_type: { S: "user" },
         name: { S: "John Doe" },
         email: { S: "john@example.com" },
         status: { S: "active" },
         age: { N: "32" },
-        created_at: { S: "2024-01-15T10:30:00Z" },
-        orders: { M: { total: { N: "299.99" } } }
+        created_at: { S: "2024-01-15T10:30:00Z" }
       },
       { 
         PK: { S: "TENANT#123" },
         SK: { S: "USER#789" },
+        entity_type: { S: "user" },
         name: { S: "Jane Smith" },
         email: { S: "jane@example.com" },
         status: { S: "premium" },
         age: { N: "45" },
-        created_at: { S: "2024-02-20T14:20:00Z" },
-        orders: { M: { total: { N: "899.99" } } }
+        created_at: { S: "2024-02-20T14:20:00Z" }
       },
       { 
         PK: { S: "TENANT#123" },
         SK: { S: "USER#012" },
+        entity_type: { S: "user" },
         name: { S: "Bob Johnson" },
         email: { S: "bob@example.com" },
         status: { S: "active" },
         age: { N: "28" },
-        created_at: { S: "2024-03-10T16:45:00Z" },
-        orders: { M: { total: { N: "156.50" } } }
+        created_at: { S: "2024-03-10T16:45:00Z" }
       },
       { 
         PK: { S: "TENANT#456" },
         SK: { S: "USER#345" },
+        entity_type: { S: "user" },
         name: { S: "Alice Wilson" },
         email: { S: "alice@example.com" },
         status: { S: "trial" },
         age: { N: "31" },
-        created_at: { S: "2024-04-05T09:15:00Z" },
-        orders: { M: { total: { N: "45.00" } } }
+        created_at: { S: "2024-04-05T09:15:00Z" }
       },
       { 
         PK: { S: "TENANT#123" },
         SK: { S: "USER#678" },
+        entity_type: { S: "user" },
         name: { S: "Charlie Brown" },
         email: { S: "charlie@example.com" },
         status: { S: "active" },
         age: { N: "29" },
-        created_at: { S: "2024-05-12T11:30:00Z" },
-        orders: { M: { total: { N: "378.25" } } }
+        created_at: { S: "2024-05-12T11:30:00Z" }
+      },
+      
+      // Order entities
+      { 
+        PK: { S: "TENANT#123" },
+        SK: { S: "ORDER#001" },
+        entity_type: { S: "order" },
+        user_id: { S: "USER#456" },
+        total: { N: "299.99" },
+        status: { S: "completed" },
+        created_at: { S: "2024-01-20T14:30:00Z" },
+        items: { N: "3" }
+      },
+      { 
+        PK: { S: "TENANT#123" },
+        SK: { S: "ORDER#002" },
+        entity_type: { S: "order" },
+        user_id: { S: "USER#789" },
+        total: { N: "899.99" },
+        status: { S: "pending" },
+        created_at: { S: "2024-02-25T09:15:00Z" },
+        items: { N: "5" }
+      },
+      { 
+        PK: { S: "TENANT#123" },
+        SK: { S: "ORDER#003" },
+        entity_type: { S: "order" },
+        user_id: { S: "USER#012" },
+        total: { N: "156.50" },
+        status: { S: "completed" },
+        created_at: { S: "2024-03-15T16:20:00Z" },
+        items: { N: "2" }
+      },
+      { 
+        PK: { S: "TENANT#123" },
+        SK: { S: "ORDER#004" },
+        entity_type: { S: "order" },
+        user_id: { S: "USER#678" },
+        total: { N: "378.25" },
+        status: { S: "shipped" },
+        created_at: { S: "2024-05-15T12:45:00Z" },
+        items: { N: "4" }
+      },
+      
+      // Product entities
+      { 
+        PK: { S: "TENANT#123" },
+        SK: { S: "PRODUCT#P001" },
+        entity_type: { S: "product" },
+        name: { S: "Wireless Headphones" },
+        price: { N: "99.99" },
+        category: { S: "Electronics" },
+        stock: { N: "50" },
+        status: { S: "active" },
+        created_at: { S: "2024-01-01T00:00:00Z" }
+      },
+      { 
+        PK: { S: "TENANT#123" },
+        SK: { S: "PRODUCT#P002" },
+        entity_type: { S: "product" },
+        name: { S: "Gaming Mouse" },
+        price: { N: "79.99" },
+        category: { S: "Electronics" },
+        stock: { N: "25" },
+        status: { S: "active" },
+        created_at: { S: "2024-01-05T00:00:00Z" }
+      },
+      { 
+        PK: { S: "TENANT#123" },
+        SK: { S: "PRODUCT#P003" },
+        entity_type: { S: "product" },
+        name: { S: "Coffee Mug" },
+        price: { N: "19.99" },
+        category: { S: "Home" },
+        stock: { N: "100" },
+        status: { S: "active" },
+        created_at: { S: "2024-01-10T00:00:00Z" }
+      },
+      { 
+        PK: { S: "TENANT#123" },
+        SK: { S: "PRODUCT#P004" },
+        entity_type: { S: "product" },
+        name: { S: "Notebook Set" },
+        price: { N: "24.99" },
+        category: { S: "Office" },
+        stock: { N: "75" },
+        status: { S: "discontinued" },
+        created_at: { S: "2024-01-15T00:00:00Z" }
+      },
+      
+      // Category entities
+      { 
+        PK: { S: "TENANT#123" },
+        SK: { S: "CATEGORY#Electronics" },
+        entity_type: { S: "category" },
+        name: { S: "Electronics" },
+        description: { S: "Electronic devices and accessories" },
+        product_count: { N: "2" },
+        status: { S: "active" }
+      },
+      { 
+        PK: { S: "TENANT#123" },
+        SK: { S: "CATEGORY#Home" },
+        entity_type: { S: "category" },
+        name: { S: "Home" },
+        description: { S: "Home and kitchen items" },
+        product_count: { N: "1" },
+        status: { S: "active" }
+      },
+      { 
+        PK: { S: "TENANT#123" },
+        SK: { S: "CATEGORY#Office" },
+        entity_type: { S: "category" },
+        name: { S: "Office" },
+        description: { S: "Office supplies and equipment" },
+        product_count: { N: "1" },
+        status: { S: "active" }
+      },
+      
+      // Order Item entities (using composite keys for relationships)
+      { 
+        PK: { S: "TENANT#123" },
+        SK: { S: "ORDER#001#ITEM#P001" },
+        entity_type: { S: "order_item" },
+        order_id: { S: "ORDER#001" },
+        product_id: { S: "PRODUCT#P001" },
+        quantity: { N: "2" },
+        unit_price: { N: "99.99" },
+        total_price: { N: "199.98" }
+      },
+      { 
+        PK: { S: "TENANT#123" },
+        SK: { S: "ORDER#001#ITEM#P003" },
+        entity_type: { S: "order_item" },
+        order_id: { S: "ORDER#001" },
+        product_id: { S: "PRODUCT#P003" },
+        quantity: { N: "5" },
+        unit_price: { N: "19.99" },
+        total_price: { N: "99.95" }
+      },
+      { 
+        PK: { S: "TENANT#123" },
+        SK: { S: "ORDER#002#ITEM#P002" },
+        entity_type: { S: "order_item" },
+        order_id: { S: "ORDER#002" },
+        product_id: { S: "PRODUCT#P002" },
+        quantity: { N: "1" },
+        unit_price: { N: "79.99" },
+        total_price: { N: "79.99" }
       }
     ];
     
-    let filteredUsers = allUsers;
+    let filteredData = allData;
     
     // Check if this uses KeyConditionExpression (single-table design)
     if (dynamoQuery.KeyConditionExpression) {
@@ -446,12 +596,12 @@ class DynamoDBDriver implements DatabaseDriver {
         const skValue = dynamoQuery.ExpressionAttributeValues[':sk'];
         
         if (pkValue && skValue) {
-          filteredUsers = filteredUsers.filter(user => 
-            user.PK.S === pkValue && user.SK.S === skValue
+          filteredData = filteredData.filter((item: any) => 
+            item.PK.S === pkValue && item.SK.S === skValue
           );
         } else if (pkValue) {
           // If only partition key is specified, filter by that
-          filteredUsers = filteredUsers.filter(user => user.PK.S === pkValue);
+          filteredData = filteredData.filter((item: any) => item.PK.S === pkValue);
         }
       }
       
@@ -465,41 +615,33 @@ class DynamoDBDriver implements DatabaseDriver {
           const statusValue = dynamoQuery.ExpressionAttributeValues[valueKey];
           
           if (statusValue) {
-            filteredUsers = filteredUsers.filter(user => user.status.S === statusValue);
+            filteredData = filteredData.filter((item: any) => item.status && item.status.S === statusValue);
           }
         }
       }
       
       // Apply projection if specified
-      let finalUsers = filteredUsers;
+      let finalData = filteredData;
       if (dynamoQuery.ProjectionExpression && dynamoQuery.ExpressionAttributeNames) {
         const projectedFields = dynamoQuery.ProjectionExpression.split(', ');
         
-        finalUsers = filteredUsers.map(user => {
-          const projectedUser: any = {};
+        finalData = filteredData.map((item: any) => {
+          const projectedItem: any = {};
           projectedFields.forEach((field: string) => {
             const actualFieldName = dynamoQuery.ExpressionAttributeNames[field] || field;
-            const simpleFieldName = actualFieldName.replace('users.', '').replace('orders.', '');
+            const simpleFieldName = actualFieldName.replace('users.', '').replace('orders.', '').replace('products.', '');
             
-            if ((user as any)[simpleFieldName]) {
-              projectedUser[simpleFieldName] = (user as any)[simpleFieldName];
-            }
-            // Handle nested fields like orders.total
-            if (actualFieldName.includes('orders.') && user.orders) {
-              const orderField = actualFieldName.replace('orders.', '');
-              if (!projectedUser.orders) projectedUser.orders = { M: {} };
-              if (user.orders.M && (user.orders.M as any)[orderField]) {
-                projectedUser.orders.M[orderField] = (user.orders.M as any)[orderField];
-              }
+            if (item[simpleFieldName]) {
+              projectedItem[simpleFieldName] = item[simpleFieldName];
             }
           });
-          return projectedUser;
+          return projectedItem;
         });
       }
       
       return {
-        Items: finalUsers.slice(0, Math.min(finalUsers.length, 5)), // Return filtered and projected results
-        Count: Math.min(finalUsers.length, 5),
+        Items: finalData.slice(0, Math.min(finalData.length, 10)), // Return filtered and projected results
+        Count: Math.min(finalData.length, 10),
         queryPattern: "Single-table design with composite keys"
       };
     }
@@ -507,10 +649,10 @@ class DynamoDBDriver implements DatabaseDriver {
     // Check if this uses GSI
     if (dynamoQuery.IndexName) {
       // Filter by active status for GSI queries
-      filteredUsers = filteredUsers.filter(user => user.status.S === "active");
+      filteredData = filteredData.filter((item: any) => item.status && item.status.S === "active");
       return {
-        Items: filteredUsers,
-        Count: filteredUsers.length,
+        Items: filteredData,
+        Count: filteredData.length,
         queryPattern: "GSI query for cross-tenant status filtering"
       };
     }
@@ -523,39 +665,31 @@ class DynamoDBDriver implements DatabaseDriver {
         const valueKeys = Object.keys(dynamoQuery.ExpressionAttributeValues);
         const statusValue = valueKeys.length > 0 ? dynamoQuery.ExpressionAttributeValues[valueKeys[0]] : null;
         if (statusValue) {
-          filteredUsers = filteredUsers.filter(user => user.status.S === statusValue);
+          filteredData = filteredData.filter((item: any) => item.status && item.status.S === statusValue);
         }
       }
       
       // Apply projection if specified
       if (dynamoQuery.ProjectionExpression && dynamoQuery.ExpressionAttributeNames) {
         const projectedFields = dynamoQuery.ProjectionExpression.split(', ');
-        filteredUsers = filteredUsers.map(user => {
-          const projectedUser: any = {};
+        filteredData = filteredData.map((item: any) => {
+          const projectedItem: any = {};
           projectedFields.forEach((field: string) => {
             const actualFieldName = dynamoQuery.ExpressionAttributeNames[field] || field;
-            const simpleFieldName = actualFieldName.replace('users.', '').replace('orders.', '');
+            const simpleFieldName = actualFieldName.replace('users.', '').replace('orders.', '').replace('products.', '');
             
-            if ((user as any)[simpleFieldName]) {
-              projectedUser[simpleFieldName] = (user as any)[simpleFieldName];
-            }
-            // Handle nested fields like orders.total
-            if (actualFieldName.includes('orders.') && user.orders) {
-              const orderField = actualFieldName.replace('orders.', '');
-              if (!projectedUser.orders) projectedUser.orders = { M: {} };
-              if (user.orders.M && (user.orders.M as any)[orderField]) {
-                projectedUser.orders.M[orderField] = (user.orders.M as any)[orderField];
-              }
+            if (item[simpleFieldName]) {
+              projectedItem[simpleFieldName] = item[simpleFieldName];
             }
           });
-          return projectedUser;
+          return projectedItem;
         });
       }
     }
     
     return {
-      Items: filteredUsers,
-      Count: filteredUsers.length,
+      Items: filteredData,
+      Count: filteredData.length,
       queryPattern: "Table scan operation"
     };
   }
