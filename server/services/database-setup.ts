@@ -30,6 +30,39 @@ export class DatabaseSetup {
         host: process.env.PGHOST || 'localhost',
         port: parseInt(process.env.PGPORT || '5432'),
         database: process.env.PGDATABASE || 'postgres'
+      },
+      {
+        id: 'mongodb-analytics',
+        name: 'MongoDB - Analytics',
+        type: 'mongodb',
+        host: 'localhost',
+        port: 27017,
+        database: 'analytics'
+      },
+      {
+        id: 'redis-cache',
+        name: 'Redis - Cache',
+        type: 'redis',
+        host: 'localhost',
+        port: 6379,
+        database: '0'
+      },
+      {
+        id: 'dynamodb-users',
+        name: 'DynamoDB - Users',
+        type: 'dynamodb',
+        host: 'localhost',
+        port: 8000,
+        database: 'users',
+        region: 'us-east-1'
+      },
+      {
+        id: 'elasticsearch-search',
+        name: 'Elasticsearch - Search',
+        type: 'elasticsearch',
+        host: 'localhost',
+        port: 9200,
+        database: 'search'
       }
     ];
 
@@ -113,6 +146,7 @@ export class DatabaseSetup {
       const client = new Redis({
         host: config.host,
         port: config.port,
+        retryDelayOnFailover: 100,
         maxRetriesPerRequest: 1,
       });
 
