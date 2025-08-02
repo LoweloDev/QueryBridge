@@ -442,11 +442,11 @@ class DynamoDBDriver implements DatabaseDriver {
     if (dynamoQuery.KeyConditionExpression) {
       // Apply FilterExpression if present (for additional WHERE conditions)
       if (dynamoQuery.FilterExpression && dynamoQuery.ExpressionAttributeValues) {
-        // Parse the filter expression for status filtering
-        const filterMatch = dynamoQuery.FilterExpression.match(/#user\.status\s*=\s*(:val\d+)/);
+        // Parse the filter expression for status filtering (handles #users.status pattern)
+        const filterMatch = dynamoQuery.FilterExpression.match(/#users\.status\s*=\s*(:val\d+)/);
         
         if (filterMatch) {
-          const valueKey = filterMatch[1]; // Extract the :val2 part
+          const valueKey = filterMatch[1]; // Extract the :val0, :val1, :val2, etc.
           const statusValue = dynamoQuery.ExpressionAttributeValues[valueKey];
           
           if (statusValue) {
