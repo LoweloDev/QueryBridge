@@ -5,26 +5,7 @@ server/public
 vite.config.ts.*
 *.tar.gz
 
-# Database data directories (exclude from version control)
-server/data/
-server/mongodb/
-server/redis/
-server/dynamodb/
+# Exclude only the large database binaries and data causing 2GB size
 server/elasticsearch/
-
-# Database binaries and downloads
-server/mongodb-*
-server/redis-*
-server/dynamodb-local/
-*.tar
-*.zip
-
-# Temporary files
-.tmp/
-tmp/
-*.log
-*.pid
-
-# Database lock files
-*.lock
-*.db-wal
+server/data/mongodb/journal/
+*.tar.gz
