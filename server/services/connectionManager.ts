@@ -92,7 +92,7 @@ class SQLDriver implements DatabaseDriver {
     const sqlQuery = JSON.parse(query);
     
     // Check if this is a JOIN query
-    if (sqlQuery.includes('JOIN')) {
+    if (typeof sqlQuery === 'string' && sqlQuery.includes('JOIN')) {
       return {
         rows: [
           { 
