@@ -440,9 +440,31 @@ class DynamoDBDriver implements DatabaseDriver {
     
     // Check if this uses KeyConditionExpression (single-table design)
     if (dynamoQuery.KeyConditionExpression) {
+      // Apply FilterExpression if present (for additional WHERE conditions)
+      if (dynamoQuery.FilterExpression && dynamoQuery.ExpressionAttributeValues) {
+        console.log('DynamoDB FilterExpression:', dynamoQuery.FilterExpression);
+        console.log('DynamoDB ExpressionAttributeValues:', dynamoQuery.ExpressionAttributeValues);
+        
+        // Parse the filter expression for status filtering
+        const filterMatch = dynamoQuery.FilterExpression.match(/#user\.status\s*=\s*(:val\d+)/);
+        console.log('Filter match:', filterMatch);
+        
+        if (filterMatch) {
+          const valueKey = filterMatch[1]; // Extract the :val2 part
+          const statusValue = dynamoQuery.ExpressionAttributeValues[valueKey];
+          console.log('Value key:', valueKey, 'Status value:', statusValue);
+          
+          if (statusValue) {
+            const beforeCount = filteredUsers.length;
+            filteredUsers = filteredUsers.filter(user => user.status.S === statusValue);
+            console.log('Filtered users from', beforeCount, 'to', filteredUsers.length);
+          }
+        }
+      }
+      
       return {
-        Items: filteredUsers.slice(0, 2), // Return first 2 for key condition queries
-        Count: 2,
+        Items: filteredUsers.slice(0, Math.min(filteredUsers.length, 5)), // Return filtered results
+        Count: Math.min(filteredUsers.length, 5),
         queryPattern: "Single-table design with composite keys"
       };
     }
