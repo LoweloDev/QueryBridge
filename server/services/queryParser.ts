@@ -127,11 +127,23 @@ export class QueryParser {
           const [f, v] = condition.split(` ${op} `, 2);
           field = f.trim();
           operator = op;
-          value = v.trim().replace(/^["']|["']$/g, ''); // Remove quotes
+          let rawValue = v.trim();
           
-          // Try to convert to number if it's numeric
-          if (!isNaN(Number(value)) && value !== '') {
-            value = Number(value);
+          // Check if value is quoted (string literal)
+          const isQuoted = (rawValue.startsWith('"') && rawValue.endsWith('"')) || 
+                          (rawValue.startsWith("'") && rawValue.endsWith("'"));
+          
+          if (isQuoted) {
+            // Remove quotes for quoted strings
+            value = rawValue.slice(1, -1);
+          } else {
+            // Try to convert to number if it's numeric
+            if (!isNaN(Number(rawValue)) && rawValue !== '') {
+              value = Number(rawValue);
+            } else {
+              // Treat unquoted non-numeric values as strings
+              value = rawValue;
+            }
           }
           break;
         }
