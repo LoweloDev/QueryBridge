@@ -48,12 +48,10 @@ export async function registerRoutes(app: Express, connectionManager?: any): Pro
       if (connectionManager) {
         const connected = await connectionManager.connect(connection);
         await storage.updateConnection(connection.id, { isActive: connected });
+        res.json({ connected });
       } else {
         res.status(503).json({ error: "Connection manager not available" });
-        return;
       }
-      
-      res.json({ connected });
     } catch (error) {
       res.status(500).json({ error: "Failed to test connection" });
     }
