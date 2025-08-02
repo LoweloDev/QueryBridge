@@ -15,6 +15,8 @@ export class QueryTranslator {
           `${agg.function}(${agg.field}) AS ${agg.alias || agg.field}`
         ));
         sql = `SELECT ${selectFields.join(', ')}`;
+      } else if (query.fields && query.fields.length > 0) {
+        sql = `SELECT ${query.fields.join(', ')}`;
       } else {
         sql = 'SELECT *';
       }
@@ -155,6 +157,15 @@ export class QueryTranslator {
           mongoQuery.aggregate.push({ $group: groupStage });
         }
         
+        // Project stage for field selection
+        if (query.fields && query.fields.length > 0) {
+          const projectStage: any = {};
+          for (const field of query.fields) {
+            projectStage[field] = 1;
+          }
+          mongoQuery.aggregate.push({ $project: projectStage });
+        }
+        
         // Sort stage
         if (query.orderBy) {
           const sortStage: any = {};
@@ -185,6 +196,14 @@ export class QueryTranslator {
             } else {
               mongoQuery.find[condition.field] = condition.value;
             }
+          }
+        }
+        
+        // Project specific fields
+        if (query.fields && query.fields.length > 0) {
+          mongoQuery.project = {};
+          for (const field of query.fields) {
+            mongoQuery.project[field] = 1;
           }
         }
         
@@ -654,6 +673,11 @@ export class QueryTranslator {
       searchQuery.options.LIMIT = [0, query.limit];
     }
     
+    // Return specific fields
+    if (query.fields && query.fields.length > 0) {
+      searchQuery.options.RETURN = query.fields.map(field => `@${field}`);
+    }
+    
     return searchQuery;
   }
   
@@ -704,6 +728,9 @@ export class QueryTranslator {
       } else {
         cypherQuery += ` RETURN ${aggregations.join(', ')}`;
       }
+    } else if (query.fields && query.fields.length > 0) {
+      const returnFields = query.fields.map(field => `n.${field}`);
+      cypherQuery += ` RETURN ${returnFields.join(', ')}`;
     } else {
       cypherQuery += ' RETURN n';
     }

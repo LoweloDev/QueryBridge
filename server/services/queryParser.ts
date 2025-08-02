@@ -14,8 +14,8 @@ export class QueryParser {
       if (upperLine.startsWith('FIND ')) {
         result.operation = 'FIND';
         result.table = line.substring(5).trim();
-      } else if (upperLine.includes(' JOIN ')) {
-        // Parse JOIN clauses
+      } else if (upperLine.includes('JOIN')) {
+        // Parse JOIN clauses (handle both "JOIN" and "LEFT JOIN", "RIGHT JOIN", etc.)
         if (!result.joins) result.joins = [];
         result.joins.push(this.parseJoin(line));
       } else if (upperLine.startsWith('WHERE')) {
