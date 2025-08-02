@@ -138,6 +138,10 @@ const elasticsearchNestedSchema = z.object({
 
 // Database-specific configurations
 const databaseSpecificSchema = z.object({
+  // Legacy support for simple key-value pairs
+  partition_key: z.string().optional(),
+  sort_key: z.string().optional(),
+  // New structured format
   dynamodb: dynamoDbKeySchema.optional(),
   mongodb: mongoDbSchema.optional(),
   elasticsearch: z.object({
