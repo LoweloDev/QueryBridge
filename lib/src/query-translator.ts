@@ -111,17 +111,66 @@ export class QueryTranslator {
       const needsAggregation = query.joins || query.aggregate || query.groupBy || query.dbSpecific?.mongodb;
       
       if (needsAggregation) {
+        mongoQuery.collection = query.table;
+        mongoQuery.operation = 'aggregate';
         mongoQuery.aggregate = [];
         
         // Start with match stage for WHERE conditions
         if (query.where && query.where.length > 0) {
           const matchStage: any = {};
           for (const condition of query.where) {
-            const mongoOperator = this.sqlToMongoOperator(condition.operator);
-            if (mongoOperator) {
-              matchStage[condition.field] = { [mongoOperator]: condition.value };
-            } else {
+            if (condition.operator === 'LIKE') {
+              const regexValue = condition.value.replace(/%/g, '.*');
+              matchStage[condition.field] = { $regex: regexValue, $options: 'i' };
+            } else if (condition.operator === 'IN') {
+              let inValues = condition.value;
+              if (!Array.isArray(inValues)) {
+                if (typeof inValues === 'string') {
+                  // Handle different string formats: ['a','b'] or ["a","b"] or [a,b]
+                  if (inValues.startsWith('[') && inValues.endsWith(']')) {
+                    try {
+                      inValues = JSON.parse(inValues.replace(/'/g, '"'));
+                    } catch {
+                      // If JSON parse fails, split by comma and clean up
+                      inValues = inValues.slice(1, -1).split(',').map((v: string) => v.trim().replace(/['"]/g, ''));
+                    }
+                  } else {
+                    inValues = [inValues];
+                  }
+                } else {
+                  inValues = [inValues];
+                }
+              }
+              matchStage[condition.field] = { $in: inValues };
+            } else if (condition.operator === 'NOT IN') {
+              let inValues = condition.value;
+              if (!Array.isArray(inValues)) {
+                if (typeof inValues === 'string') {
+                  // Handle different string formats: ['a','b'] or ["a","b"] or [a,b]
+                  if (inValues.startsWith('[') && inValues.endsWith(']')) {
+                    try {
+                      inValues = JSON.parse(inValues.replace(/'/g, '"'));
+                    } catch {
+                      // If JSON parse fails, split by comma and clean up
+                      inValues = inValues.slice(1, -1).split(',').map((v: string) => v.trim().replace(/['"]/g, ''));
+                    }
+                  } else {
+                    inValues = [inValues];
+                  }
+                } else {
+                  inValues = [inValues];
+                }
+              }
+              matchStage[condition.field] = { $nin: inValues };
+            } else if (condition.operator === '=') {
               matchStage[condition.field] = condition.value;
+            } else {
+              const mongoOperator = this.sqlToMongoOperator(condition.operator);
+              if (mongoOperator) {
+                matchStage[condition.field] = { [mongoOperator]: condition.value };
+              } else {
+                matchStage[condition.field] = condition.value;
+              }
             }
           }
           mongoQuery.aggregate.push({ $match: matchStage });
@@ -169,8 +218,12 @@ export class QueryTranslator {
           const groupStage: any = { _id: {} };
           
           if (query.groupBy) {
-            for (const field of query.groupBy) {
-              groupStage._id[field] = `$${field}`;
+            if (query.groupBy.length === 1) {
+              groupStage._id = `$${query.groupBy[0]}`;
+            } else {
+              for (const field of query.groupBy) {
+                groupStage._id[field] = `$${field}`;
+              }
             }
           } else {
             groupStage._id = null; // Global aggregation
@@ -178,8 +231,12 @@ export class QueryTranslator {
           
           if (query.aggregate) {
             for (const agg of query.aggregate) {
-              const mongoAggFunc = this.sqlToMongoAggregateFunction(agg.function);
-              groupStage[agg.alias || agg.field] = { [mongoAggFunc]: `$${agg.field}` };
+              if (agg.function === 'COUNT') {
+                groupStage[agg.alias || agg.field] = { $sum: 1 };
+              } else {
+                const mongoAggFunc = this.sqlToMongoAggregateFunction(agg.function);
+                groupStage[agg.alias || agg.field] = { [mongoAggFunc]: `$${agg.field}` };
+              }
             }
           }
           
@@ -216,23 +273,73 @@ export class QueryTranslator {
         
       } else {
         // Simple find query without aggregation
+        mongoQuery.collection = query.table;
+        mongoQuery.operation = 'find';
+        mongoQuery.query = {};
+        mongoQuery.projection = {};
+        
         if (query.where && query.where.length > 0) {
-          mongoQuery.find = {};
           for (const condition of query.where) {
-            const mongoOperator = this.sqlToMongoOperator(condition.operator);
-            if (mongoOperator) {
-              mongoQuery.find[condition.field] = { [mongoOperator]: condition.value };
+            if (condition.operator === 'LIKE') {
+              const regexValue = condition.value.replace(/%/g, '.*');
+              mongoQuery.query[condition.field] = { $regex: regexValue, $options: 'i' };
+            } else if (condition.operator === 'IN') {
+              let inValues = condition.value;
+              if (!Array.isArray(inValues)) {
+                if (typeof inValues === 'string') {
+                  // Handle different string formats: ['a','b'] or ["a","b"] or [a,b]
+                  if (inValues.startsWith('[') && inValues.endsWith(']')) {
+                    try {
+                      inValues = JSON.parse(inValues.replace(/'/g, '"'));
+                    } catch {
+                      // If JSON parse fails, split by comma and clean up
+                      inValues = inValues.slice(1, -1).split(',').map((v: string) => v.trim().replace(/['"]/g, ''));
+                    }
+                  } else {
+                    inValues = [inValues];
+                  }
+                } else {
+                  inValues = [inValues];
+                }
+              }
+              mongoQuery.query[condition.field] = { $in: inValues };
+            } else if (condition.operator === 'NOT IN') {
+              let inValues = condition.value;
+              if (!Array.isArray(inValues)) {
+                if (typeof inValues === 'string') {
+                  // Handle different string formats: ['a','b'] or ["a","b"] or [a,b]
+                  if (inValues.startsWith('[') && inValues.endsWith(']')) {
+                    try {
+                      inValues = JSON.parse(inValues.replace(/'/g, '"'));
+                    } catch {
+                      // If JSON parse fails, split by comma and clean up
+                      inValues = inValues.slice(1, -1).split(',').map((v: string) => v.trim().replace(/['"]/g, ''));
+                    }
+                  } else {
+                    inValues = [inValues];
+                  }
+                } else {
+                  inValues = [inValues];
+                }
+              }
+              mongoQuery.query[condition.field] = { $nin: inValues };
+            } else if (condition.operator === '=') {
+              mongoQuery.query[condition.field] = condition.value;
             } else {
-              mongoQuery.find[condition.field] = condition.value;
+              const mongoOperator = this.sqlToMongoOperator(condition.operator);
+              if (mongoOperator) {
+                mongoQuery.query[condition.field] = { [mongoOperator]: condition.value };
+              } else {
+                mongoQuery.query[condition.field] = condition.value;
+              }
             }
           }
         }
         
         // Project specific fields
         if (query.fields && query.fields.length > 0) {
-          mongoQuery.project = {};
           for (const field of query.fields) {
-            mongoQuery.project[field] = 1;
+            mongoQuery.projection[field] = 1;
           }
         }
         
@@ -246,6 +353,10 @@ export class QueryTranslator {
         if (query.limit) {
           mongoQuery.limit = query.limit;
         }
+        
+        if (query.offset) {
+          mongoQuery.skip = query.offset;
+        }
       }
     }
     
@@ -254,7 +365,9 @@ export class QueryTranslator {
   
   static toElasticsearch(query: QueryLanguage): object {
     const esQuery: any = {
-      query: { bool: { must: [] } },
+      body: {
+        query: { bool: { must: [] } }
+      }
     };
     
     if (query.operation === 'FIND') {
@@ -263,7 +376,7 @@ export class QueryTranslator {
       
       // Handle nested queries
       if (esSpecific?.nested) {
-        esQuery.query = {
+        esQuery.body.query = {
           nested: {
             path: esSpecific.nested.path,
             query: esSpecific.nested.query,
@@ -273,7 +386,7 @@ export class QueryTranslator {
       }
       // Handle parent-child relationships
       else if (esSpecific?.parentChild) {
-        esQuery.query = {
+        esQuery.body.query = {
           has_child: {
             type: esSpecific.parentChild.type,
             query: { match_all: {} }
@@ -311,7 +424,7 @@ export class QueryTranslator {
         }
         
         // Always use bool query structure when we have joins + where conditions
-        esQuery.query = {
+        esQuery.body.query = {
           bool: {
             must: mustConditions
           }
@@ -322,17 +435,17 @@ export class QueryTranslator {
         for (const condition of query.where) {
           const esCondition = this.sqlToESCondition(condition);
           if (esCondition) {
-            esQuery.query.bool.must.push(esCondition);
+            esQuery.body.query.bool.must.push(esCondition);
           }
         }
       } else {
         // Default to match_all if no conditions
-        esQuery.query = { match_all: {} };
+        esQuery.body.query = { match_all: {} };
       }
       
       // Add aggregations with nested support
       if (query.aggregate && query.aggregate.length > 0) {
-        esQuery.aggs = {};
+        esQuery.body.aggs = {};
         
         if (query.groupBy) {
           const groupField = query.groupBy[0];
@@ -357,14 +470,14 @@ export class QueryTranslator {
               };
             }
           } else {
-            esQuery.aggs.group_by = {
+            esQuery.body.aggs.group_by = {
               terms: { field: groupField },
               aggs: {},
             };
             
             for (const agg of query.aggregate) {
               const esAggFunc = this.sqlToESAggregateFunction(agg.function);
-              esQuery.aggs.group_by.aggs[agg.alias || agg.field] = {
+              esQuery.body.aggs.group_by.aggs[agg.alias || agg.field] = {
                 [esAggFunc]: { field: agg.field },
               };
             }
@@ -372,7 +485,7 @@ export class QueryTranslator {
         } else {
           for (const agg of query.aggregate) {
             const esAggFunc = this.sqlToESAggregateFunction(agg.function);
-            esQuery.aggs[agg.alias || agg.field] = {
+            esQuery.body.aggs[agg.alias || agg.field] = {
               [esAggFunc]: { field: agg.field },
             };
           }
@@ -381,23 +494,23 @@ export class QueryTranslator {
       
       // Add sorting
       if (query.orderBy && query.orderBy.length > 0) {
-        esQuery.sort = query.orderBy.map(order => ({
+        esQuery.body.sort = query.orderBy.map(order => ({
           [order.field]: { order: order.direction.toLowerCase() },
         }));
       }
       
       // Add size (limit) and from (offset)
       if (query.limit) {
-        esQuery.size = query.limit;
+        esQuery.body.size = query.limit;
       }
       
       if (query.offset) {
-        esQuery.from = query.offset;
+        esQuery.body.from = query.offset;
       }
       
       // Add source filtering for field selection
       if (query.fields && query.fields.length > 0) {
-        esQuery._source = query.fields;
+        esQuery.body._source = query.fields;
       }
     }
     
@@ -570,6 +683,7 @@ export class QueryTranslator {
       }
     }
     
+    dynamoQuery.operation = 'query';
     return this.addProjectionAndLimits(query, dynamoQuery);
   }
   
@@ -654,12 +768,13 @@ export class QueryTranslator {
       }
     }
     
+    dynamoQuery.operation = 'query';
     return this.addProjectionAndLimits(query, dynamoQuery);
   }
   
   private static buildTraditionalDynamoQuery(query: QueryLanguage, dynamoQuery: any): object {
     // Fallback to scan operation for traditional queries
-    dynamoQuery.operation = 'SCAN';
+    dynamoQuery.operation = 'scan';
     
     if (query.where && query.where.length > 0) {
       const filterExpressions: string[] = [];
@@ -728,7 +843,7 @@ export class QueryTranslator {
   private static sqlToMongoAggregateFunction(sqlFunc: string): string {
     const mapping: Record<string, string> = {
       'COUNT': '$sum',
-      'SUM': '$sum',
+      'SUM': '$sum', 
       'AVG': '$avg',
       'MIN': '$min',
       'MAX': '$max',
@@ -744,7 +859,11 @@ export class QueryTranslator {
       case '=':
         return { term: { [field]: value } };
       case '!=':
-        return { bool: { must_not: { term: { [field]: value } } } };
+        return { bool: { must_not: [{ term: { [field]: value } }] } };
+      case 'IN':
+        return { terms: { [field]: Array.isArray(value) ? value : [value] } };
+      case 'NOT IN':
+        return { bool: { must_not: [{ terms: { [field]: Array.isArray(value) ? value : [value] } }] } };
       case '>':
         return { range: { [field]: { gt: value } } };
       case '<':
@@ -754,7 +873,9 @@ export class QueryTranslator {
       case '<=':
         return { range: { [field]: { lte: value } } };
       case 'LIKE':
-        return { wildcard: { [field]: `*${value}*` } };
+        return { match: { [field]: value.replace('%', '*') } };
+      case 'ILIKE':
+        return { match: { [field]: { query: value.replace('%', '*'), case_insensitive: true } } };
       default:
         return null;
     }
@@ -784,45 +905,61 @@ export class QueryTranslator {
   }
   
   static toRedis(query: QueryLanguage): object {
-    const hasComplexQuery = query.where && query.where.length > 0;
-    const hasAggregation = query.aggregate && query.aggregate.length > 0;
-    const hasGroupBy = query.groupBy && query.groupBy.length > 0;
+    const dbSpecific = query.dbSpecific?.redis;
     
-    // Use RedisSearch for complex queries with filtering and aggregation
-    if (hasComplexQuery || hasAggregation || hasGroupBy) {
-      return this.toRedisSearch(query);
-    }
-    
-    // Use RedisGraph for relational-style queries
-    if (query.orderBy && query.orderBy.length > 0) {
-      return this.toRedisGraph(query);
-    }
-    
-    // Fallback to basic Redis operations
-    const redisQuery: any = {
-      operation: 'SCAN',
-      pattern: '*',
-    };
-    
-    if (query.operation === 'FIND') {
-      if (query.where && query.where.length > 0) {
-        const conditions = query.where.map(condition => {
-          if (condition.operator === '=' && condition.field === 'key') {
-            return condition.value;
-          } else if (condition.operator === 'LIKE' && condition.field === 'key') {
-            return condition.value.replace('%', '*');
-          }
-          return '*';
-        });
-        redisQuery.pattern = conditions.length > 0 ? conditions[0] : '*';
+    // Handle specific Redis operations from DB_SPECIFIC
+    if (dbSpecific) {
+      if (dbSpecific.operation === 'subscribe') {
+        return {
+          operation: 'SUBSCRIBE',
+          channels: query.where?.map(w => w.value) || []
+        };
       }
       
-      if (query.limit) {
-        redisQuery.count = query.limit;
+      if (dbSpecific.operation === 'psubscribe') {
+        return {
+          operation: 'PSUBSCRIBE',
+          patterns: query.where?.map(w => w.value) || []
+        };
+      }
+      
+      if (dbSpecific.search_index) {
+        return this.toRedisSearch(query);
+      }
+      
+      if (dbSpecific.graph_name) {
+        return this.toRedisGraph(query, dbSpecific.graph_name);
+      }
+      
+      if (dbSpecific.data_type) {
+        return this.toRedisDataStructure(query, dbSpecific);
       }
     }
     
-    return redisQuery;
+    // Check for specific key lookup
+    const keyCondition = query.where?.find(w => w.field === 'key' && w.operator === '=');
+    if (keyCondition) {
+      return {
+        operation: 'GET',
+        key: keyCondition.value
+      };
+    }
+    
+    // Check for batch key lookup
+    const inCondition = query.where?.find(w => w.field === 'id' && w.operator === 'IN');
+    if (inCondition && Array.isArray(inCondition.value)) {
+      return {
+        operation: 'MGET',
+        keys: inCondition.value.map(id => `${query.table}:${id}`)
+      };
+    }
+    
+    // Default to SCAN operation
+    return {
+      operation: 'SCAN',
+      pattern: `${query.table}:*`,
+      count: query.limit || 1000
+    };
   }
   
   private static toRedisSearch(query: QueryLanguage): object {
@@ -919,16 +1056,15 @@ export class QueryTranslator {
     return searchQuery;
   }
   
-  private static toRedisGraph(query: QueryLanguage): object {
+  private static toRedisGraph(query: QueryLanguage, graphName?: string): object {
     const graphQuery: any = {
-      module: 'RedisGraph',
-      command: 'GRAPH.QUERY',
-      graph: query.table,
-      query: ''
+      operation: 'GRAPH.QUERY',
+      graph: graphName || query.table,
+      cypher: ''
     };
     
     // Build Cypher-like query
-    let cypherQuery = `MATCH (n:${query.table})`;
+    let cypherQuery = `MATCH (${query.table}:${query.table.charAt(0).toUpperCase() + query.table.slice(1).slice(0, -1)})`;
     
     // WHERE clause
     if (query.where && query.where.length > 0) {
@@ -984,7 +1120,122 @@ export class QueryTranslator {
       cypherQuery += ` LIMIT ${query.limit}`;
     }
     
-    graphQuery.query = cypherQuery;
+    graphQuery.cypher = cypherQuery;
     return graphQuery;
+  }
+  
+  private static toRedisDataStructure(query: QueryLanguage, dbSpecific: any): object {
+    const dataType = dbSpecific.data_type;
+    
+    switch (dataType) {
+      case 'hash': {
+        const keyCondition = query.where?.find(w => w.field.includes('id'));
+        if (keyCondition) {
+          return {
+            operation: 'HGETALL',
+            key: `${query.table}:${keyCondition.value}`
+          };
+        }
+        break;
+      }
+      
+      case 'set': {
+        const keyCondition = query.where?.find(w => w.field.includes('id'));
+        if (keyCondition) {
+          return {
+            operation: 'SMEMBERS',
+            key: `${query.table}:${keyCondition.value}`
+          };
+        }
+        break;
+      }
+      
+      case 'zset': {
+        const scoreCondition = query.where?.find(w => w.field === 'score');
+        if (scoreCondition) {
+          return {
+            operation: 'ZRANGEBYSCORE',
+            key: query.table,
+            min: scoreCondition.operator === '>=' ? scoreCondition.value : scoreCondition.value + 1,
+            max: '+inf',
+            limit: query.limit ? { offset: 0, count: query.limit } : undefined
+          };
+        }
+        break;
+      }
+      
+      case 'list': {
+        const keyCondition = query.where?.find(w => w.field.includes('id'));
+        if (keyCondition) {
+          return {
+            operation: 'LRANGE',
+            key: `${query.table}:${keyCondition.value}`,
+            start: 0,
+            stop: query.limit ? query.limit - 1 : -1
+          };
+        }
+        break;
+      }
+      
+      case 'stream': {
+        const streamIdCondition = query.where?.find(w => w.field === 'stream_id');
+        if (streamIdCondition) {
+          return {
+            operation: 'XRANGE',
+            key: query.table,
+            start: streamIdCondition.value,
+            end: '+',
+            count: query.limit || 100
+          };
+        }
+        
+        if (dbSpecific.consumer && dbSpecific.group) {
+          return {
+            operation: 'XREADGROUP',
+            group: dbSpecific.group,
+            consumer: dbSpecific.consumer,
+            streams: { [query.table]: '>' },
+            count: query.limit || 10
+          };
+        }
+        break;
+      }
+      
+      case 'geo': {
+        const latCondition = query.where?.find(w => w.field === 'lat');
+        const lonCondition = query.where?.find(w => w.field === 'lon');
+        const radiusCondition = query.where?.find(w => w.field === 'radius');
+        
+        if (latCondition && lonCondition && radiusCondition) {
+          return {
+            operation: 'GEORADIUS',
+            key: query.table,
+            longitude: lonCondition.value,
+            latitude: latCondition.value,
+            radius: radiusCondition.value,
+            unit: 'm'
+          };
+        }
+        break;
+      }
+      
+      case 'hyperloglog': {
+        const dateCondition = query.where?.find(w => w.field === 'date');
+        if (dateCondition) {
+          return {
+            operation: 'PFCOUNT',
+            keys: [`${query.table}:${dateCondition.value}`]
+          };
+        }
+        break;
+      }
+    }
+    
+    // Fallback to basic operations
+    return {
+      operation: 'SCAN',
+      pattern: `${query.table}:*`,
+      count: query.limit || 1000
+    };
   }
 }

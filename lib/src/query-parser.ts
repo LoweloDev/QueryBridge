@@ -178,16 +178,15 @@ export class QueryParser {
     
     for (const part of parts) {
       const trimmed = part.trim();
-      if (trimmed.includes(':')) {
-        const [alias, func] = trimmed.split(':');
-        const funcMatch = func.trim().match(/(\w+)\(([^)]*)\)/);
-        if (funcMatch) {
-          aggregates.push({
-            field: funcMatch[2] || '*',
-            function: funcMatch[1].toUpperCase() as any,
-            alias: alias.trim(),
-          });
-        }
+      // Handle "COUNT(id) AS total_orders" format
+      const funcMatch = trimmed.match(/(\w+)\(([^)]*)\)(?:\s+AS\s+(\w+))?/i);
+      if (funcMatch) {
+        const [, func, field, alias] = funcMatch;
+        aggregates.push({
+          function: func.toUpperCase() as any,
+          field: field || '*',
+          alias: alias || field,
+        });
       }
     }
     
@@ -208,8 +207,8 @@ export class QueryParser {
       joinType = 'FULL';
     }
     
-    // Extract table name and ON condition
-    const joinMatch = joinClause.match(/(?:(?:INNER|LEFT|RIGHT|FULL(?:\s+OUTER)?)\s+)?JOIN\s+(\w+)(?:\s+AS\s+(\w+))?\s+ON\s+([^=]+)\s*=\s*(.+)/i);
+    // Extract table name and ON condition - handle table aliases like "orders o"
+    const joinMatch = joinClause.match(/(?:(?:INNER|LEFT|RIGHT|FULL(?:\s+OUTER)?)\s+)?JOIN\s+(\w+)(?:\s+(\w+))?\s+ON\s+([^=]+)\s*=\s*(.+)/i);
     
     if (!joinMatch) {
       throw new Error(`Invalid JOIN syntax: ${joinClause}`);

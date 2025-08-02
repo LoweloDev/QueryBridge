@@ -72,8 +72,12 @@ export interface ActiveConnection {
 
 export interface QueryResult {
   rows?: any[];
+  data?: any;
   count?: number;
   metadata?: any;
+  success?: boolean;
+  translatedQuery?: string | object;
+  originalQuery?: string;
 }
 
 export interface TranslationResult {

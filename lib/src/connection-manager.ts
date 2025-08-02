@@ -71,7 +71,27 @@ export class ConnectionManager {
     // Update last used time
     connection.lastUsed = new Date();
     
-    return results;
+    // Add translation metadata to results
+    return {
+      ...results,
+      success: true,
+      translatedQuery,
+      originalQuery: queryString
+    };
+  }
+
+  /**
+   * Get active connections (for testing/monitoring)
+   */
+  getActiveConnections(): Map<string, ActiveConnection> {
+    return this.activeConnections;
+  }
+
+  /**
+   * Get connection configurations (for testing/monitoring)
+   */
+  getConnectionConfigs(): Map<string, DatabaseConnection> {
+    return this.connectionConfigs;
   }
 
   /**
@@ -112,6 +132,14 @@ export class ConnectionManager {
   }
 
   /**
+   * Check if a connection is healthy (for testing/monitoring)
+   */
+  isConnectionHealthy(connectionId: string): boolean {
+    const connection = this.activeConnections.get(connectionId);
+    return connection ? connection.isConnected : false;
+  }
+
+  /**
    * Execute translated query against the database client
    */
   private async executeTranslatedQuery(connection: ActiveConnection, query: string | object): Promise<QueryResult> {
@@ -121,7 +149,11 @@ export class ConnectionManager {
       switch (config.type) {
         case 'postgresql':
           const pgResult = await client.query(query as string);
-          return { rows: pgResult.rows, count: pgResult.rowCount };
+          return { 
+            rows: pgResult.rows, 
+            count: pgResult.rowCount,
+            data: pgResult.rows 
+          };
 
         case 'mongodb':
           // MongoDB execution logic would go here
