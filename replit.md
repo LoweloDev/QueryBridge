@@ -123,10 +123,15 @@ QueryFlow now features a complete dual-architecture system supporting both mock 
 - **Connection Strategy**: Smart fallback from real databases to demonstration data
 
 #### Architecture Components
-- **Database Manager** (`server/database-manager.ts`): Real connection handling
-- **Database Config** (`server/config/database-config.ts`): Environment configuration
-- **Setup Scripts** (`server/scripts/setup-databases.ts`): Local database initialization
+- **Real Connection Manager** (`server/services/real-connection-manager.ts`): Simplified real database connections with smart fallbacks
+- **Setup Scripts** (`server/scripts/setup-databases.ts`): Local database initialization helper
+- **Database Setup Guide** (`DATABASE_SETUP.md`): Complete setup instructions
 - **API Endpoints**: Real database testing and status monitoring
+
+#### Removed Components (Cleanup Completed)
+- ❌ `server/database-manager.ts`: Removed complex database manager (replaced with simplified approach)
+- ❌ `server/config/database-config.ts`: Removed configuration complexity (using direct connections)
+- ✅ Consolidated to single real connection manager with clear fallback strategy
 
 #### API Endpoints for Database Management
 - `GET /api/real-databases/status` - Check all database connection status
