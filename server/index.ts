@@ -3,6 +3,8 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { connectionManager } from "./services/connectionManager";
 import { storage } from "./storage";
+import { RealDatabaseManager } from "./database-manager";
+import { localDatabaseConfig } from "./config/database-config";
 
 const app = express();
 app.use(express.json());
@@ -38,6 +40,9 @@ app.use((req, res, next) => {
   next();
 });
 
+// Real database manager instance for when we want real connections
+const realDbManager = new RealDatabaseManager();
+
 // Initialize connections on startup
 async function initializeConnections() {
   const connections = await storage.getConnections();
@@ -48,6 +53,16 @@ async function initializeConnections() {
     } catch (error) {
       log(`Failed to initialize connection ${connection.name}: ${error}`);
     }
+  }
+}
+
+// Initialize real database connections (optional - for testing with real DBs)
+async function initializeRealDatabases() {
+  try {
+    await realDbManager.connect(localDatabaseConfig);
+    log(`Real database connections initialized`);
+  } catch (error) {
+    log(`Real database initialization failed: ${error}`);
   }
 }
 

@@ -234,6 +234,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Real database connections test endpoint
+  app.get("/api/real-databases/status", async (req, res) => {
+    try {
+      const { RealDatabaseManager } = await import("./database-manager");
+      const { localDatabaseConfig } = await import("./config/database-config");
+      const realDbManager = new RealDatabaseManager();
+      
+      try {
+        await realDbManager.connect(localDatabaseConfig);
+        const status = realDbManager.getConnectionStatus();
+        await realDbManager.disconnect();
+        
+        res.json({
+          available: true,
+          connections: status,
+          message: "Real database connections tested successfully"
+        });
+      } catch (error) {
+        res.json({
+          available: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          message: "Some real database connections failed"
+        });
+      }
+    } catch (error) {
+      res.status(500).json({ 
+        available: false, 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        message: "Failed to test real database connections"
+      });
+    }
+  });
+
+  // Initialize real databases
+  app.post("/api/real-databases/initialize", async (req, res) => {
+    try {
+      const { RealDatabaseManager } = await import("./database-manager");
+      const { localDatabaseConfig } = await import("./config/database-config");
+      const realDbManager = new RealDatabaseManager();
+      
+      await realDbManager.connect(localDatabaseConfig);
+      const status = realDbManager.getConnectionStatus();
+      
+      res.json({
+        initialized: true,
+        connections: status,
+        message: "Real database connections initialized"
+      });
+    } catch (error) {
+      res.status(500).json({ 
+        initialized: false, 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        message: "Failed to initialize real database connections"
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

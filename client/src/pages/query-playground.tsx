@@ -5,7 +5,8 @@ import { ResultsViewer } from "@/components/results-viewer";
 import { DocumentationPanel } from "@/components/documentation-panel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Database, History, Book, Save } from "lucide-react";
+import { Database, History, Book, Save, Settings } from "lucide-react";
+import { Link } from "wouter";
 
 export default function QueryPlayground() {
   const [showDocumentation, setShowDocumentation] = useState(true);
@@ -45,6 +46,12 @@ export default function QueryPlayground() {
               <Book className="mr-2" size={16} />
               Documentation
             </Button>
+            <Link href="/databases">
+              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary">
+                <Settings className="mr-2" size={16} />
+                Database Setup
+              </Button>
+            </Link>
             <Button className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
               <Save className="mr-2" size={16} />
               Save Query
