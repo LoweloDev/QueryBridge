@@ -455,9 +455,36 @@ class DynamoDBDriver implements DatabaseDriver {
         }
       }
       
+      // Apply projection if specified
+      let finalUsers = filteredUsers;
+      if (dynamoQuery.ProjectionExpression && dynamoQuery.ExpressionAttributeNames) {
+        const projectedFields = dynamoQuery.ProjectionExpression.split(', ');
+        
+        finalUsers = filteredUsers.map(user => {
+          const projectedUser: any = {};
+          projectedFields.forEach((field: string) => {
+            const actualFieldName = dynamoQuery.ExpressionAttributeNames[field] || field;
+            const simpleFieldName = actualFieldName.replace('users.', '').replace('orders.', '');
+            
+            if ((user as any)[simpleFieldName]) {
+              projectedUser[simpleFieldName] = (user as any)[simpleFieldName];
+            }
+            // Handle nested fields like orders.total
+            if (actualFieldName.includes('orders.') && user.orders) {
+              const orderField = actualFieldName.replace('orders.', '');
+              if (!projectedUser.orders) projectedUser.orders = { M: {} };
+              if (user.orders.M && (user.orders.M as any)[orderField]) {
+                projectedUser.orders.M[orderField] = (user.orders.M as any)[orderField];
+              }
+            }
+          });
+          return projectedUser;
+        });
+      }
+      
       return {
-        Items: filteredUsers.slice(0, Math.min(filteredUsers.length, 5)), // Return filtered results
-        Count: Math.min(filteredUsers.length, 5),
+        Items: finalUsers.slice(0, Math.min(finalUsers.length, 5)), // Return filtered and projected results
+        Count: Math.min(finalUsers.length, 5),
         queryPattern: "Single-table design with composite keys"
       };
     }
