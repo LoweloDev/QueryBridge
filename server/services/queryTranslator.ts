@@ -268,17 +268,27 @@ export class QueryTranslator {
           };
         });
         
-        if (joinQueries.length === 1) {
-          esQuery.query = joinQueries[0];
-        } else {
-          esQuery.query = {
-            bool: {
-              must: joinQueries
+        // Start with JOIN queries  
+        const mustConditions: any[] = [...joinQueries];
+        
+        // Add WHERE conditions to the main bool query
+        if (query.where && query.where.length > 0) {
+          for (const condition of query.where) {
+            const esCondition = this.sqlToESCondition(condition);
+            if (esCondition) {
+              mustConditions.push(esCondition);
             }
-          };
+          }
         }
+        
+        // Always use bool query structure when we have joins + where conditions
+        esQuery.query = {
+          bool: {
+            must: mustConditions
+          }
+        };
       }
-      // Standard WHERE conditions
+      // Standard WHERE conditions (no joins)
       else if (query.where && query.where.length > 0) {
         for (const condition of query.where) {
           const esCondition = this.sqlToESCondition(condition);
