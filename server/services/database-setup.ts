@@ -8,7 +8,7 @@
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import { MongoClient } from 'mongodb';
 import { Client as ElasticsearchClient } from '@elastic/elasticsearch';
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBClient, ListTablesCommand } from '@aws-sdk/client-dynamodb';
 import Redis from 'ioredis';
 import type { DatabaseConnection, ActiveConnection } from "../../lib/src/types";
 
@@ -177,7 +177,8 @@ export class DatabaseSetup {
       });
 
       // Test the connection by listing tables
-      await client.send({ input: {} } as any);
+      const command = new ListTablesCommand({});
+      await client.send(command);
 
       this.connections.set(config.id, {
         client,
