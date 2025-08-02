@@ -40,25 +40,7 @@ export function DocumentationPanel({ onClose }: DocumentationPanelProps) {
 WHERE status = "active"
 ORDER BY created_at DESC
 LIMIT 10`,
-        sql: `SELECT * FROM users 
-WHERE status = 'active' 
-ORDER BY created_at DESC 
-LIMIT 10`,
-        mongodb: `db.users.find(
-  { status: "active" }
-).sort({ created_at: -1 }).limit(10)`,
-        elasticsearch: `{
-  "query": { "term": { "status": "active" } },
-  "sort": [{ "created_at": { "order": "desc" }}],
-  "size": 10
-}`,
-        dynamodb: `{
-  "TableName": "users",
-  "FilterExpression": "#status = :status",
-  "ExpressionAttributeNames": { "#status": "status" },
-  "ExpressionAttributeValues": { ":status": "active" },
-  "Limit": 10
-}`
+        note: "This common syntax translates to database-specific queries automatically based on your selected connection type."
       }
     },
     joins: {
@@ -68,46 +50,16 @@ LIMIT 10`,
 JOIN orders ON users.id = orders.user_id
 WHERE users.status = "active"
 FIELDS users.name, users.email, orders.total`,
-        sql: `SELECT users.name, users.email, orders.total
-FROM users
-INNER JOIN orders ON users.id = orders.user_id
-WHERE users.status = 'active'`,
-        mongodb: `db.users.aggregate([
-  { $match: { status: "active" } },
-  { $lookup: {
-      from: "orders",
-      localField: "_id", 
-      foreignField: "user_id",
-      as: "orders"
-    }},
-  { $project: { name: 1, email: 1, "orders.total": 1 }}
-])`,
-        elasticsearch: `{
-  "query": {
-    "nested": {
-      "path": "orders",
-      "query": { "term": { "status": "active" }}
-    }
-  },
-  "_source": ["name", "email", "orders.total"]
-}`
+        note: "Join queries are automatically optimized for each database type - SQL uses JOIN, MongoDB uses $lookup, etc."
       }
     },
     dynamodb_intelligent: {
-      title: "DynamoDB Intelligent Mapping (New)",
+      title: "DynamoDB Smart Queries",
       formats: {
         common: `FIND users WHERE id = "456"`,
         common_all: `FIND users`,
         common_filter: `FIND products WHERE status = "active"`,
-        dynamodb: `{
-  "TableName": "users",
-  "KeyConditionExpression": "#pk = :pk AND #sk = :sk",
-  "ExpressionAttributeNames": { "#pk": "PK", "#sk": "SK" },
-  "ExpressionAttributeValues": { 
-    ":pk": "TENANT#123", 
-    ":sk": "USER#456" 
-  }
-}`
+        note: "DynamoDB queries are automatically optimized with KeyConditionExpression for performance when possible."
       }
     },
     dynamodb_single_table: {

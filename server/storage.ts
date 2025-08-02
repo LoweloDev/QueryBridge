@@ -1,4 +1,7 @@
 import { type Connection, type InsertConnection, type Query, type InsertQuery, type QueryHistory, type InsertQueryHistory } from "@shared/schema";
+import { db } from "./db";
+import { connections, queries, queryHistory } from "@shared/schema";
+import { eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -20,162 +23,124 @@ export interface IStorage {
   createQueryHistory(history: InsertQueryHistory): Promise<QueryHistory>;
 }
 
-export class MemStorage implements IStorage {
-  private connections: Map<string, Connection>;
-  private queries: Map<string, Query>;
-  private queryHistory: Map<string, QueryHistory>;
-
-  constructor() {
-    this.connections = new Map();
-    this.queries = new Map();
-    this.queryHistory = new Map();
-    
-    // Add some sample connections
-    this.initSampleData();
-  }
-  
-  private async initSampleData() {
-    const sampleConnections: Connection[] = [
-      {
-        id: "1",
-        name: "PostgreSQL - Production",
-        type: "postgresql",
-        host: "prod-db.company.com",
-        port: "5432",
-        database: "app_production",
-        username: "app_user",
-        password: "password",
-        config: null,
-        isActive: true,
-        createdAt: new Date(),
-      },
-      {
-        id: "2",
-        name: "MongoDB - Analytics",
-        type: "mongodb",
-        host: "analytics-cluster.mongodb.net",
-        port: "27017",
-        database: "user_analytics",
-        username: "analytics_user",
-        password: "password",
-        config: null,
-        isActive: true,
-        createdAt: new Date(),
-      },
-      {
-        id: "3",
-        name: "Elasticsearch - Search",
-        type: "elasticsearch",
-        host: "search.company.com",
-        port: "9200",
-        database: "products_v2",
-        username: "search_user",
-        password: "password",
-        config: null,
-        isActive: true,
-        createdAt: new Date(),
-      },
-      {
-        id: "4",
-        name: "DynamoDB - Users",
-        type: "dynamodb",
-        host: "dynamodb.us-east-1.amazonaws.com",
-        port: "443",
-        database: "user_profiles",
-        username: "aws_access_key",
-        password: "aws_secret_key",
-        config: { region: "us-east-1" },
-        isActive: true,
-        createdAt: new Date(),
-      },
-      {
-        id: "5",
-        name: "Redis - Cache",
-        type: "redis",
-        host: "cache.company.com",
-        port: "6379",
-        database: "0",
-        username: "",
-        password: "redis_password",
-        config: null,
-        isActive: true,
-        createdAt: new Date(),
-      },
-    ];
-    
-    sampleConnections.forEach(conn => this.connections.set(conn.id, conn));
-  }
-
+export class DatabaseStorage implements IStorage {
+  // Connection methods
   async getConnection(id: string): Promise<Connection | undefined> {
-    return this.connections.get(id);
+    const [connection] = await db.select().from(connections).where(eq(connections.id, id));
+    return connection || undefined;
   }
 
   async getConnections(): Promise<Connection[]> {
-    return Array.from(this.connections.values());
+    return await db.select().from(connections);
   }
 
   async createConnection(insertConnection: InsertConnection): Promise<Connection> {
     const id = randomUUID();
-    const connection: Connection = { 
-      ...insertConnection, 
+    const connectionData = {
+      ...insertConnection,
       id,
+      host: insertConnection.host || null,
+      port: insertConnection.port || null,
+      database: insertConnection.database || null,
+      username: insertConnection.username || null,
+      password: insertConnection.password || null,
+      config: insertConnection.config || null,
+      isActive: insertConnection.isActive ?? true,
       createdAt: new Date(),
     };
-    this.connections.set(id, connection);
+
+    const [connection] = await db
+      .insert(connections)
+      .values(connectionData)
+      .returning();
+    
     return connection;
   }
 
   async updateConnection(id: string, updateData: Partial<InsertConnection>): Promise<Connection | undefined> {
-    const existing = this.connections.get(id);
-    if (!existing) return undefined;
+    const [connection] = await db
+      .update(connections)
+      .set(updateData)
+      .where(eq(connections.id, id))
+      .returning();
     
-    const updated: Connection = { ...existing, ...updateData };
-    this.connections.set(id, updated);
-    return updated;
+    return connection || undefined;
   }
 
   async deleteConnection(id: string): Promise<boolean> {
-    return this.connections.delete(id);
+    const result = await db
+      .delete(connections)
+      .where(eq(connections.id, id))
+      .returning();
+    
+    return result.length > 0;
   }
 
+  // Query methods
   async getQuery(id: string): Promise<Query | undefined> {
-    return this.queries.get(id);
+    const [query] = await db.select().from(queries).where(eq(queries.id, id));
+    return query || undefined;
   }
 
   async getQueries(): Promise<Query[]> {
-    return Array.from(this.queries.values());
+    return await db.select().from(queries);
   }
 
   async createQuery(insertQuery: InsertQuery): Promise<Query> {
     const id = randomUUID();
-    const query: Query = { 
-      ...insertQuery, 
+    const queryData = {
+      ...insertQuery,
       id,
+      name: insertQuery.name || null,
+      connectionId: insertQuery.connectionId || null,
+      generatedQuery: insertQuery.generatedQuery || null,
       createdAt: new Date(),
     };
-    this.queries.set(id, query);
+
+    const [query] = await db
+      .insert(queries)
+      .values(queryData)
+      .returning();
+    
     return query;
   }
 
   async deleteQuery(id: string): Promise<boolean> {
-    return this.queries.delete(id);
+    const result = await db
+      .delete(queries)
+      .where(eq(queries.id, id))
+      .returning();
+    
+    return result.length > 0;
   }
 
+  // Query history methods
   async getQueryHistory(queryId?: string): Promise<QueryHistory[]> {
-    const history = Array.from(this.queryHistory.values());
-    return queryId ? history.filter(h => h.queryId === queryId) : history;
+    if (queryId) {
+      return await db.select().from(queryHistory).where(eq(queryHistory.queryId, queryId));
+    }
+    return await db.select().from(queryHistory);
   }
 
   async createQueryHistory(insertHistory: InsertQueryHistory): Promise<QueryHistory> {
     const id = randomUUID();
-    const history: QueryHistory = { 
-      ...insertHistory, 
+    const historyData = {
+      ...insertHistory,
       id,
+      queryId: insertHistory.queryId || null,
+      results: insertHistory.results || null,
+      executionTime: insertHistory.executionTime || null,
+      error: insertHistory.error || null,
       createdAt: new Date(),
     };
-    this.queryHistory.set(id, history);
+
+    const [history] = await db
+      .insert(queryHistory)
+      .values(historyData)
+      .returning();
+    
     return history;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();

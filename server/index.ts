@@ -1,10 +1,10 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { connectionManager } from "./services/connectionManager";
 import { storage } from "./storage";
 import { RealDatabaseManager } from "./database-manager";
 import { localDatabaseConfig } from "./config/database-config";
+import { RealConnectionManager } from "./services/real-connection-manager";
 
 const app = express();
 app.use(express.json());
@@ -40,34 +40,21 @@ app.use((req, res, next) => {
   next();
 });
 
-// Real database manager instance for when we want real connections
-const realDbManager = new RealDatabaseManager();
+// Real connection manager for production use
+const connectionManager = new RealConnectionManager();
 
 // Initialize connections on startup
 async function initializeConnections() {
-  const connections = await storage.getConnections();
-  for (const connection of connections) {
-    try {
-      await connectionManager.connect(connection);
-      log(`Initialized connection: ${connection.name}`);
-    } catch (error) {
-      log(`Failed to initialize connection ${connection.name}: ${error}`);
-    }
-  }
-}
-
-// Initialize real database connections (optional - for testing with real DBs)
-async function initializeRealDatabases() {
-  try {
-    await realDbManager.connect(localDatabaseConfig);
-    log(`Real database connections initialized`);
-  } catch (error) {
-    log(`Real database initialization failed: ${error}`);
-  }
+  // Initialize the real database infrastructure first
+  await connectionManager.initialize();
+  
+  // No need to get connections from storage initially - 
+  // we'll manage them through the UI
+  log(`Connection manager initialized`);
 }
 
 (async () => {
-  const server = await registerRoutes(app);
+  const server = await registerRoutes(app, connectionManager);
   
   // Initialize all connections
   await initializeConnections();

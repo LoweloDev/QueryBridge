@@ -3,10 +3,10 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { QueryParser } from "./services/queryParser";
 import { QueryTranslator } from "./services/queryTranslator";
-import { connectionManager } from "./services/connectionManager";
+// connectionManager will be passed from server initialization
 import { insertConnectionSchema, insertQuerySchema, insertQueryHistorySchema } from "@shared/schema";
 
-export async function registerRoutes(app: Express): Promise<Server> {
+export async function registerRoutes(app: Express, connectionManager?: any): Promise<Server> {
   // Get all connections
   app.get("/api/connections", async (req, res) => {
     try {
@@ -23,10 +23,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const connectionData = insertConnectionSchema.parse(req.body);
       const connection = await storage.createConnection(connectionData);
       
-      // Test the connection
-      const connected = await connectionManager.connect(connection);
-      if (connected) {
-        await storage.updateConnection(connection.id, { isActive: true });
+      // Test the connection if connectionManager is available
+      if (connectionManager) {
+        const connected = await connectionManager.connect(connection);
+        if (connected) {
+          await storage.updateConnection(connection.id, { isActive: true });
+        }
       }
       
       res.json(connection);
@@ -43,8 +45,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Connection not found" });
       }
 
-      const connected = await connectionManager.connect(connection);
-      await storage.updateConnection(connection.id, { isActive: connected });
+      if (connectionManager) {
+        const connected = await connectionManager.connect(connection);
+        await storage.updateConnection(connection.id, { isActive: connected });
+      } else {
+        res.status(503).json({ error: "Connection manager not available" });
+        return;
+      }
       
       res.json({ connected });
     } catch (error) {
@@ -55,7 +62,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Delete connection
   app.delete("/api/connections/:id", async (req, res) => {
     try {
-      await connectionManager.disconnect(req.params.id);
+      if (connectionManager) {
+        await connectionManager.disconnect(req.params.id);
+      }
       const deleted = await storage.deleteConnection(req.params.id);
       
       if (deleted) {
@@ -167,7 +176,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Execute query
-      const results = await connectionManager.execute(connectionId, JSON.stringify(translatedQuery));
+      let results;
+      if (connectionManager) {
+        results = await connectionManager.execute(connectionId, JSON.stringify(translatedQuery));
+      } else {
+        return res.status(503).json({ error: "Connection manager not available" });
+      }
       const executionTime = Date.now() - startTime;
 
       // Save to history
