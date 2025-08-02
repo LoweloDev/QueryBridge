@@ -89,7 +89,46 @@ class SQLDriver implements DatabaseDriver {
   }
   
   async execute(query: string): Promise<any> {
-    // Mock execution for demonstration
+    const sqlQuery = JSON.parse(query);
+    
+    // Check if this is a JOIN query
+    if (sqlQuery.includes('JOIN')) {
+      return {
+        rows: [
+          { 
+            user_id: 1, 
+            user_name: "John Doe", 
+            user_email: "john@example.com",
+            order_id: 101,
+            order_total: 299.99,
+            order_status: "completed",
+            order_date: "2025-01-15"
+          },
+          { 
+            user_id: 1, 
+            user_name: "John Doe", 
+            user_email: "john@example.com",
+            order_id: 102,
+            order_total: 149.50,
+            order_status: "pending",
+            order_date: "2025-01-20"
+          },
+          { 
+            user_id: 2, 
+            user_name: "Jane Smith", 
+            user_email: "jane@example.com",
+            order_id: 103,
+            order_total: 899.99,
+            order_status: "completed",
+            order_date: "2025-01-18"
+          }
+        ],
+        rowCount: 3,
+        joinInfo: "Demonstrating INNER JOIN between users and orders tables"
+      };
+    }
+    
+    // Regular aggregation query
     return {
       rows: [
         { status: "active", count: 542, avg_age: 32.4, total_orders: 18429 },
@@ -117,7 +156,41 @@ class MongoDriver implements DatabaseDriver {
   }
   
   async execute(query: string): Promise<any> {
-    // Mock execution for demonstration
+    const mongoQuery = JSON.parse(query);
+    
+    // Check if this contains aggregation pipeline with $lookup
+    if (mongoQuery.aggregate && mongoQuery.aggregate.some((stage: any) => stage.$lookup)) {
+      return [
+        {
+          _id: 1,
+          name: "John Doe",
+          email: "john@example.com",
+          status: "active",
+          orders: [
+            { order_id: 101, total: 299.99, status: "completed", date: "2025-01-15" },
+            { order_id: 102, total: 149.50, status: "pending", date: "2025-01-20" }
+          ]
+        },
+        {
+          _id: 2,
+          name: "Jane Smith", 
+          email: "jane@example.com",
+          status: "premium",
+          orders: [
+            { order_id: 103, total: 899.99, status: "completed", date: "2025-01-18" }
+          ]
+        },
+        {
+          _id: 3,
+          name: "Bob Johnson",
+          email: "bob@example.com", 
+          status: "active",
+          orders: []
+        }
+      ];
+    }
+    
+    // Regular aggregation query
     return [
       { _id: { status: "active" }, count: 542, avg_age: 32.4, total_orders: 18429 },
       { _id: { status: "premium" }, count: 223, avg_age: 38.7, total_orders: 12847 },
@@ -193,14 +266,71 @@ class DynamoDBDriver implements DatabaseDriver {
   }
   
   async execute(query: string): Promise<any> {
-    // Mock execution for demonstration
+    const dynamoQuery = JSON.parse(query);
+    
+    // Check if this uses KeyConditionExpression (single-table design)
+    if (dynamoQuery.KeyConditionExpression) {
+      return {
+        Items: [
+          { 
+            PK: { S: "TENANT#123" },
+            SK: { S: "USER#456" },
+            EntityType: { S: "User" },
+            name: { S: "John Doe" },
+            email: { S: "john@tenant123.com" },
+            status: { S: "active" },
+            created_at: { S: "2024-01-15T10:30:00Z" }
+          },
+          { 
+            PK: { S: "TENANT#123" },
+            SK: { S: "ORDER#789" },
+            EntityType: { S: "Order" },
+            user_id: { S: "USER#456" },
+            total: { N: "299.99" },
+            status: { S: "completed" },
+            created_at: { S: "2024-02-01T14:20:00Z" }
+          }
+        ],
+        Count: 2,
+        queryPattern: "Single-table design with composite keys"
+      };
+    }
+    
+    // Check if this uses GSI
+    if (dynamoQuery.IndexName) {
+      return {
+        Items: [
+          { 
+            PK: { S: "TENANT#123" },
+            SK: { S: "USER#456" },
+            GSI1PK: { S: "STATUS#active" },
+            GSI1SK: { S: "USER#456" },
+            name: { S: "John Doe" },
+            status: { S: "active" }
+          },
+          { 
+            PK: { S: "TENANT#456" },
+            SK: { S: "USER#789" },
+            GSI1PK: { S: "STATUS#active" },
+            GSI1SK: { S: "USER#789" },
+            name: { S: "Jane Smith" },
+            status: { S: "active" }
+          }
+        ],
+        Count: 2,
+        queryPattern: "GSI query for cross-tenant status filtering"
+      };
+    }
+    
+    // Fallback to scan operation
     return {
       Items: [
         { status: { S: "active" }, count: { N: "542" }, avg_age: { N: "32.4" }, total_orders: { N: "18429" } },
         { status: { S: "premium" }, count: { N: "223" }, avg_age: { N: "38.7" }, total_orders: { N: "12847" } },
         { status: { S: "trial" }, count: { N: "82" }, avg_age: { N: "29.1" }, total_orders: { N: "234" } }
       ],
-      Count: 3
+      Count: 3,
+      queryPattern: "Table scan operation"
     };
   }
   

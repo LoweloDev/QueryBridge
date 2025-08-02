@@ -108,6 +108,38 @@ export function DocumentationPanel({ onClose }: DocumentationPanelProps) {
               </Card>
             </div>
             <div>
+              <div className="font-medium text-foreground mb-1">Table Joins</div>
+              <Card>
+                <CardContent className="p-2 font-mono text-xs text-muted-foreground">
+                  FIND users<br />
+                  JOIN orders ON users.id = orders.user_id<br />
+                  WHERE users.status = 'active'<br />
+                  <span className="text-accent">→ Supports INNER, LEFT, RIGHT, FULL</span>
+                </CardContent>
+              </Card>
+            </div>
+            <div>
+              <div className="font-medium text-foreground mb-1">DynamoDB Single-Table</div>
+              <Card>
+                <CardContent className="p-2 font-mono text-xs text-muted-foreground">
+                  FIND tenant_data<br />
+                  DB_SPECIFIC: partition_key="TENANT#123"<br />
+                  sort_key="USER#456"<br />
+                  <span className="text-accent">→ Uses KeyConditionExpression</span>
+                </CardContent>
+              </Card>
+            </div>
+            <div>
+              <div className="font-medium text-foreground mb-1">MongoDB Lookup</div>
+              <Card>
+                <CardContent className="p-2 font-mono text-xs text-muted-foreground">
+                  FIND customers<br />
+                  JOIN orders FROM customers.id TO orders.customer_id<br />
+                  <span className="text-accent">→ Uses $lookup aggregation</span>
+                </CardContent>
+              </Card>
+            </div>
+            <div>
               <div className="font-medium text-foreground mb-1">Redis with Modules</div>
               <Card>
                 <CardContent className="p-2 font-mono text-xs text-muted-foreground">

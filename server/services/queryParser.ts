@@ -2,7 +2,7 @@ import { QueryLanguage, QueryLanguageSchema } from "@shared/schema";
 
 export class QueryParser {
   static parse(queryString: string): QueryLanguage {
-    // Simple parser for the common query language
+    // Enhanced parser for the common query language with joins and database-specific features
     const lines = queryString.trim().split('\n').map(line => line.trim()).filter(line => line);
     
     const result: Partial<QueryLanguage> = {};
@@ -14,6 +14,10 @@ export class QueryParser {
       if (upperLine.startsWith('FIND ')) {
         result.operation = 'FIND';
         result.table = line.substring(5).trim();
+      } else if (upperLine.includes(' JOIN ')) {
+        // Parse JOIN clauses
+        if (!result.joins) result.joins = [];
+        result.joins.push(this.parseJoin(line));
       } else if (upperLine.startsWith('WHERE')) {
         currentSection = 'WHERE';
         const whereClause = line.substring(5).trim();
@@ -26,6 +30,12 @@ export class QueryParser {
       } else if (upperLine.startsWith('LIMIT')) {
         const limitValue = line.substring(5).trim();
         result.limit = parseInt(limitValue, 10);
+      } else if (upperLine.startsWith('OFFSET')) {
+        const offsetValue = line.substring(6).trim();
+        result.offset = parseInt(offsetValue, 10);
+      } else if (upperLine.startsWith('FIELDS')) {
+        const fieldsClause = line.substring(6).trim();
+        result.fields = fieldsClause.split(',').map(field => field.trim());
       } else if (upperLine.startsWith('AGGREGATE')) {
         currentSection = 'AGGREGATE';
         const aggregateClause = line.substring(9).trim();
@@ -35,7 +45,14 @@ export class QueryParser {
       } else if (upperLine.startsWith('GROUP BY')) {
         const groupClause = line.substring(8).trim();
         result.groupBy = groupClause.split(',').map(field => field.trim());
-      } else if (currentSection === 'WHERE' && line.includes('=') || line.includes('>') || line.includes('<')) {
+      } else if (upperLine.startsWith('HAVING')) {
+        const havingClause = line.substring(6).trim();
+        result.having = this.parseWhere(havingClause);
+      } else if (upperLine.startsWith('DB_SPECIFIC:')) {
+        // Parse database-specific configurations
+        const dbSpecificClause = line.substring(12).trim();
+        result.dbSpecific = this.parseDbSpecific(dbSpecificClause);
+      } else if (currentSection === 'WHERE' && (line.includes('=') || line.includes('>') || line.includes('<'))) {
         // Continue parsing WHERE conditions
         if (!result.where) result.where = [];
         result.where.push(...this.parseWhere(line));
@@ -121,6 +138,84 @@ export class QueryParser {
     return aggregates;
   }
   
+  private static parseJoin(joinClause: string) {
+    // Parse JOIN syntax: "JOIN orders ON users.id = orders.user_id"
+    // or "LEFT JOIN orders ON users.id = orders.user_id"
+    const upperClause = joinClause.toUpperCase();
+    let joinType: 'INNER' | 'LEFT' | 'RIGHT' | 'FULL' = 'INNER';
+    
+    if (upperClause.includes('LEFT JOIN')) {
+      joinType = 'LEFT';
+    } else if (upperClause.includes('RIGHT JOIN')) {
+      joinType = 'RIGHT';
+    } else if (upperClause.includes('FULL JOIN') || upperClause.includes('FULL OUTER JOIN')) {
+      joinType = 'FULL';
+    }
+    
+    // Extract table name and ON condition
+    const joinMatch = joinClause.match(/(?:(?:INNER|LEFT|RIGHT|FULL(?:\s+OUTER)?)\s+)?JOIN\s+(\w+)(?:\s+AS\s+(\w+))?\s+ON\s+([^=]+)\s*=\s*(.+)/i);
+    
+    if (!joinMatch) {
+      throw new Error(`Invalid JOIN syntax: ${joinClause}`);
+    }
+    
+    const [, table, alias, leftField, rightField] = joinMatch;
+    
+    return {
+      type: joinType,
+      table: table.trim(),
+      alias: alias?.trim(),
+      on: {
+        left: leftField.trim(),
+        right: rightField.trim(),
+        operator: '=' as const
+      }
+    };
+  }
+  
+  private static parseDbSpecific(dbSpecificClause: string) {
+    // Parse database-specific configurations
+    // Example: "partition_key=TENANT#123, sort_key=USER#456, gsi_name=GSI1"
+    const dbSpecific: any = {};
+    
+    const pairs = dbSpecificClause.split(',');
+    for (const pair of pairs) {
+      const [key, value] = pair.split('=').map(s => s.trim());
+      if (key && value) {
+        const cleanValue = value.replace(/^["']|["']$/g, ''); // Remove quotes
+        
+        // Handle DynamoDB patterns
+        if (key.includes('partition_key') || key.includes('pk')) {
+          if (!dbSpecific.dynamodb) dbSpecific.dynamodb = {};
+          if (!dbSpecific.dynamodb.keyCondition) dbSpecific.dynamodb.keyCondition = {};
+          dbSpecific.dynamodb.keyCondition.pk = cleanValue;
+          dbSpecific.dynamodb.partitionKey = 'PK';
+        } else if (key.includes('sort_key') || key.includes('sk')) {
+          if (!dbSpecific.dynamodb) dbSpecific.dynamodb = {};
+          if (!dbSpecific.dynamodb.keyCondition) dbSpecific.dynamodb.keyCondition = {};
+          dbSpecific.dynamodb.keyCondition.sk = cleanValue;
+          dbSpecific.dynamodb.sortKey = 'SK';
+        } else if (key.includes('gsi_name') || key.includes('gsi')) {
+          if (!dbSpecific.dynamodb) dbSpecific.dynamodb = {};
+          dbSpecific.dynamodb.gsiName = cleanValue;
+        }
+        // Handle MongoDB patterns
+        else if (key.includes('collection')) {
+          if (!dbSpecific.mongodb) dbSpecific.mongodb = {};
+          dbSpecific.mongodb.collection = cleanValue;
+        }
+        // Handle Elasticsearch patterns
+        else if (key.includes('nested_path')) {
+          if (!dbSpecific.elasticsearch) dbSpecific.elasticsearch = {};
+          if (!dbSpecific.elasticsearch.nested) dbSpecific.elasticsearch.nested = { path: '', query: {} };
+          dbSpecific.elasticsearch.nested.path = cleanValue;
+        }
+      }
+    }
+    
+    return dbSpecific;
+  }
+
   static validate(queryString: string): { valid: boolean; errors: string[] } {
     try {
       this.parse(queryString);
