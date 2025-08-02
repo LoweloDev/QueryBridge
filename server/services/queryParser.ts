@@ -50,8 +50,20 @@ export class QueryParser {
         result.having = this.parseWhere(havingClause);
       } else if (upperLine.startsWith('DB_SPECIFIC:')) {
         // Parse database-specific configurations
+        currentSection = 'DB_SPECIFIC';
         const dbSpecificClause = line.substring(12).trim();
-        result.dbSpecific = this.parseDbSpecific(dbSpecificClause);
+        if (dbSpecificClause) {
+          result.dbSpecific = this.parseDbSpecific(dbSpecificClause);
+        } else {
+          // Initialize empty object for multi-line parsing
+          result.dbSpecific = {};
+        }
+      } else if (currentSection === 'DB_SPECIFIC' && line.includes('=')) {
+        // Continue parsing DB_SPECIFIC configurations on subsequent lines
+        if (!result.dbSpecific) result.dbSpecific = {};
+        const additionalConfig = this.parseDbSpecific(line);
+        // Deep merge the configurations
+        this.mergeDbSpecific(result.dbSpecific, additionalConfig);
       } else if (currentSection === 'WHERE' && (line.includes('=') || line.includes('>') || line.includes('<'))) {
         // Continue parsing WHERE conditions
         if (!result.where) result.where = [];
@@ -176,36 +188,48 @@ export class QueryParser {
   private static parseDbSpecific(dbSpecificClause: string) {
     // Parse database-specific configurations
     // Example: "partition_key=TENANT#123, sort_key=USER#456, gsi_name=GSI1"
+    // or individual lines like "partition_key=\"TENANT#123\""
     const dbSpecific: any = {};
     
-    const pairs = dbSpecificClause.split(',');
+    // Handle both comma-separated and individual key=value pairs
+    const pairs = dbSpecificClause.includes(',') 
+      ? dbSpecificClause.split(',')
+      : [dbSpecificClause];
+    
     for (const pair of pairs) {
-      const [key, value] = pair.split('=').map(s => s.trim());
+      const trimmedPair = pair.trim();
+      if (!trimmedPair.includes('=')) continue;
+      
+      const equalIndex = trimmedPair.indexOf('=');
+      const key = trimmedPair.substring(0, equalIndex).trim();
+      const value = trimmedPair.substring(equalIndex + 1).trim();
+      
       if (key && value) {
+        const cleanKey = key.trim();
         const cleanValue = value.replace(/^["']|["']$/g, ''); // Remove quotes
         
         // Handle DynamoDB patterns
-        if (key.includes('partition_key') || key.includes('pk')) {
+        if (cleanKey.includes('partition_key') || cleanKey.includes('pk')) {
           if (!dbSpecific.dynamodb) dbSpecific.dynamodb = {};
           if (!dbSpecific.dynamodb.keyCondition) dbSpecific.dynamodb.keyCondition = {};
           dbSpecific.dynamodb.keyCondition.pk = cleanValue;
           dbSpecific.dynamodb.partitionKey = 'PK';
-        } else if (key.includes('sort_key') || key.includes('sk')) {
+        } else if (cleanKey.includes('sort_key') || cleanKey.includes('sk')) {
           if (!dbSpecific.dynamodb) dbSpecific.dynamodb = {};
           if (!dbSpecific.dynamodb.keyCondition) dbSpecific.dynamodb.keyCondition = {};
           dbSpecific.dynamodb.keyCondition.sk = cleanValue;
           dbSpecific.dynamodb.sortKey = 'SK';
-        } else if (key.includes('gsi_name') || key.includes('gsi')) {
+        } else if (cleanKey.includes('gsi_name') || cleanKey.includes('gsi')) {
           if (!dbSpecific.dynamodb) dbSpecific.dynamodb = {};
           dbSpecific.dynamodb.gsiName = cleanValue;
         }
         // Handle MongoDB patterns
-        else if (key.includes('collection')) {
+        else if (cleanKey.includes('collection')) {
           if (!dbSpecific.mongodb) dbSpecific.mongodb = {};
           dbSpecific.mongodb.collection = cleanValue;
         }
         // Handle Elasticsearch patterns
-        else if (key.includes('nested_path')) {
+        else if (cleanKey.includes('nested_path')) {
           if (!dbSpecific.elasticsearch) dbSpecific.elasticsearch = {};
           if (!dbSpecific.elasticsearch.nested) dbSpecific.elasticsearch.nested = { path: '', query: {} };
           dbSpecific.elasticsearch.nested.path = cleanValue;
@@ -214,6 +238,28 @@ export class QueryParser {
     }
     
     return dbSpecific;
+  }
+
+  private static mergeDbSpecific(target: any, source: any) {
+    Object.keys(source).forEach(dbType => {
+      if (!target[dbType]) {
+        target[dbType] = {};
+      }
+      
+      if (source[dbType].keyCondition) {
+        if (!target[dbType].keyCondition) {
+          target[dbType].keyCondition = {};
+        }
+        Object.assign(target[dbType].keyCondition, source[dbType].keyCondition);
+      }
+      
+      // Merge other properties
+      Object.keys(source[dbType]).forEach(key => {
+        if (key !== 'keyCondition') {
+          target[dbType][key] = source[dbType][key];
+        }
+      });
+    });
   }
 
   static validate(queryString: string): { valid: boolean; errors: string[] } {
