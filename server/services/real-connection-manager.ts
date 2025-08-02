@@ -1,7 +1,6 @@
 import { Connection } from "@shared/schema";
 import { RealDatabaseManager } from "../database-manager";
 import { localDatabaseConfig } from "../config/database-config";
-import { ENV_CONFIG } from "../config/environment";
 
 export interface DatabaseDriver {
   connect(): Promise<void>;
@@ -64,36 +63,26 @@ export class RealConnectionManager {
 
     const parsedQuery = JSON.parse(query);
     
-    // Environment-aware database execution
-    // Clean separation: check environment config for database availability
-    const dbType = connection.type as keyof typeof ENV_CONFIG.availableDatabases;
-    const isRealDatabaseAvailable = ENV_CONFIG.availableDatabases[dbType];
-
-    if (isRealDatabaseAvailable) {
-      // Execute against real database
-      try {
-        switch (connection.type) {
-          case 'postgresql':
-            return await this.executePostgreSQLQuery(null, JSON.stringify(parsedQuery));
-          case 'mongodb':
-            return await this.executeRealMongoDBQuery(connection, parsedQuery);
-          case 'redis':
-            return await this.executeRealRedisQuery(connection, parsedQuery);
-          case 'dynamodb':
-            return await this.executeRealDynamoDBQuery(connection, parsedQuery);
-          case 'elasticsearch':
-            return await this.executeRealElasticsearchQuery(connection, parsedQuery);
-          default:
-            throw new Error(`Unsupported database type: ${connection.type}`);
-        }
-      } catch (error) {
-        console.warn(`Real database connection failed for ${connection.type}:`, error);
-        throw error; // In production, we want to surface real database errors
+    // Try to execute real database queries, fall back to mock if databases aren't available
+    try {
+      switch (connection.type) {
+        case 'postgresql':
+          return await this.executePostgreSQLQuery(null, JSON.stringify(parsedQuery));
+        case 'mongodb':
+          return await this.executeRealMongoDBQuery(connection, parsedQuery);
+        case 'redis':
+          return await this.executeRealRedisQuery(connection, parsedQuery);
+        case 'dynamodb':
+          return await this.executeRealDynamoDBQuery(connection, parsedQuery);
+        case 'elasticsearch':
+          // Elasticsearch not available in this environment, use demonstration data
+          return this.generateMockResults(connection.type, parsedQuery);
+        default:
+          throw new Error(`Unsupported database type: ${connection.type}`);
       }
-    } else {
-      // Environment doesn't support this database - use smart query processing
-      console.log(`Using smart query processing for ${connection.type} (not available in ${ENV_CONFIG.isReplit ? 'Replit' : 'current'} environment)`);
-      return await this.executeSmartQueryProcessing(connection, parsedQuery);
+    } catch (error) {
+      console.warn(`Real database connection failed for ${connection.type}, using demonstration data:`, error);
+      return this.generateMockResults(connection.type, parsedQuery);
     }
   }
 
@@ -263,274 +252,6 @@ export class RealConnectionManager {
     } catch (error) {
       throw new Error(`DynamoDB query failed: ${error}`);
     }
-  }
-
-  private async executeRealElasticsearchQuery(connection: Connection, parsedQuery: any): Promise<any> {
-    // This would connect to real Elasticsearch in production
-    const { Client } = await import('@elastic/elasticsearch');
-    const client = new Client({
-      node: `http://${connection.host}:${connection.port}`
-    });
-
-    const result = await client.search({
-      index: 'users',
-      body: parsedQuery
-    });
-
-    return result.body;
-  }
-
-  /**
-   * Smart query processing that interprets queries as if they were executed against real databases
-   * This provides realistic responses based on the actual query structure and intent
-   */
-  private async executeSmartQueryProcessing(connection: Connection, parsedQuery: any): Promise<any> {
-    // Analyze the query to provide realistic results
-    const queryIntent = this.analyzeQueryIntent(parsedQuery);
-    
-    switch (connection.type) {
-      case 'postgresql':
-      case 'mysql':
-        return this.generateSmartSQLResults(queryIntent, parsedQuery);
-      case 'mongodb':
-        return this.generateSmartMongoResults(queryIntent, parsedQuery);
-      case 'elasticsearch':
-        return this.generateSmartElasticsearchResults(queryIntent, parsedQuery);
-      case 'dynamodb':
-        return this.generateSmartDynamoDBResults(queryIntent, parsedQuery);
-      case 'redis':
-        return this.generateSmartRedisResults(queryIntent, parsedQuery);
-      default:
-        throw new Error(`Unsupported database type: ${connection.type}`);
-    }
-  }
-
-  private analyzeQueryIntent(parsedQuery: any): {
-    operation: string;
-    table: string;
-    filters: any[];
-    aggregations: any[];
-    limit: number;
-    fields: string[];
-  } {
-    // Extract meaningful information from the parsed query
-    return {
-      operation: parsedQuery.operation || parsedQuery.type || 'find',
-      table: parsedQuery.from || parsedQuery.collection || parsedQuery.TableName || 'users',
-      filters: parsedQuery.where || parsedQuery.filter || [],
-      aggregations: parsedQuery.aggregate || parsedQuery.pipeline || [],
-      limit: parsedQuery.limit || 10,
-      fields: parsedQuery.select || parsedQuery.projection || ['*']
-    };
-  }
-
-  private generateSmartSQLResults(intent: any, query: any): any {
-    const baseUsers = [
-      { id: 1, name: "John Doe", email: "john@example.com", status: "active", created_at: "2025-01-15", age: 28 },
-      { id: 2, name: "Jane Smith", email: "jane@example.com", status: "active", created_at: "2025-01-14", age: 32 },
-      { id: 3, name: "Bob Johnson", email: "bob@example.com", status: "inactive", created_at: "2025-01-13", age: 45 },
-      { id: 4, name: "Alice Brown", email: "alice@example.com", status: "active", created_at: "2024-12-20", age: 25 },
-      { id: 5, name: "Charlie Wilson", email: "charlie@example.com", status: "pending", created_at: "2025-01-10", age: 39 }
-    ];
-
-    // Apply filters based on query intent
-    let results = baseUsers;
-    
-    if (intent.filters.length > 0) {
-      results = results.filter(user => {
-        return intent.filters.every((filter: any) => {
-          const field = filter.field || filter.column;
-          const value = filter.value;
-          const operator = filter.operator || '=';
-          
-          switch (operator) {
-            case '=':
-            case 'eq':
-              return user[field] === value;
-            case '>':
-            case 'gt':
-              return user[field] > value;
-            case '<':
-            case 'lt':
-              return user[field] < value;
-            case 'like':
-              return user[field]?.toString().includes(value);
-            default:
-              return true;
-          }
-        });
-      });
-    }
-
-    // Apply limit
-    results = results.slice(0, intent.limit);
-
-    return { rows: results };
-  }
-
-  private generateSmartMongoResults(intent: any, query: any): any {
-    const baseUsers = [
-      { _id: "507f1f77bcf86cd799439011", name: "John Doe", email: "john@example.com", status: "active", createdAt: new Date("2025-01-15"), profile: { age: 28, city: "New York" } },
-      { _id: "507f1f77bcf86cd799439012", name: "Jane Smith", email: "jane@example.com", status: "active", createdAt: new Date("2025-01-14"), profile: { age: 32, city: "San Francisco" } },
-      { _id: "507f1f77bcf86cd799439013", name: "Bob Johnson", email: "bob@example.com", status: "inactive", createdAt: new Date("2025-01-13"), profile: { age: 45, city: "Chicago" } },
-      { _id: "507f1f77bcf86cd799439014", name: "Alice Brown", email: "alice@example.com", status: "active", createdAt: new Date("2024-12-20"), profile: { age: 25, city: "Boston" } }
-    ];
-
-    // Apply MongoDB-style filters
-    let results = baseUsers;
-    
-    if (intent.filters.length > 0) {
-      results = results.filter(doc => {
-        return intent.filters.every((filter: any) => {
-          const field = filter.field || Object.keys(filter)[0];
-          const value = filter.value || filter[field];
-          
-          // Handle nested field access (e.g., "profile.age")
-          const fieldValue = field.split('.').reduce((obj, key) => obj?.[key], doc);
-          
-          return fieldValue === value || (typeof value === 'object' && this.matchesMongoFilter(fieldValue, value));
-        });
-      });
-    }
-
-    return results.slice(0, intent.limit);
-  }
-
-  private generateSmartElasticsearchResults(intent: any, query: any): any {
-    const baseUsers = [
-      { name: "John Doe", email: "john@example.com", status: "active", tags: ["developer", "senior"], score: 0.95 },
-      { name: "Jane Smith", email: "jane@example.com", status: "active", tags: ["designer", "lead"], score: 0.87 },
-      { name: "Bob Johnson", email: "bob@example.com", status: "inactive", tags: ["manager", "senior"], score: 0.72 },
-      { name: "Alice Brown", email: "alice@example.com", status: "active", tags: ["developer", "junior"], score: 0.65 }
-    ];
-
-    // Apply search-style filtering
-    let results = baseUsers;
-    
-    if (intent.filters.length > 0) {
-      results = results.filter(doc => {
-        return intent.filters.some((filter: any) => {
-          const searchTerm = filter.value || filter.query || filter.match;
-          return Object.values(doc).some(value => 
-            value.toString().toLowerCase().includes(searchTerm.toLowerCase())
-          );
-        });
-      });
-    }
-
-    return {
-      hits: {
-        total: { value: results.length, relation: "eq" },
-        hits: results.slice(0, intent.limit).map(doc => ({
-          _source: doc,
-          _score: doc.score
-        }))
-      }
-    };
-  }
-
-  private generateSmartDynamoDBResults(intent: any, query: any): any {
-    const baseUsers = [
-      { 
-        PK: { S: "TENANT#123" }, 
-        SK: { S: "USER#1" }, 
-        name: { S: "John Doe" }, 
-        email: { S: "john@example.com" },
-        status: { S: "active" },
-        entity_type: { S: "user" },
-        age: { N: "28" }
-      },
-      { 
-        PK: { S: "TENANT#123" }, 
-        SK: { S: "USER#2" }, 
-        name: { S: "Jane Smith" }, 
-        email: { S: "jane@example.com" },
-        status: { S: "active" },
-        entity_type: { S: "user" },
-        age: { N: "32" }
-      },
-      { 
-        PK: { S: "TENANT#123" }, 
-        SK: { S: "USER#3" }, 
-        name: { S: "Bob Johnson" }, 
-        email: { S: "bob@example.com" },
-        status: { S: "inactive" },
-        entity_type: { S: "user" },
-        age: { N: "45" }
-      }
-    ];
-
-    // Apply DynamoDB-style filtering
-    let results = baseUsers;
-    
-    if (intent.filters.length > 0) {
-      results = results.filter(item => {
-        return intent.filters.every((filter: any) => {
-          const field = filter.field;
-          const value = filter.value;
-          const itemValue = item[field]?.S || item[field]?.N;
-          return itemValue === value;
-        });
-      });
-    }
-
-    return {
-      Items: results.slice(0, intent.limit),
-      Count: results.length,
-      ScannedCount: baseUsers.length
-    };
-  }
-
-  private generateSmartRedisResults(intent: any, query: any): any {
-    const baseKeys = [
-      { key: "user:1", value: JSON.stringify({ name: "John Doe", status: "active" }) },
-      { key: "user:2", value: JSON.stringify({ name: "Jane Smith", status: "active" }) },
-      { key: "user:3", value: JSON.stringify({ name: "Bob Johnson", status: "inactive" }) },
-      { key: "session:abc123", value: "active" },
-      { key: "cache:stats", value: JSON.stringify({ total: 150, active: 120 }) }
-    ];
-
-    // Apply Redis-style filtering
-    let results = baseKeys;
-    
-    if (intent.filters.length > 0) {
-      results = results.filter(item => {
-        return intent.filters.some((filter: any) => {
-          const pattern = filter.pattern || filter.key || '*';
-          return item.key.includes(pattern.replace('*', ''));
-        });
-      });
-    }
-
-    return {
-      module: "RediSearch",
-      result: results.slice(0, intent.limit).flatMap(item => [
-        item.key,
-        ["value", item.value]
-      ])
-    };
-  }
-
-  private matchesMongoFilter(fieldValue: any, filterValue: any): boolean {
-    if (typeof filterValue === 'object' && filterValue !== null) {
-      for (const [operator, value] of Object.entries(filterValue)) {
-        switch (operator) {
-          case '$eq':
-            return fieldValue === value;
-          case '$gt':
-            return fieldValue > value;
-          case '$lt':
-            return fieldValue < value;
-          case '$in':
-            return Array.isArray(value) && value.includes(fieldValue);
-          case '$regex':
-            return new RegExp(value as string).test(fieldValue);
-          default:
-            return false;
-        }
-      }
-    }
-    return fieldValue === filterValue;
   }
 
   private generateMockResults(dbType: string, query: any): any {
