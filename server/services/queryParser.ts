@@ -210,11 +210,18 @@ export class QueryParser {
         
         // Handle DynamoDB patterns
         if (cleanKey.includes('partition_key') || cleanKey.includes('pk')) {
+          // Support both legacy format and new structured format
+          dbSpecific.partition_key = cleanValue; // Legacy format
           if (!dbSpecific.dynamodb) dbSpecific.dynamodb = {};
           if (!dbSpecific.dynamodb.keyCondition) dbSpecific.dynamodb.keyCondition = {};
           dbSpecific.dynamodb.keyCondition.pk = cleanValue;
           dbSpecific.dynamodb.partitionKey = 'PK';
+        } else if (cleanKey.includes('sort_key_prefix') || cleanKey.includes('sk_prefix')) {
+          // Handle sort key prefix for begins_with queries
+          dbSpecific.sort_key_prefix = cleanValue;
         } else if (cleanKey.includes('sort_key') || cleanKey.includes('sk')) {
+          // Support both legacy format and new structured format
+          dbSpecific.sort_key = cleanValue; // Legacy format
           if (!dbSpecific.dynamodb) dbSpecific.dynamodb = {};
           if (!dbSpecific.dynamodb.keyCondition) dbSpecific.dynamodb.keyCondition = {};
           dbSpecific.dynamodb.keyCondition.sk = cleanValue;

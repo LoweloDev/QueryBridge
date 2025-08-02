@@ -460,6 +460,11 @@ export class QueryTranslator {
       expressionAttributeNames['#sk'] = 'SK';
       keyConditions.push('#sk = :sk');
       expressionAttributeValues[':sk'] = query.dbSpecific!.sort_key;
+    } else if (query.dbSpecific!.sort_key_prefix) {
+      // Support sort key prefix for efficient begins_with queries
+      expressionAttributeNames['#sk'] = 'SK';
+      keyConditions.push('begins_with(#sk, :sk_prefix)');
+      expressionAttributeValues[':sk_prefix'] = query.dbSpecific!.sort_key_prefix;
     }
     
     dynamoQuery.KeyConditionExpression = keyConditions.join(' AND ');
@@ -540,22 +545,34 @@ export class QueryTranslator {
   }
   
   private static buildIntelligentDynamoQuery(query: QueryLanguage, dynamoQuery: any, entityMapping: any): object {
-    // Build intelligent single-table design query
+    // Build intelligent single-table design query with enhanced partition support
     const expressionAttributeNames: any = { '#pk': 'PK' };
     const expressionAttributeValues: any = {};
     const keyConditions: string[] = [];
     
-    // Set default tenant as partition key
+    // Support explicit partition key from DB_SPECIFIC or use default tenant
+    const partitionKey = query.dbSpecific?.partition_key || entityMapping.defaultTenant;
     keyConditions.push('#pk = :pk');
-    expressionAttributeValues[':pk'] = entityMapping.defaultTenant;
+    expressionAttributeValues[':pk'] = partitionKey;
     
     // Check for specific entity ID in WHERE conditions
     const entityIdCondition = query.where?.find(condition => 
       condition.field === 'id' || condition.field.endsWith('_id')
     );
     
-    if (entityIdCondition && entityMapping.sortKeyPrefix) {
-      // Query specific entity by ID
+    // Handle sort key conditions with multiple strategies
+    if (query.dbSpecific?.sort_key) {
+      // Explicit sort key provided
+      expressionAttributeNames['#sk'] = 'SK';
+      keyConditions.push('#sk = :sk');
+      expressionAttributeValues[':sk'] = query.dbSpecific.sort_key;
+    } else if (query.dbSpecific?.sort_key_prefix) {
+      // Sort key prefix for efficient begins_with queries
+      expressionAttributeNames['#sk'] = 'SK';
+      keyConditions.push('begins_with(#sk, :sk_prefix)');
+      expressionAttributeValues[':sk_prefix'] = query.dbSpecific.sort_key_prefix;
+    } else if (entityIdCondition && entityMapping.sortKeyPrefix) {
+      // Intelligent entity ID mapping
       expressionAttributeNames['#sk'] = 'SK';
       keyConditions.push('#sk = :sk');
       
@@ -567,14 +584,19 @@ export class QueryTranslator {
       
       // Remove the ID condition from WHERE since it's now part of the key condition
       query.where = query.where?.filter(condition => condition !== entityIdCondition);
+    } else if (entityMapping.sortKeyPrefix && !query.dbSpecific?.partition_key) {
+      // Query all entities of this type with prefix
+      expressionAttributeNames['#sk'] = 'SK';
+      keyConditions.push('begins_with(#sk, :sk_prefix)');
+      expressionAttributeValues[':sk_prefix'] = entityMapping.sortKeyPrefix;
     }
     
     dynamoQuery.KeyConditionExpression = keyConditions.join(' AND ');
     dynamoQuery.ExpressionAttributeNames = expressionAttributeNames;
     dynamoQuery.ExpressionAttributeValues = expressionAttributeValues;
     
-    // Add entity type filter if we're querying all entities of a type
-    if (entityMapping.entityType !== 'mixed' && !entityIdCondition) {
+    // Add entity type filter if we're querying all entities of a type and no explicit partition was specified
+    if (entityMapping.entityType !== 'mixed' && !entityIdCondition && !query.dbSpecific?.partition_key) {
       if (!query.where) query.where = [];
       query.where.push({
         field: 'entity_type',

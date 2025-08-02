@@ -113,6 +113,7 @@ const dynamoDbKeySchema = z.object({
   keyCondition: z.object({
     pk: z.string(),
     sk: z.string().optional(),
+    skPrefix: z.string().optional(), // Support for sort key prefix queries
   }).optional(),
 });
 
@@ -141,6 +142,7 @@ const databaseSpecificSchema = z.object({
   // Legacy support for simple key-value pairs
   partition_key: z.string().optional(),
   sort_key: z.string().optional(),
+  sort_key_prefix: z.string().optional(), // New: support for sort key prefix queries
   // New structured format
   dynamodb: dynamoDbKeySchema.optional(),
   mongodb: mongoDbSchema.optional(),
