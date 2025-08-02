@@ -83,3 +83,45 @@ Preferred communication style: Simple, everyday language.
 - **Query Language Extensions**: dbSpecific field in schema for database-native features
 - **Automatic Query Optimization**: Intelligent selection of optimal query patterns per database
 - **Schema-Aware Translation**: Understanding of each database's specific design patterns and limitations
+
+### Intelligent DynamoDB Single-Table Design (Latest Enhancement)
+
+#### Overview
+The query abstraction now intelligently handles DynamoDB single-table design patterns, automatically converting simple queries into optimal KeyConditionExpression operations. This eliminates the need for users to understand complex partition/sort key structures while ensuring maximum performance.
+
+#### Key Features
+- **Automatic Entity Mapping**: Simple queries like `FIND users WHERE id = "456"` automatically translate to optimal KeyConditionExpression patterns
+- **Multi-Entity Support**: Single table design with automatic entity type detection and composite key generation
+- **Performance Optimization**: Converts basic field queries to efficient key-based access instead of expensive SCAN operations
+- **Backward Compatibility**: Maintains support for explicit partition_key/sort_key parameters while providing intelligent defaults
+
+#### Query Pattern Recognition Examples
+
+**Before (Manual Key Management):**
+```
+FIND users
+WHERE id = "456"
+DB_SPECIFIC: partition_key="TENANT#123", sort_key="USER#456"
+```
+
+**After (Intelligent Mapping):**
+```
+FIND users WHERE id = "456"
+```
+
+**Translation Results:**
+- `FIND users` → `KeyConditionExpression: PK = TENANT#123` + entity type filtering
+- `FIND users WHERE id = "456"` → `KeyConditionExpression: PK = TENANT#123 AND SK = USER#456`
+- `FIND orders WHERE user_id = "456"` → Efficient filtering with proper composite key usage
+
+#### Supported Entity Types
+- **Users**: `PK=TENANT#123, SK=USER#{id}`
+- **Orders**: `PK=TENANT#123, SK=ORDER#{id}`  
+- **Products**: `PK=TENANT#123, SK=PRODUCT#{id}`
+- **Categories**: `PK=TENANT#123, SK=CATEGORY#{id}`
+- **Order Items**: `PK=TENANT#123, SK=ORDERITEM#{id}`
+
+#### Performance Benefits
+- **KeyConditionExpression**: Used for primary access patterns (up to 1000x faster than SCAN)
+- **FilterExpression**: Only used for non-key attributes, minimizing data transfer
+- **Automatic Optimization**: System selects the most efficient query pattern based on field analysis
