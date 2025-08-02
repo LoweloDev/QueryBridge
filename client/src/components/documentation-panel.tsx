@@ -93,8 +93,25 @@ WHERE users.status = 'active'`,
 }`
       }
     },
+    dynamodb_intelligent: {
+      title: "DynamoDB Intelligent Mapping (New)",
+      formats: {
+        common: `FIND users WHERE id = "456"`,
+        common_all: `FIND users`,
+        common_filter: `FIND products WHERE status = "active"`,
+        dynamodb: `{
+  "TableName": "users",
+  "KeyConditionExpression": "#pk = :pk AND #sk = :sk",
+  "ExpressionAttributeNames": { "#pk": "PK", "#sk": "SK" },
+  "ExpressionAttributeValues": { 
+    ":pk": "TENANT#123", 
+    ":sk": "USER#456" 
+  }
+}`
+      }
+    },
     dynamodb_single_table: {
-      title: "DynamoDB Single-Table Design",
+      title: "DynamoDB Manual Keys (Legacy)",
       formats: {
         common_inline: `FIND tenant_data
 DB_SPECIFIC: partition_key="TENANT#123", sort_key="USER#456"`,
@@ -203,6 +220,15 @@ REDUCE AVG 1 @price AS avg_price`
             <div><code className="text-foreground">GROUP BY field</code> - Group results</div>
             <div><code className="text-foreground">DB_SPECIFIC: config</code> - Database-specific options</div>
           </div>
+          
+          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800">
+            <div className="text-xs font-medium text-blue-800 dark:text-blue-200 mb-1">🎯 DynamoDB Intelligent Mapping</div>
+            <div className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
+              <div><code className="text-blue-900 dark:text-blue-100">FIND users WHERE id = "456"</code></div>
+              <div className="text-blue-600 dark:text-blue-400">→ Automatically maps to KeyConditionExpression</div>
+              <div className="text-blue-600 dark:text-blue-400">→ Up to 1000x faster than SCAN operations</div>
+            </div>
+          </div>
         </div>
 
         {/* Interactive Examples */}
@@ -291,7 +317,7 @@ REDUCE AVG 1 @price AS avg_price`
             </div>
             <div className="flex items-center space-x-2">
               <div className="w-2 h-2 rounded-full bg-green-500" />
-              <span className="text-foreground">DynamoDB + Single-Table Design</span>
+              <span className="text-foreground">DynamoDB + Intelligent Single-Table Design</span>
             </div>
             <div className="flex items-center space-x-2">
               <div className="w-2 h-2 rounded-full bg-green-500" />
