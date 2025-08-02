@@ -382,11 +382,11 @@ class DynamoDBDriver implements DatabaseDriver {
   async execute(query: string): Promise<any> {
     const dynamoQuery = JSON.parse(query);
     
-    // All available mock users
+    // Single-table design mock data with proper tenant/user key structure
     const allUsers = [
       { 
-        PK: { S: "USER#1" },
-        SK: { S: "PROFILE" },
+        PK: { S: "TENANT#123" },
+        SK: { S: "USER#456" },
         name: { S: "John Doe" },
         email: { S: "john@example.com" },
         status: { S: "active" },
@@ -395,8 +395,8 @@ class DynamoDBDriver implements DatabaseDriver {
         orders: { M: { total: { N: "299.99" } } }
       },
       { 
-        PK: { S: "USER#2" },
-        SK: { S: "PROFILE" },
+        PK: { S: "TENANT#123" },
+        SK: { S: "USER#789" },
         name: { S: "Jane Smith" },
         email: { S: "jane@example.com" },
         status: { S: "premium" },
@@ -405,8 +405,8 @@ class DynamoDBDriver implements DatabaseDriver {
         orders: { M: { total: { N: "899.99" } } }
       },
       { 
-        PK: { S: "USER#3" },
-        SK: { S: "PROFILE" },
+        PK: { S: "TENANT#123" },
+        SK: { S: "USER#012" },
         name: { S: "Bob Johnson" },
         email: { S: "bob@example.com" },
         status: { S: "active" },
@@ -415,8 +415,8 @@ class DynamoDBDriver implements DatabaseDriver {
         orders: { M: { total: { N: "156.50" } } }
       },
       { 
-        PK: { S: "USER#4" },
-        SK: { S: "PROFILE" },
+        PK: { S: "TENANT#456" },
+        SK: { S: "USER#345" },
         name: { S: "Alice Wilson" },
         email: { S: "alice@example.com" },
         status: { S: "trial" },
@@ -425,8 +425,8 @@ class DynamoDBDriver implements DatabaseDriver {
         orders: { M: { total: { N: "45.00" } } }
       },
       { 
-        PK: { S: "USER#5" },
-        SK: { S: "PROFILE" },
+        PK: { S: "TENANT#123" },
+        SK: { S: "USER#678" },
         name: { S: "Charlie Brown" },
         email: { S: "charlie@example.com" },
         status: { S: "active" },
@@ -440,6 +440,21 @@ class DynamoDBDriver implements DatabaseDriver {
     
     // Check if this uses KeyConditionExpression (single-table design)
     if (dynamoQuery.KeyConditionExpression) {
+      // First filter by KeyConditionExpression (partition key and sort key)
+      if (dynamoQuery.ExpressionAttributeValues) {
+        const pkValue = dynamoQuery.ExpressionAttributeValues[':pk'];
+        const skValue = dynamoQuery.ExpressionAttributeValues[':sk'];
+        
+        if (pkValue && skValue) {
+          filteredUsers = filteredUsers.filter(user => 
+            user.PK.S === pkValue && user.SK.S === skValue
+          );
+        } else if (pkValue) {
+          // If only partition key is specified, filter by that
+          filteredUsers = filteredUsers.filter(user => user.PK.S === pkValue);
+        }
+      }
+      
       // Apply FilterExpression if present (for additional WHERE conditions)
       if (dynamoQuery.FilterExpression && dynamoQuery.ExpressionAttributeValues) {
         // Parse the filter expression for status filtering (handles #users.status pattern)

@@ -30,59 +30,20 @@ export function ResultsViewer({ results, stats }: ResultsViewerProps) {
     );
   }
 
-  // Helper function to unwrap DynamoDB AttributeValues
-  const unwrapDynamoDBValue = (value: any): any => {
-    if (typeof value !== 'object' || value === null) {
-      return value;
-    }
-    
-    // Handle DynamoDB type annotations
-    if (value.S !== undefined) return value.S; // String
-    if (value.N !== undefined) return parseFloat(value.N); // Number
-    if (value.B !== undefined) return value.B; // Binary
-    if (value.BOOL !== undefined) return value.BOOL; // Boolean
-    if (value.NULL !== undefined) return null; // Null
-    if (value.SS !== undefined) return value.SS; // String Set
-    if (value.NS !== undefined) return value.NS.map((n: string) => parseFloat(n)); // Number Set
-    if (value.BS !== undefined) return value.BS; // Binary Set
-    if (value.L !== undefined) return value.L.map(unwrapDynamoDBValue); // List
-    if (value.M !== undefined) { // Map
-      const unwrapped: any = {};
-      for (const [key, val] of Object.entries(value.M)) {
-        unwrapped[key] = unwrapDynamoDBValue(val);
-      }
-      return unwrapped;
-    }
-    
-    // If it's a regular object, recursively unwrap its values
-    if (typeof value === 'object') {
-      const unwrapped: any = {};
-      for (const [key, val] of Object.entries(value)) {
-        unwrapped[key] = unwrapDynamoDBValue(val);
-      }
-      return unwrapped;
-    }
-    
-    return value;
-  };
-
   const formatResults = (data: any) => {
-    let results: any;
-    
     if (Array.isArray(data)) {
-      results = data;
-    } else if (data.rows) {
-      results = data.rows;
-    } else if (data.Items) {
-      // This is likely DynamoDB data, unwrap the AttributeValues
-      results = data.Items.map((item: any) => unwrapDynamoDBValue(item));
-    } else if (data.hits && data.hits.hits) {
-      results = data.hits.hits.map((hit: any) => hit._source);
-    } else {
-      results = [data];
+      return data;
     }
-    
-    return results;
+    if (data.rows) {
+      return data.rows;
+    }
+    if (data.Items) {
+      return data.Items;
+    }
+    if (data.hits && data.hits.hits) {
+      return data.hits.hits.map((hit: any) => hit._source);
+    }
+    return [data];
   };
 
   const formattedResults = formatResults(results);
