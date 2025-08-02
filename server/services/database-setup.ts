@@ -1,152 +1,234 @@
 /**
  * Real Database Setup and Connection Establishment
  * 
- * This attempts to connect to real databases and registers them with the connection manager.
- * If connections fail, the system will fall back to mock databases.
+ * This establishes real database connections and provides them to the library.
+ * The test backend handles database setup, not the library.
  */
 
-import { ConnectionManager } from "./connection-manager";
-import type { Connection } from "@shared/schema";
+import { Pool, neonConfig } from '@neondatabase/serverless';
+import { MongoClient } from 'mongodb';
+import { Client as ElasticsearchClient } from '@elastic/elasticsearch';
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import Redis from 'ioredis';
+import type { DatabaseConnection, ActiveConnection } from "../../lib/src/types";
+
+import ws from 'ws';
+neonConfig.webSocketConstructor = ws;
 
 export class DatabaseSetup {
-  private connectionManager: ConnectionManager;
-
-  constructor(connectionManager: ConnectionManager) {
-    this.connectionManager = connectionManager;
-  }
+  private connections: Map<string, ActiveConnection> = new Map();
 
   /**
-   * Attempt to set up real database connections
+   * Setup real database connections for testing
    */
-  async setupRealDatabases(connections: Connection[]): Promise<void> {
-    for (const connection of connections) {
+  async setupRealDatabases(): Promise<void> {
+    const configs: DatabaseConnection[] = [
+      {
+        id: '943e7415-b1fb-4090-8645-3698be872423',
+        name: 'PostgreSQL - Production',
+        type: 'postgresql',
+        host: process.env.PGHOST || 'localhost',
+        port: parseInt(process.env.PGPORT || '5432'),
+        database: process.env.PGDATABASE || 'postgres'
+      },
+      {
+        id: 'mongodb-analytics',
+        name: 'MongoDB - Analytics',
+        type: 'mongodb',
+        host: 'localhost',
+        port: 27017,
+        database: 'analytics'
+      },
+      {
+        id: 'redis-cache',
+        name: 'Redis - Cache',
+        type: 'redis',
+        host: 'localhost',
+        port: 6379,
+        database: '0'
+      },
+      {
+        id: 'dynamodb-users',
+        name: 'DynamoDB - Users',
+        type: 'dynamodb',
+        host: 'localhost',
+        port: 8000,
+        database: 'users',
+        region: 'us-east-1'
+      },
+      {
+        id: 'elasticsearch-search',
+        name: 'Elasticsearch - Search',
+        type: 'elasticsearch',
+        host: 'localhost',
+        port: 9200,
+        database: 'search'
+      }
+    ];
+
+    for (const config of configs) {
       try {
-        await this.attemptRealConnection(connection);
+        await this.attemptRealConnection(config);
       } catch (error) {
-        console.warn(`Failed to setup real database for ${connection.name}:`, error);
-        // Connection manager will handle fallback to mock databases when execute() is called
+        console.warn(`Failed to setup real database for ${config.name}:`, error);
+        // Continue with other connections
       }
     }
   }
 
-  private async attemptRealConnection(connection: Connection): Promise<void> {
-    switch (connection.type) {
+  private async attemptRealConnection(config: DatabaseConnection): Promise<void> {
+    switch (config.type) {
       case 'postgresql':
-        await this.setupPostgreSQL(connection);
+        await this.setupPostgreSQL(config);
         break;
       case 'mongodb':
-        await this.setupMongoDB(connection);
+        await this.setupMongoDB(config);
         break;
       case 'redis':
-        await this.setupRedis(connection);
+        await this.setupRedis(config);
         break;
       case 'dynamodb':
-        await this.setupDynamoDB(connection);
+        await this.setupDynamoDB(config);
         break;
       case 'elasticsearch':
-        await this.setupElasticsearch(connection);
+        await this.setupElasticsearch(config);
         break;
       default:
-        console.warn(`Unknown database type: ${connection.type}`);
+        console.warn(`Unknown database type: ${config.type}`);
     }
   }
 
-  private async setupPostgreSQL(connection: Connection): Promise<void> {
-    // For demonstration: Use our existing Neon database
-    const { db } = await import("../db");
-    this.connectionManager.registerConnection(
-      connection.id, 
-      { query: db.execute.bind(db) }, 
-      connection
-    );
-    console.log(`Successfully connected to PostgreSQL: ${connection.name}`);
-  }
-
-  private async setupMongoDB(connection: Connection): Promise<void> {
-    // Try to connect to real MongoDB
+  private async setupPostgreSQL(config: DatabaseConnection): Promise<void> {
     try {
-      const { MongoClient } = await import('mongodb');
-      const client = new MongoClient(`mongodb://${connection.host}:${connection.port}`, {
-        serverSelectionTimeoutMS: 5000 // Quick timeout
+      const pool = new Pool({
+        connectionString: process.env.DATABASE_URL,
       });
-      
-      await client.connect();
-      const db = client.db(connection.database || 'test');
-      
+
       // Test the connection
-      await db.admin().ping();
-      
-      this.connectionManager.registerConnection(connection.id, db, connection);
-      console.log(`Successfully connected to MongoDB: ${connection.name}`);
-    } catch (error) {
-      throw new Error(`MongoDB connection failed: ${error}`);
+      const client = await pool.connect();
+      await client.query('SELECT 1');
+      client.release();
+
+      this.connections.set(config.id, {
+        client: pool,
+        config,
+        isConnected: true,
+        lastUsed: new Date()
+      });
+
+      console.log(`Successfully connected to PostgreSQL: ${config.name}`);
+    } catch (error: any) {
+      throw new Error(`PostgreSQL connection failed: ${error.message}`);
     }
   }
 
-  private async setupRedis(connection: Connection): Promise<void> {
-    // Try to connect to local Redis
+  private async setupMongoDB(config: DatabaseConnection): Promise<void> {
     try {
-      const { createClient } = await import('redis');
-      const client = createClient({
-        socket: {
-          host: '127.0.0.1',
-          port: 6379,
-          connectTimeout: 5000
-        }
-      });
-      
+      const client = new MongoClient(`mongodb://${config.host}:${config.port}/${config.database}`);
       await client.connect();
-      
-      // Test the connection
+      await client.db().admin().ping();
+
+      this.connections.set(config.id, {
+        client,
+        config,
+        isConnected: true,
+        lastUsed: new Date()
+      });
+
+      console.log(`Successfully connected to MongoDB: ${config.name}`);
+    } catch (error: any) {
+      throw new Error(`MongoDB connection failed: ${error.message}`);
+    }
+  }
+
+  private async setupRedis(config: DatabaseConnection): Promise<void> {
+    try {
+      const client = new Redis({
+        host: config.host,
+        port: config.port,
+        retryDelayOnFailover: 100,
+        maxRetriesPerRequest: 1,
+      });
+
       await client.ping();
-      
-      this.connectionManager.registerConnection(connection.id, client, connection);
-      console.log(`Successfully connected to Redis: ${connection.name}`);
-    } catch (error) {
-      throw new Error(`Redis connection failed: ${error}`);
+
+      this.connections.set(config.id, {
+        client,
+        config,
+        isConnected: true,
+        lastUsed: new Date()
+      });
+
+      console.log(`Successfully connected to Redis: ${config.name}`);
+    } catch (error: any) {
+      throw new Error(`Redis connection failed: ${error.message}`);
     }
   }
 
-  private async setupDynamoDB(connection: Connection): Promise<void> {
-    // Try to connect to DynamoDB Local
+  private async setupDynamoDB(config: DatabaseConnection): Promise<void> {
     try {
-      const { DynamoDBClient, ListTablesCommand } = await import('@aws-sdk/client-dynamodb');
-      
       const client = new DynamoDBClient({
-        endpoint: `http://${connection.host}:${connection.port}`,
-        region: 'us-east-1',
+        endpoint: `http://${config.host}:${config.port}`,
+        region: config.region || 'us-east-1',
         credentials: {
-          accessKeyId: 'dummy',
-          secretAccessKey: 'dummy'
+          accessKeyId: 'fake',
+          secretAccessKey: 'fake'
         }
       });
 
-      // Test the connection
-      await client.send(new ListTablesCommand({}));
-      
-      this.connectionManager.registerConnection(connection.id, client, connection);
-      console.log(`Successfully connected to DynamoDB: ${connection.name}`);
-    } catch (error) {
-      throw new Error(`DynamoDB connection failed: ${error}`);
+      // Test the connection by listing tables
+      await client.send({ input: {} } as any);
+
+      this.connections.set(config.id, {
+        client,
+        config,
+        isConnected: true,
+        lastUsed: new Date()
+      });
+
+      console.log(`Successfully connected to DynamoDB: ${config.name}`);
+    } catch (error: any) {
+      throw new Error(`DynamoDB connection failed: ${error.message}`);
     }
   }
 
-  private async setupElasticsearch(connection: Connection): Promise<void> {
-    // Try to connect to Elasticsearch
+  private async setupElasticsearch(config: DatabaseConnection): Promise<void> {
     try {
-      const { Client } = await import('@elastic/elasticsearch');
-      const client = new Client({
-        node: `http://${connection.host}:${connection.port}`,
-        requestTimeout: 5000
+      const client = new ElasticsearchClient({
+        node: `http://${config.host}:${config.port}`
       });
-      
-      // Test the connection
+
       await client.ping();
-      
-      this.connectionManager.registerConnection(connection.id, client, connection);
-      console.log(`Successfully connected to Elasticsearch: ${connection.name}`);
-    } catch (error) {
-      throw new Error(`Elasticsearch connection failed: ${error}`);
+
+      this.connections.set(config.id, {
+        client,
+        config,
+        isConnected: true,
+        lastUsed: new Date()
+      });
+
+      console.log(`Successfully connected to Elasticsearch: ${config.name}`);
+    } catch (error: any) {
+      throw new Error(`Elasticsearch connection failed: ${error.message}`);
     }
+  }
+
+  /**
+   * Get all established connections
+   */
+  getConnections(): Map<string, ActiveConnection> {
+    return this.connections;
+  }
+
+  /**
+   * Clean up all connections
+   */
+  cleanup(): void {
+    this.connections.forEach((connection) => {
+      if (connection.client && typeof connection.client.close === 'function') {
+        connection.client.close();
+      }
+    });
+    this.connections.clear();
   }
 }

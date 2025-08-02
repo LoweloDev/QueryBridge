@@ -32,8 +32,11 @@ Preferred communication style: Simple, everyday language.
 - **SQL Compliance**: Fixed GROUP BY/ORDER BY compatibility issues and string value handling
 - **Library Architecture**: System now works as standalone npm package with clean connection management
 - **Library Separation**: Created standalone universal-query-translator library in `/lib` directory, separated from REST API testing service
-- **Clean Architecture**: Library exports ConnectionManager, QueryParser, QueryTranslator classes for external consumption
+- **Clean Architecture**: Library exports ConnectionManager, QueryParser, QueryTranslator classes for external consumption  
 - **Testing API Service**: REST endpoints exist only for testing the library, demonstrating proper library usage patterns
+- **Backend Cleanup**: Removed duplicated logic from server, now imports and uses library classes properly
+- **Database Setup Separation**: Database setup logic moved to test backend only, library accepts connections by reference
+- **Library Interface**: Test backend instantiates library, passes database connections, and uses library methods for query operations
 
 ### Data Storage Solutions
 - **Primary Database**: PostgreSQL with Neon serverless driver

@@ -4,7 +4,6 @@
 export { QueryParser } from './query-parser';
 export { QueryTranslator } from './query-translator';
 export { ConnectionManager } from './connection-manager';
-export { DatabaseSetup } from './database-setup';
 
 // Types and schemas
 export * from './types';

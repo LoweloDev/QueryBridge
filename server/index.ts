@@ -1,10 +1,10 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { storage } from "./storage";
+// Storage removed - using library directly
 // Note: RealDatabaseManager and localDatabaseConfig removed - using simplified ConnectionManager
 // Import from the library (temporarily using relative path)
-import { ConnectionManager } from "../lib/src/connection-manager";
+import { ConnectionManager } from "../lib/src/index";
 import { DatabaseSetup } from "./services/database-setup";
 
 const app = express();
@@ -47,14 +47,19 @@ const connectionManager = new ConnectionManager();
 // Setup real database connections where possible
 async function setupDatabaseConnections() {
   try {
-    // Get existing connections from storage
-    const connections = await storage.getConnections();
+    // Setup database connections and register them with the library
+    const dbSetup = new DatabaseSetup();
+    await dbSetup.setupRealDatabases();
     
-    // Attempt to establish real database connections
-    const { DatabaseSetup } = await import("./services/database-setup");
-    const dbSetup = new DatabaseSetup(connectionManager);
+    // Register each successful connection with the ConnectionManager library
+    const connections = dbSetup.getConnections();
     
-    await dbSetup.setupRealDatabases(connections);
+    for (const [connectionId, connection] of connections) {
+      if (connection.client) {
+        connectionManager.registerConnection(connectionId, connection.client, connection.config);
+      }
+    }
+    
     log(`Database setup completed`);
   } catch (error) {
     log(`Database setup failed: ${error}`);
