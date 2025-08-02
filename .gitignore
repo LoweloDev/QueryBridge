@@ -4,3 +4,27 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
+
+# Database data directories (exclude from version control)
+server/data/
+server/mongodb/
+server/redis/
+server/dynamodb/
+server/elasticsearch/
+
+# Database binaries and downloads
+server/mongodb-*
+server/redis-*
+server/dynamodb-local/
+*.tar
+*.zip
+
+# Temporary files
+.tmp/
+tmp/
+*.log
+*.pid
+
+# Database lock files
+*.lock
+*.db-wal

@@ -57,12 +57,20 @@ export class DatabaseSetup {
         region: 'us-east-1'
       },
       {
-        id: 'elasticsearch-search',
-        name: 'Elasticsearch - Search',
+        id: 'elasticsearch-postgresql',
+        name: 'Elasticsearch - PostgreSQL Layer',
         type: 'elasticsearch',
         host: 'localhost',
         port: 9200,
-        database: 'search'
+        database: 'postgresql-search'
+      },
+      {
+        id: 'elasticsearch-dynamodb',
+        name: 'Elasticsearch - DynamoDB Layer',
+        type: 'elasticsearch',
+        host: 'localhost',
+        port: 9201,
+        database: 'dynamodb-search'
       }
     ];
 
