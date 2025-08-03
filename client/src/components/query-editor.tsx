@@ -12,9 +12,10 @@ import { useToast } from "@/hooks/use-toast";
 
 interface QueryEditorProps {
   onQueryExecuted: (results: any, stats: any) => void;
+  onQueryHistoryAdd: (query: string, database: string, results?: any, executionTime?: string) => void;
 }
 
-export function QueryEditor({ onQueryExecuted }: QueryEditorProps) {
+export function QueryEditor({ onQueryExecuted, onQueryHistoryAdd }: QueryEditorProps) {
   const [activeTab, setActiveTab] = useState("sql");
   const [query, setQuery] = useState(`FIND users
 WHERE 
@@ -69,6 +70,10 @@ GROUP BY status`);
         rowCount: data.rowCount,
         translatedQuery: data.translatedQuery,
       });
+      
+      // Add to history
+      onQueryHistoryAdd(query, activeTab, data.results, data.executionTime);
+      
       toast({
         title: "Query executed successfully",
         description: `${data.rowCount} rows returned in ${data.executionTime}`,
@@ -101,6 +106,24 @@ GROUP BY status`);
     },
   });
 
+  // Auto-select connection based on active tab
+  useEffect(() => {
+    if (connections && connections.length > 0) {
+      const matchingConnection = connections.find((conn: any) => {
+        const connType = conn.type.toLowerCase();
+        if (activeTab === 'sql') return connType === 'postgresql';
+        return connType === activeTab;
+      });
+      
+      if (matchingConnection) {
+        setSelectedConnection(matchingConnection.id);
+      } else {
+        // Fallback to first connection if no exact match
+        setSelectedConnection(connections[0].id);
+      }
+    }
+  }, [connections, activeTab]);
+
   useEffect(() => {
     if (query.trim()) {
       translateMutation.mutate({ query, targetType: activeTab });
@@ -110,8 +133,8 @@ GROUP BY status`);
   const handleExecuteQuery = () => {
     if (!selectedConnection) {
       toast({
-        title: "No connection selected",
-        description: "Please select a database connection",
+        title: "No connection available",
+        description: `No ${activeTab.toUpperCase()} connection found`,
         variant: "destructive",
       });
       return;
@@ -272,6 +295,19 @@ GROUP BY status`);
                 </>
               )}
             </Button>
+            
+            {/* Auto-selected Connection Display */}
+            <div className="flex items-center space-x-2">
+              <span className="text-sm font-medium text-primary">Target:</span>
+              <Badge variant="secondary" className="text-xs">
+                <span className="mr-1">{getTabIcon(activeTab)}</span>
+                {activeTab.toUpperCase()} 
+                {connections?.find((c: any) => c.id === selectedConnection)?.name && 
+                  ` - ${connections.find((c: any) => c.id === selectedConnection)?.name}`
+                }
+              </Badge>
+            </div>
+            
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="explain"
@@ -292,21 +328,6 @@ GROUP BY status`);
                 Show query timing
               </label>
             </div>
-          </div>
-          <div className="flex items-center space-x-2">
-            <span className="text-sm text-muted-foreground">Connection:</span>
-            <Select value={selectedConnection} onValueChange={setSelectedConnection}>
-              <SelectTrigger className="w-64">
-                <SelectValue placeholder="Select a connection" />
-              </SelectTrigger>
-              <SelectContent>
-                {connections?.map((conn: any) => (
-                  <SelectItem key={conn.id} value={conn.id}>
-                    {conn.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
         </div>
       </div>

@@ -79,10 +79,10 @@ export function ConnectionSidebar() {
     <aside className="w-80 bg-white border-r border-border flex flex-col">
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold text-primary">Database Connections</h2>
-          <Button size="sm" variant="ghost" className="text-accent hover:text-accent-foreground">
-            <Plus size={16} />
-          </Button>
+          <h2 className="font-semibold text-primary">Available Connections</h2>
+          <Badge variant="secondary" className="text-xs">
+            {connections?.length || 0} active
+          </Badge>
         </div>
         <div className="relative">
           <Input
