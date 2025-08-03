@@ -53,6 +53,13 @@ LIMIT 5;`,
   "sort": [{ "created_at": { "order": "desc" } }],
   "size": 5
 }`,
+        dynamodb: `{
+  "TableName": "users",
+  "FilterExpression": "#status = :status",
+  "ExpressionAttributeNames": { "#status": "status" },
+  "ExpressionAttributeValues": { ":status": "active" },
+  "Limit": 5
+}`,
         note: "Single syntax translates to optimal native queries across all database types"
       }
     },
@@ -93,6 +100,18 @@ ORDER BY orders.amount DESC;`,
   "_source": ["name", "email"],
   "sort": [{ "orders.amount": { "order": "desc" } }]
 }`,
+        dynamodb: `// Join simulation with batch operations
+{
+  "RequestItems": {
+    "users": {
+      "Keys": [{ "id": { "N": "1" } }, { "id": { "N": "2" } }]
+    },
+    "orders": {
+      "KeyConditionExpression": "user_id = :uid",
+      "ExpressionAttributeValues": { ":uid": { "N": "1" } }
+    }
+  }
+}`,
         note: "JOIN operations automatically optimized: SQL JOINs, MongoDB $lookup, Elasticsearch nested queries"
       }
     },
@@ -130,6 +149,15 @@ GROUP BY status;`,
   },
   "size": 0
 }`,
+        dynamodb: `// DynamoDB aggregation with scan
+{
+  "TableName": "orders",
+  "FilterExpression": "created_at >= :date",
+  "ExpressionAttributeValues": { ":date": "2023-02-01" },
+  "Select": "ALL_ATTRIBUTES"
+}
+
+// Note: Aggregation done client-side due to DynamoDB limitations`,
         note: "Complex aggregations translate to native optimizations: SQL GROUP BY, MongoDB pipelines, Elasticsearch aggregations"
       }
     },
@@ -157,16 +185,19 @@ GROUP BY status;`,
   "FilterExpression": "category = :cat",
   "ExpressionAttributeValues": { ":cat": "Electronics" }
 }`,
-        redis: `// Hash lookup by key
+        redis: `// Hash lookup by key (intelligent)
 HGETALL user:1
 
-// Search by field value
-FT.SEARCH products "@category:Electronics"`,
+// Search by field value (scan fallback)
+FT.SEARCH products "@category:Electronics"
+
+// Sorted set range queries
+ZRANGEBYSCORE user:1:scores 1000 2000`,
         note: "Smart detection: Primary key queries use optimal operations (DynamoDB Query vs Scan, Redis direct lookup vs search)"
       }
     },
-    dynamodb_advanced: {
-      title: "DynamoDB Advanced Features",
+    advanced_features: {
+      title: "Advanced Features",
       formats: {
         common: `FIND orders 
 WHERE user_id = 1 AND amount > 100
@@ -178,6 +209,58 @@ ORDER BY created_at DESC
 LIMIT 10`,
         common_single_table: `FIND user_orders
 DB_SPECIFIC: partition_key="USER#1", sort_key_prefix="ORDER#"`,
+        sql: `-- Standard SQL with indexes
+SELECT user_id, amount, status 
+FROM orders 
+WHERE user_id = 1 AND amount > 100 
+ORDER BY created_at DESC;
+
+-- Index query
+SELECT * FROM orders 
+WHERE status = 'completed' 
+ORDER BY created_at DESC 
+LIMIT 10;`,
+        mongodb: `// Standard collection query
+db.orders.find({
+  "user_id": 1,
+  "amount": { $gt: 100 }
+}, {
+  "user_id": 1, "amount": 1, "status": 1
+}).sort({ "created_at": -1 })
+
+// Index-optimized query
+db.orders.find({ "status": "completed" })
+  .sort({ "created_at": -1 })
+  .limit(10)`,
+        elasticsearch: `// Standard Elasticsearch query
+{
+  "query": {
+    "bool": {
+      "must": [
+        { "term": { "user_id": 1 } },
+        { "range": { "amount": { "gt": 100 } } }
+      ]
+    }
+  },
+  "_source": ["user_id", "amount", "status"],
+  "sort": [{ "created_at": { "order": "desc" } }]
+}
+
+// Index query with aggregations
+{
+  "query": { "term": { "status": "completed" } },
+  "sort": [{ "created_at": { "order": "desc" } }],
+  "size": 10
+}`,
+        redis: `// Hash-based queries
+HMGET order:1 user_id amount status
+HGETALL order:1
+
+// RediSearch with indexes
+FT.SEARCH orders "@status:completed" SORTBY created_at DESC LIMIT 0 10
+
+// Sorted sets for time-based queries
+ZREVRANGEBYSCORE orders:by_time +inf -inf LIMIT 0 10`,
         dynamodb: `// Standard Table Query
 {
   "TableName": "orders",
@@ -211,8 +294,19 @@ DB_SPECIFIC: partition_key="USER#1", sort_key_prefix="ORDER#"`,
     ":pk": "USER#1",
     ":sk_prefix": "ORDER#"
   }
+}
+
+// Traditional Schema Design  
+{
+  "TableName": "orders",
+  "KeyConditionExpression": "user_id = :uid AND created_at BETWEEN :start AND :end",
+  "ExpressionAttributeValues": {
+    ":uid": 1,
+    ":start": "2023-01-01",
+    ":end": "2023-12-31"
+  }
 }`,
-        note: "Full DynamoDB feature support: GSI queries, single-table design patterns, projection expressions, filter expressions"
+        note: "Advanced features across all databases: SQL indexes, MongoDB compound queries, Elasticsearch nested queries, DynamoDB GSI/single-table design, Redis RediSearch"
       }
     },
     redis_structures: {
@@ -226,11 +320,25 @@ WHERE price BETWEEN 1000 AND 2000`,
         common_sorted: `FIND user_scores
 WHERE score BETWEEN 1000 AND 2000
 ORDER BY score DESC`,
+        common_full_text: `FIND products
+SEARCH name LIKE "Laptop*"
+WHERE category = "Electronics"`,
         sql: `SELECT * FROM user_sessions 
-WHERE user_id = 1 AND active = true;`,
+WHERE user_id = 1 AND active = true;
+
+-- Full-text search with PostgreSQL
+SELECT * FROM products 
+WHERE name ILIKE 'Laptop%' 
+  AND category = 'Electronics';`,
         mongodb: `db.user_sessions.find({
   "user_id": 1,
   "active": true
+})
+
+// Full-text search with text index
+db.products.find({
+  $text: { $search: "Laptop" },
+  "category": "Electronics"
 })`,
         elasticsearch: `{
   "query": {
@@ -240,6 +348,40 @@ WHERE user_id = 1 AND active = true;`,
         { "term": { "active": true } }
       ]
     }
+  }
+}
+
+// Full-text search
+{
+  "query": {
+    "bool": {
+      "must": [
+        { "wildcard": { "name": "Laptop*" } },
+        { "term": { "category": "Electronics" } }
+      ]
+    }
+  }
+}`,
+        dynamodb: `// DynamoDB text search (scan required)
+{
+  "TableName": "user_sessions",
+  "FilterExpression": "user_id = :uid AND active = :active",
+  "ExpressionAttributeValues": {
+    ":uid": 1,
+    ":active": true
+  }
+}
+
+// GSI for text search patterns
+{
+  "TableName": "products",
+  "IndexName": "CategoryIndex", 
+  "KeyConditionExpression": "category = :cat",
+  "FilterExpression": "contains(#name, :search)",
+  "ExpressionAttributeNames": { "#name": "name" },
+  "ExpressionAttributeValues": {
+    ":cat": "Electronics",
+    ":search": "Laptop"
   }
 }`,
         redis: `// Hash Operations
@@ -254,8 +396,14 @@ ZRANGEBYSCORE user_scores 1000 2000 WITHSCORES REV
 
 // String Operations
 GET user:1:status
-MGET user:1:name user:1:email`,
-        note: "Redis operations map to appropriate data structures: HASHes, SETs, Sorted Sets, RediSearch, Strings with automatic optimization"
+MGET user:1:name user:1:email
+
+// Full-text search
+FT.SEARCH products "@name:Laptop* @category:Electronics"
+
+// Geospatial queries
+GEORADIUS locations:stores -122.4194 37.7749 10 km`,
+        note: "Redis operations map to appropriate data structures: HASHes, SETs, Sorted Sets, RediSearch, Strings, Geospatial with automatic optimization"
       }
     },
     complex: {
