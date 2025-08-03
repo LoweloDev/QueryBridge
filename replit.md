@@ -10,6 +10,15 @@ The platform provides a visual query playground where users can connect to multi
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+
+### Documentation Milestone (January 2025)
+- Generated comprehensive library documentation with DEVELOPER_GUIDE.md and README.md
+- Created repository README.md showcasing the complete project structure
+- Documented NPM publishing workflow and development setup
+- Fixed connection status indicator visibility issue in testing platform
+- Library is now ready for NPM publication with complete documentation
+
 ## System Architecture
 
 ### Frontend Architecture
