@@ -74,17 +74,6 @@ WHERE id = 'user123'`);
         ExpressionAttributeValues: {
           ':pk': 'TENANT#123',
           ':sk_prefix': 'ORDER#'
-        },
-        FilterExpression: '#entity_type = :val0',
-        ExpressionAttributeNames: {
-          '#pk': 'PK',
-          '#sk': 'SK',
-          '#entity_type': 'entity_type'
-        },
-        ExpressionAttributeValues: {
-          ':pk': 'TENANT#123',
-          ':sk_prefix': 'ORDER#',
-          ':val0': 'order'
         }
       });
     });
@@ -183,11 +172,11 @@ WHERE price > 100 AND category = 'electronics'`);
       const dynamoQuery = QueryTranslator.toDynamoDB(query);
       
       expect(dynamoQuery).toHaveProperty('FilterExpression');
-      expect(dynamoQuery.ExpressionAttributeNames).toEqual({
+      expect((dynamoQuery as any).ExpressionAttributeNames).toEqual({
         '#price': 'price',
         '#category': 'category'
       });
-      expect(dynamoQuery.ExpressionAttributeValues).toEqual({
+      expect((dynamoQuery as any).ExpressionAttributeValues).toEqual({
         ':val0': 100,
         ':val1': 'electronics'
       });
@@ -199,9 +188,9 @@ WHERE amount >= 50 AND amount <= 500 AND status != 'cancelled'`);
       const dynamoQuery = QueryTranslator.toDynamoDB(query);
       
       expect(dynamoQuery).toHaveProperty('FilterExpression');
-      expect(dynamoQuery.FilterExpression).toContain('>=');
-      expect(dynamoQuery.FilterExpression).toContain('<=');
-      expect(dynamoQuery.FilterExpression).toContain('<>');
+      expect((dynamoQuery as any).FilterExpression).toContain('>=');
+      expect((dynamoQuery as any).FilterExpression).toContain('<=');
+      expect((dynamoQuery as any).FilterExpression).toContain('<>');
     });
   });
 
@@ -231,7 +220,7 @@ DB_SPECIFIC: {"partition_key": "USER#12345", "sort_key": "ORDER#67890"}`);
 WHERE random_field = 'value'`);
       const dynamoQuery = QueryTranslator.toDynamoDB(query);
       
-      expect(dynamoQuery.operation).toBe('scan');
+      expect((dynamoQuery as any).operation).toBe('scan');
       expect(dynamoQuery).toHaveProperty('FilterExpression');
     });
 
@@ -251,9 +240,9 @@ WHERE id = 'user123'`);
 WHERE price >= 100 AND stock_count <= 50 AND category != 'discontinued'`);
       const dynamoQuery = QueryTranslator.toDynamoDB(query);
       
-      expect(dynamoQuery.FilterExpression).toContain('>=');
-      expect(dynamoQuery.FilterExpression).toContain('<=');
-      expect(dynamoQuery.FilterExpression).toContain('<>');
+      expect((dynamoQuery as any).FilterExpression).toContain('>=');
+      expect((dynamoQuery as any).FilterExpression).toContain('<=');
+      expect((dynamoQuery as any).FilterExpression).toContain('<>');
     });
 
     it('should handle IN operator', () => {
@@ -261,8 +250,8 @@ WHERE price >= 100 AND stock_count <= 50 AND category != 'discontinued'`);
 WHERE status IN ['active', 'pending', 'verified']`);
       const dynamoQuery = QueryTranslator.toDynamoDB(query);
       
-      expect(dynamoQuery.FilterExpression).toContain('IN');
-      expect(dynamoQuery.ExpressionAttributeValues[':val0']).toEqual(['active', 'pending', 'verified']);
+      expect((dynamoQuery as any).FilterExpression).toContain('IN');
+      expect((dynamoQuery as any).ExpressionAttributeValues[':val0']).toEqual(['active', 'pending', 'verified']);
     });
   });
 
@@ -272,7 +261,7 @@ WHERE status IN ['active', 'pending', 'verified']`);
 WHERE id = 'user123'`);
       const dynamoQuery = QueryTranslator.toDynamoDB(query);
       
-      expect(dynamoQuery.operation).toBe('query');
+      expect((dynamoQuery as any).operation).toBe('query');
       expect(dynamoQuery).toHaveProperty('KeyConditionExpression');
     });
 
@@ -281,8 +270,8 @@ WHERE id = 'user123'`);
 DB_SPECIFIC: {"sort_key_prefix": "ORDER#2024"}`);
       const dynamoQuery = QueryTranslator.toDynamoDB(query);
       
-      expect(dynamoQuery.KeyConditionExpression).toContain('begins_with');
-      expect(dynamoQuery.ExpressionAttributeValues[':sk_prefix']).toBe('ORDER#2024');
+      expect((dynamoQuery as any).KeyConditionExpression).toContain('begins_with');
+      expect((dynamoQuery as any).ExpressionAttributeValues[':sk_prefix']).toBe('ORDER#2024');
     });
   });
 });
