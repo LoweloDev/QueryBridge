@@ -564,6 +564,126 @@ SUM(orders.amount) as total_spent
 HAVING total_spent > 500
 ORDER BY total_spent DESC
 LIMIT 10`,
+        sql: `SELECT 
+  users.id, 
+  users.name,
+  COUNT(orders.id) as order_count,
+  SUM(orders.amount) as total_spent
+FROM users
+JOIN orders ON users.id = orders.user_id
+JOIN products ON orders.product_id = products.id
+WHERE users.age BETWEEN 25 AND 35
+  AND products.category IN ('Electronics', 'Furniture')
+  AND orders.created_at >= '2023-02-01'
+GROUP BY users.id, users.name
+HAVING SUM(orders.amount) > 500
+ORDER BY total_spent DESC
+LIMIT 10;`,
+        mongodb: `db.users.aggregate([
+  {
+    $match: {
+      "age": { $gte: 25, $lte: 35 }
+    }
+  },
+  {
+    $lookup: {
+      from: "orders",
+      localField: "id",
+      foreignField: "user_id",
+      as: "user_orders"
+    }
+  },
+  { $unwind: "$user_orders" },
+  {
+    $lookup: {
+      from: "products", 
+      localField: "user_orders.product_id",
+      foreignField: "id",
+      as: "product_details"
+    }
+  },
+  { $unwind: "$product_details" },
+  {
+    $match: {
+      "product_details.category": { $in: ["Electronics", "Furniture"] },
+      "user_orders.created_at": { $gte: ISODate("2023-02-01") }
+    }
+  },
+  {
+    $group: {
+      _id: { id: "$id", name: "$name" },
+      order_count: { $sum: 1 },
+      total_spent: { $sum: "$user_orders.amount" }
+    }
+  },
+  {
+    $match: {
+      "total_spent": { $gt: 500 }
+    }
+  },
+  { $sort: { "total_spent": -1 } },
+  { $limit: 10 }
+])`,
+        elasticsearch: `{
+  "query": {
+    "bool": {
+      "must": [
+        { "range": { "age": { "gte": 25, "lte": 35 } } },
+        { "terms": { "orders.products.category": ["Electronics", "Furniture"] } },
+        { "range": { "orders.created_at": { "gte": "2023-02-01" } } }
+      ]
+    }
+  },
+  "aggs": {
+    "users": {
+      "terms": { "field": "id", "size": 1000 },
+      "aggs": {
+        "order_count": { "value_count": { "field": "orders.id" } },
+        "total_spent": { "sum": { "field": "orders.amount" } },
+        "spent_filter": {
+          "bucket_selector": {
+            "buckets_path": { "total": "total_spent" },
+            "script": "params.total > 500"
+          }
+        }
+      }
+    },
+    "top_spenders": {
+      "bucket_sort": {
+        "sort": [{ "total_spent": { "order": "desc" } }],
+        "size": 10
+      }
+    }
+  },
+  "size": 0
+}`,
+        dynamodb: `// Multi-table batch operations for complex query
+{
+  "RequestItems": {
+    "users": {
+      "FilterExpression": "age BETWEEN :min_age AND :max_age",
+      "ExpressionAttributeValues": {
+        ":min_age": 25,
+        ":max_age": 35
+      }
+    }
+  }
+}
+
+// Follow-up queries for each user
+{
+  "TableName": "orders",
+  "FilterExpression": "user_id = :uid AND created_at >= :date AND product_category IN (:cat1, :cat2)",
+  "ExpressionAttributeValues": {
+    ":uid": 1,
+    ":date": "2023-02-01",
+    ":cat1": "Electronics",
+    ":cat2": "Furniture"
+  }
+}
+
+// Client-side aggregation required for HAVING clause
+// Total calculation and filtering done in application code`,
         redis: `// Complex Redis query with Lua scripting
 EVAL "
 local users = redis.call('FT.SEARCH', 'users', '@age:[25 35]')
