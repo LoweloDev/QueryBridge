@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export function ConnectionSidebar() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [connectionStatus, setConnectionStatus] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -20,14 +21,18 @@ export function ConnectionSidebar() {
 
   const testConnectionMutation = useMutation({
     mutationFn: (id: string) => api.testConnection(id),
-    onSuccess: () => {
+    onSuccess: (data, id) => {
+      // Update local connection status
+      setConnectionStatus(prev => ({ ...prev, [id]: true }));
       queryClient.invalidateQueries({ queryKey: ["/api/connections"] });
       toast({
         title: "Connection tested successfully",
         description: "The database connection is working properly.",
       });
     },
-    onError: () => {
+    onError: (error, id) => {
+      // Update local connection status
+      setConnectionStatus(prev => ({ ...prev, [id]: false }));
       toast({
         title: "Connection failed",
         description: "Could not connect to the database.",
@@ -63,7 +68,9 @@ export function ConnectionSidebar() {
     return null;
   };
 
-  const getStatusColor = (isActive: boolean) => {
+  const getStatusColor = (connectionId: string, defaultActive?: boolean) => {
+    // Use local status if available, otherwise fall back to connection's default
+    const isActive = connectionStatus[connectionId] ?? defaultActive ?? true; // Default to true since connections are working
     return isActive ? "bg-success" : "bg-destructive";
   };
 
@@ -106,7 +113,7 @@ export function ConnectionSidebar() {
             <CardContent className="p-3">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center space-x-2">
-                  <div className={`connection-dot ${getStatusColor(connection.isActive)}`} />
+                  <div className={`w-2 h-2 rounded-full ${getStatusColor(connection.id, connection.isActive)}`} />
                   <span className="font-medium text-sm">{connection.name}</span>
                 </div>
                 <Button size="sm" variant="ghost" className="h-auto p-1">
