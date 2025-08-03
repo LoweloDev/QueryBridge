@@ -14,7 +14,6 @@ This project provides both a **standalone NPM library** and a **visual testing p
 - **📦 Standalone Library** - Production-ready NPM package for Node.js applications
 - **🎮 Interactive Platform** - Visual query playground for testing and validation
 - **🛡️ Type Safety** - Full TypeScript support with comprehensive type definitions
-- **⚡ Production Ready** - Extensively tested with real database connections
 - **🔌 Framework Agnostic** - Works with any Node.js application or framework
 
 ## 🗂️ Project Structure
