@@ -159,6 +159,20 @@ npm install universal-query-translator
 For testing and validating query translations:
 
 ```bash
+# With automatic database setup
+
+# Install dependencies
+./install.sh
+
+# Start the development server
+./start-dev.sh
+```
+
+---------------------------------------------------------------------------
+
+```bash
+# With manual database setup 
+
 # Install dependencies
 npm install
 
