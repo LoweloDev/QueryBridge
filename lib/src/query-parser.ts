@@ -188,8 +188,8 @@ export class QueryParser {
       const condition = parts[i].trim();
       const logical = i + 1 < parts.length ? parts[i + 1].toUpperCase() as 'AND' | 'OR' : undefined;
       
-      // Parse individual condition
-      const operators = ['>=', '<=', '!=', '=', '>', '<', 'IN', 'NOT IN', 'LIKE', 'ILIKE'];
+      // Parse individual condition - order operators by length (longest first) to match "NOT IN" before "IN"
+      const operators = ['NOT IN', '>=', '<=', '!=', 'ILIKE', 'LIKE', 'IN', '=', '>', '<'];
       let operator = '';
       let field = '';
       let value: any = '';

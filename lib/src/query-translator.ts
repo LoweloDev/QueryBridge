@@ -117,64 +117,12 @@ export class QueryTranslator {
         
         // Start with match stage for WHERE conditions
         if (query.where && query.where.length > 0) {
-          const matchStage: any = {};
-          for (const condition of query.where) {
-            if (condition.operator === 'LIKE') {
-              const regexValue = condition.value.replace(/%/g, '.*');
-              matchStage[condition.field] = { $regex: regexValue, $options: 'i' };
-            } else if (condition.operator === 'IN') {
-              let inValues = condition.value;
-              if (!Array.isArray(inValues)) {
-                if (typeof inValues === 'string') {
-                  // Handle different string formats: ['a','b'] or ["a","b"] or [a,b]
-                  if (inValues.startsWith('[') && inValues.endsWith(']')) {
-                    try {
-                      inValues = JSON.parse(inValues.replace(/'/g, '"'));
-                    } catch {
-                      // If JSON parse fails, split by comma and clean up
-                      inValues = inValues.slice(1, -1).split(',').map((v: string) => v.trim().replace(/['"]/g, ''));
-                    }
-                  } else {
-                    inValues = [inValues];
-                  }
-                } else {
-                  inValues = [inValues];
-                }
-              }
-              matchStage[condition.field] = { $in: inValues };
-            } else if (condition.operator === 'NOT IN') {
-              let inValues = condition.value;
-              if (!Array.isArray(inValues)) {
-                if (typeof inValues === 'string') {
-                  // Handle different string formats: ['a','b'] or ["a","b"] or [a,b]
-                  if (inValues.startsWith('[') && inValues.endsWith(']')) {
-                    try {
-                      inValues = JSON.parse(inValues.replace(/'/g, '"'));
-                    } catch {
-                      // If JSON parse fails, split by comma and clean up
-                      inValues = inValues.slice(1, -1).split(',').map((v: string) => v.trim().replace(/['"]/g, ''));
-                    }
-                  } else {
-                    inValues = [inValues];
-                  }
-                } else {
-                  inValues = [inValues];
-                }
-              }
-              matchStage[condition.field] = { $nin: inValues };
-            } else if (condition.operator === '=') {
-              matchStage[condition.field] = condition.value;
-            } else {
-              const mongoOperator = this.sqlToMongoOperator(condition.operator);
-              if (mongoOperator) {
-                matchStage[condition.field] = { [mongoOperator]: condition.value };
-              } else {
-                matchStage[condition.field] = condition.value;
-              }
-            }
+          const matchConditions = this.buildMongoMatchConditions(query.where);
+          if (Object.keys(matchConditions).length > 0) {
+            mongoQuery.aggregate.push({ $match: matchConditions });
           }
-          mongoQuery.aggregate.push({ $match: matchStage });
         }
+
         
         // Add lookup stages for joins
         if (query.joins && query.joins.length > 0) {
@@ -196,12 +144,12 @@ export class QueryTranslator {
               });
             }
             
-            // Unwind for INNER and LEFT joins to flatten results
-            if (join.type === 'INNER' || join.type === 'LEFT') {
+            // Only unwind for INNER joins, not LEFT joins in simple lookups
+            if (join.type === 'INNER') {
               mongoQuery.aggregate.push({
                 $unwind: {
                   path: `$${join.alias || join.table}`,
-                  preserveNullAndEmptyArrays: join.type === 'LEFT'
+                  preserveNullAndEmptyArrays: false
                 }
               });
             }
@@ -279,61 +227,8 @@ export class QueryTranslator {
         mongoQuery.projection = {};
         
         if (query.where && query.where.length > 0) {
-          for (const condition of query.where) {
-            if (condition.operator === 'LIKE') {
-              const regexValue = condition.value.replace(/%/g, '.*');
-              mongoQuery.query[condition.field] = { $regex: regexValue, $options: 'i' };
-            } else if (condition.operator === 'IN') {
-              let inValues = condition.value;
-              if (!Array.isArray(inValues)) {
-                if (typeof inValues === 'string') {
-                  // Handle different string formats: ['a','b'] or ["a","b"] or [a,b]
-                  if (inValues.startsWith('[') && inValues.endsWith(']')) {
-                    try {
-                      inValues = JSON.parse(inValues.replace(/'/g, '"'));
-                    } catch {
-                      // If JSON parse fails, split by comma and clean up
-                      inValues = inValues.slice(1, -1).split(',').map((v: string) => v.trim().replace(/['"]/g, ''));
-                    }
-                  } else {
-                    inValues = [inValues];
-                  }
-                } else {
-                  inValues = [inValues];
-                }
-              }
-              mongoQuery.query[condition.field] = { $in: inValues };
-            } else if (condition.operator === 'NOT IN') {
-              let inValues = condition.value;
-              if (!Array.isArray(inValues)) {
-                if (typeof inValues === 'string') {
-                  // Handle different string formats: ['a','b'] or ["a","b"] or [a,b]
-                  if (inValues.startsWith('[') && inValues.endsWith(']')) {
-                    try {
-                      inValues = JSON.parse(inValues.replace(/'/g, '"'));
-                    } catch {
-                      // If JSON parse fails, split by comma and clean up
-                      inValues = inValues.slice(1, -1).split(',').map((v: string) => v.trim().replace(/['"]/g, ''));
-                    }
-                  } else {
-                    inValues = [inValues];
-                  }
-                } else {
-                  inValues = [inValues];
-                }
-              }
-              mongoQuery.query[condition.field] = { $nin: inValues };
-            } else if (condition.operator === '=') {
-              mongoQuery.query[condition.field] = condition.value;
-            } else {
-              const mongoOperator = this.sqlToMongoOperator(condition.operator);
-              if (mongoOperator) {
-                mongoQuery.query[condition.field] = { [mongoOperator]: condition.value };
-              } else {
-                mongoQuery.query[condition.field] = condition.value;
-              }
-            }
-          }
+          const queryConditions = this.buildMongoMatchConditions(query.where);
+          mongoQuery.query = queryConditions;
         }
         
         // Project specific fields
@@ -361,6 +256,107 @@ export class QueryTranslator {
     }
     
     return mongoQuery;
+  }
+  
+  private static buildMongoMatchConditions(whereConditions: any[]): any {
+    const conditions: any = {};
+    const orConditions: any[] = [];
+    
+    for (const condition of whereConditions) {
+      if (condition.logical === 'OR') {
+        // Handle OR by collecting conditions into $or array
+        if (condition.operator === 'LIKE') {
+          const regexValue = this.convertLikeToRegex(condition.value);
+          orConditions.push({ [condition.field]: { $regex: regexValue, $options: 'i' } });
+        } else if (condition.operator === 'IN') {
+          const inValues = this.processInValues(condition.value);
+          orConditions.push({ [condition.field]: { $in: inValues } });
+        } else if (condition.operator === 'NOT IN') {
+          const inValues = this.processInValues(condition.value);
+          orConditions.push({ [condition.field]: { $nin: inValues } });
+        } else if (condition.operator === '=') {
+          orConditions.push({ [condition.field]: condition.value });
+        } else {
+          const mongoOperator = this.sqlToMongoOperator(condition.operator);
+          if (mongoOperator) {
+            orConditions.push({ [condition.field]: { [mongoOperator]: condition.value } });
+          }
+        }
+      } else {
+        // Handle AND conditions (default)
+        if (condition.operator === 'LIKE') {
+          const regexValue = this.convertLikeToRegex(condition.value);
+          conditions[condition.field] = { $regex: regexValue, $options: 'i' };
+        } else if (condition.operator === 'IN') {
+          const inValues = this.processInValues(condition.value);
+          conditions[condition.field] = { $in: inValues };
+        } else if (condition.operator === 'NOT IN') {
+          const inValues = this.processInValues(condition.value);
+          conditions[condition.field] = { $nin: inValues };
+        } else if (condition.operator === '=') {
+          conditions[condition.field] = condition.value;
+        } else {
+          const mongoOperator = this.sqlToMongoOperator(condition.operator);
+          if (mongoOperator) {
+            conditions[condition.field] = { [mongoOperator]: condition.value };
+          }
+        }
+      }
+    }
+    
+    // If we have OR conditions, combine them with AND conditions
+    if (orConditions.length > 0) {
+      if (Object.keys(conditions).length > 0) {
+        return { $and: [conditions, { $or: orConditions }] };
+      } else {
+        return { $or: orConditions };
+      }
+    }
+    
+    return conditions;
+  }
+  
+  private static convertLikeToRegex(likePattern: string): string {
+    // Convert SQL LIKE patterns to MongoDB regex
+    // 'John%' -> '^John'
+    // '%@gmail.com' -> '@gmail\\.com$'
+    // '%pattern%' -> 'pattern'
+    
+    if (likePattern.startsWith('%') && likePattern.endsWith('%')) {
+      // Pattern is in the middle
+      return likePattern.slice(1, -1).replace(/\./g, '\\.');
+    } else if (likePattern.startsWith('%')) {
+      // Pattern at the end
+      return likePattern.slice(1).replace(/\./g, '\\.') + '$';
+    } else if (likePattern.endsWith('%')) {
+      // Pattern at the beginning
+      return '^' + likePattern.slice(0, -1).replace(/\./g, '\\.');
+    } else {
+      // Exact pattern
+      return '^' + likePattern.replace(/\./g, '\\.') + '$';
+    }
+  }
+  
+  private static processInValues(value: any): any[] {
+    if (Array.isArray(value)) {
+      return value;
+    }
+    
+    if (typeof value === 'string') {
+      // Handle different string formats: ['a','b'] or ["a","b"] or [a,b]
+      if (value.startsWith('[') && value.endsWith(']')) {
+        try {
+          return JSON.parse(value.replace(/'/g, '"'));
+        } catch {
+          // If JSON parse fails, split by comma and clean up
+          return value.slice(1, -1).split(',').map((v: string) => v.trim().replace(/['"]/g, ''));
+        }
+      } else {
+        return [value];
+      }
+    }
+    
+    return [value];
   }
   
   static toElasticsearch(query: QueryLanguage): object {
