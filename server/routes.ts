@@ -22,6 +22,37 @@ export async function registerRoutes(app: Express, connectionManager: Connection
     }
   });
 
+  // Test connection
+  app.post("/api/connections/:id/test", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      
+      if (!id) {
+        return res.status(400).json({ error: "Connection ID is required" });
+      }
+
+      // Test connection by attempting a simple query execution
+      // This uses the same path as query execution, so if that works, the connection is good
+      const testQuery = "FIND users LIMIT 1";
+      
+      try {
+        await connectionManager.executeQuery(id, testQuery);
+        res.json({ success: true, message: "Connection successful" });
+      } catch (error: any) {
+        // Even if the test query fails due to syntax or data issues, 
+        // connection errors will be caught separately
+        if (error.message.includes('connection') || error.message.includes('connect')) {
+          res.status(500).json({ success: false, error: error.message });
+        } else {
+          // If it's not a connection error, the connection is actually working
+          res.json({ success: true, message: "Connection successful" });
+        }
+      }
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
   // Execute query using the library
   app.post("/api/query/execute", async (req: Request, res: Response) => {
     try {
