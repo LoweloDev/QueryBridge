@@ -3,8 +3,8 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 // Storage removed - using library directly
 // Note: RealDatabaseManager and localDatabaseConfig removed - using simplified ConnectionManager
-// Import from the library (temporarily using relative path)
-import { ConnectionManager } from "../lib/src/index";
+// Import from the published npm package
+import { ConnectionManager, QueryParser, QueryTranslator } from 'universal-query-translator';
 import { DatabaseSetup } from "./services/database-setup";
 
 const app = express();
@@ -54,7 +54,7 @@ async function setupDatabaseConnections() {
     // Register each successful connection with the ConnectionManager library
     const connections = dbSetup.getConnections();
     
-    for (const [connectionId, connection] of connections) {
+    for (const [connectionId, connection] of Array.from(connections)) {
       if (connection.client) {
         connectionManager.registerConnection(connectionId, connection.client, connection.config);
       }

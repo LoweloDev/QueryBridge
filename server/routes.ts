@@ -1,8 +1,8 @@
 import type { Request, Response } from "express";
 import type { Express } from "express";
 // Storage removed - using library directly
-// Import from the library (temporarily using relative path for demonstration)
-import { ConnectionManager, QueryTranslator } from "../lib/src/index";
+// Import from the published npm package
+import { ConnectionManager, QueryTranslator } from 'universal-query-translator';
 
 /**
  * Clean API routes that use the library as intended:
@@ -75,5 +75,5 @@ export async function registerRoutes(app: Express, connectionManager: Connection
     }
   });
 
-  return app;
+  return app as any; // Express app compatible with server interface
 }

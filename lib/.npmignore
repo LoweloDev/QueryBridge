@@ -1,0 +1,12 @@
+node_modules/
+*.log
+.DS_Store
+__tests__/
+*.test.ts
+*.test.js
+tsconfig.json
+jest.config.js
+coverage/
+.nyc_output/
+src/
+!dist/
