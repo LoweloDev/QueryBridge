@@ -60,6 +60,15 @@ LIMIT 5;`,
   "ExpressionAttributeValues": { ":status": "active" },
   "Limit": 5
 }`,
+        redis: `// String-based key lookup
+GET user:1
+
+// Hash field retrieval  
+HGET user:1 status
+HGETALL user:1
+
+// Set membership check
+SISMEMBER active_users 1`,
         note: "Single syntax translates to optimal native queries across all database types"
       }
     },
@@ -112,6 +121,15 @@ ORDER BY orders.amount DESC;`,
     }
   }
 }`,
+        redis: `// Multi-key retrieval for JOIN simulation
+MGET user:1 user:2 user:3
+
+// Hash operations for related data
+HMGET user:1 name email status
+HMGET order:101 user_id amount created_at
+
+// RediSearch for complex queries
+FT.SEARCH orders "@user_id:1" SORTBY amount DESC`,
         note: "JOIN operations automatically optimized: SQL JOINs, MongoDB $lookup, Elasticsearch nested queries"
       }
     },
@@ -158,6 +176,19 @@ GROUP BY status;`,
 }
 
 // Note: Aggregation done client-side due to DynamoDB limitations`,
+        redis: `// Redis aggregation via scripting
+EVAL "
+local orders = redis.call('KEYS', 'order:*')
+local total = 0
+for i=1,#orders do 
+  local amount = redis.call('HGET', orders[i], 'amount')
+  if amount then total = total + tonumber(amount) end
+end
+return total
+" 0
+
+// RediSearch aggregations
+FT.AGGREGATE orders "*" GROUPBY 1 @user_id REDUCE SUM 1 @amount AS total_revenue`,
         note: "Complex aggregations translate to native optimizations: SQL GROUP BY, MongoDB pipelines, Elasticsearch aggregations"
       }
     },
@@ -406,6 +437,118 @@ GEORADIUS locations:stores -122.4194 37.7749 10 km`,
         note: "Redis operations map to appropriate data structures: HASHes, SETs, Sorted Sets, RediSearch, Strings, Geospatial with automatic optimization"
       }
     },
+    single_table: {
+      title: "Single Table Schema Queries",
+      formats: {
+        common: `// Manual partition key specification
+FIND user_data
+DB_SPECIFIC: partition_key="USER#123"
+
+// Partition + sort key prefix
+FIND user_orders  
+DB_SPECIFIC: partition_key="USER#123", sort_key_prefix="ORDER#"
+
+// Partition + exact sort key
+FIND user_profile
+DB_SPECIFIC: partition_key="USER#123", sort_key="PROFILE#main"`,
+        common_range: `// Sort key range queries
+FIND user_activity
+DB_SPECIFIC: partition_key="USER#123", sort_key_between=["2023-01-01", "2023-12-31"]`,
+        sql: `-- Single table emulation with prefixed columns
+SELECT * FROM unified_table 
+WHERE pk = 'USER#123';
+
+-- Range queries on sort key column
+SELECT * FROM unified_table 
+WHERE pk = 'USER#123' 
+  AND sk BETWEEN 'ORDER#2023-01-01' AND 'ORDER#2023-12-31';`,
+        mongodb: `// Document-based single table pattern
+db.unified_collection.find({
+  "pk": "USER#123"
+})
+
+// Range queries with sort key patterns
+db.unified_collection.find({
+  "pk": "USER#123",
+  "sk": { 
+    $gte: "ORDER#2023-01-01", 
+    $lte: "ORDER#2023-12-31" 
+  }
+})`,
+        elasticsearch: `// Single index with type-based routing
+{
+  "query": {
+    "term": { "pk": "USER#123" }
+  }
+}
+
+// Range queries on sort key field
+{
+  "query": {
+    "bool": {
+      "must": [
+        { "term": { "pk": "USER#123" } },
+        { "range": { 
+            "sk": { 
+              "gte": "ORDER#2023-01-01",
+              "lte": "ORDER#2023-12-31"
+            }
+          }}
+      ]
+    }
+  }
+}`,
+        dynamodb: `// Manual partition key query
+{
+  "TableName": "unified_table",
+  "KeyConditionExpression": "PK = :pk",
+  "ExpressionAttributeValues": { ":pk": "USER#123" }
+}
+
+// Partition + sort key prefix
+{
+  "TableName": "unified_table", 
+  "KeyConditionExpression": "PK = :pk AND begins_with(SK, :sk_prefix)",
+  "ExpressionAttributeValues": {
+    ":pk": "USER#123",
+    ":sk_prefix": "ORDER#"
+  }
+}
+
+// Exact partition + sort key
+{
+  "TableName": "unified_table",
+  "KeyConditionExpression": "PK = :pk AND SK = :sk", 
+  "ExpressionAttributeValues": {
+    ":pk": "USER#123",
+    ":sk": "PROFILE#main"
+  }
+}
+
+// Sort key range queries
+{
+  "TableName": "unified_table",
+  "KeyConditionExpression": "PK = :pk AND SK BETWEEN :start AND :end",
+  "ExpressionAttributeValues": {
+    ":pk": "USER#123", 
+    ":start": "2023-01-01",
+    ":end": "2023-12-31"
+  }
+}`,
+        redis: `// Hash-based single table simulation
+HGETALL "USER#123"
+
+// Pattern-based key retrieval
+KEYS "USER#123:ORDER#*"
+
+// Sorted set for time-range queries
+ZRANGEBYSCORE "USER#123:timeline" 1672531200 1703980800
+
+// RediSearch with composite keys
+FT.SEARCH unified_index "@pk:USER\\#123 @sk:ORDER\\#*"`,
+        note: "Single table design patterns: DynamoDB native support, other databases emulate with composite keys and prefixed identifiers"
+      }
+    },
     complex: {
       title: "Complex Multi-Database Query",
       formats: {
@@ -421,6 +564,29 @@ SUM(orders.amount) as total_spent
 HAVING total_spent > 500
 ORDER BY total_spent DESC
 LIMIT 10`,
+        redis: `// Complex Redis query with Lua scripting
+EVAL "
+local users = redis.call('FT.SEARCH', 'users', '@age:[25 35]')
+local results = {}
+for i=1,#users do
+  local orders = redis.call('FT.SEARCH', 'orders', '@user_id:' .. users[i].id .. ' @created_at:[2023-02-01 +inf]')
+  local total = 0
+  local count = 0
+  for j=1,#orders do
+    total = total + tonumber(orders[j].amount)
+    count = count + 1
+  end
+  if total > 500 then
+    table.insert(results, {user=users[i], count=count, total=total})
+  end
+end
+return results
+" 0
+
+// Multi-step Redis operations
+FT.SEARCH users "@age:[25 35]"
+FT.SEARCH orders "@user_id:1 @created_at:[2023-02-01 +inf]"
+FT.AGGREGATE orders "*" GROUPBY 1 @user_id REDUCE SUM 1 @amount`,
         note: "Complex queries with multiple JOINs, filters, aggregations, and sorting work across all database types with optimal native translations"
       }
     }
