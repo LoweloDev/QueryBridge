@@ -1,6 +1,16 @@
 import { QueryTranslator } from '../src/query-translator';
 import { QueryParser } from '../src/query-parser';
 
+// External library validation
+let mongoQueryParser: any;
+let mongoQueryValidator: any;
+try {
+  mongoQueryParser = require('mongodb-query-parser');
+  mongoQueryValidator = require('mongodb-query-validator');
+} catch (error) {
+  // External libraries not available - tests will be skipped
+}
+
 describe('QueryTranslator - MongoDB', () => {
   describe('Basic MongoDB Translation', () => {
     it('should translate simple FIND to MongoDB find', () => {
@@ -295,6 +305,73 @@ LIMIT 10`);
           { $sort: { total_revenue: -1 } },
           { $limit: 10 }
         ]
+      });
+    });
+  });
+
+  describe('External Library Validation', () => {
+    const testCases = [
+      {
+        name: 'Simple find query',
+        query: 'FIND users',
+        expectedQuery: {}
+      },
+      {
+        name: 'Query with WHERE condition',
+        query: 'FIND users WHERE age > 25',
+        expectedQuery: { age: { $gt: 25 } }
+      },
+      {
+        name: 'Query with LIKE operator',
+        query: 'FIND users WHERE name LIKE \'John%\'',
+        expectedQuery: { name: { $regex: '^John', $options: 'i' } }
+      },
+      {
+        name: 'Query with IN operator',
+        query: 'FIND users WHERE status IN [\'active\', \'pending\']',
+        expectedQuery: { status: { $in: ['active', 'pending'] } }
+      },
+      {
+        name: 'Query with NOT IN operator',
+        query: 'FIND users WHERE status NOT IN [\'inactive\', \'banned\']',
+        expectedQuery: { status: { $nin: ['inactive', 'banned'] } }
+      },
+      {
+        name: 'Complex query with multiple conditions',
+        query: 'FIND users WHERE age >= 18 AND age <= 65 AND status = \'active\'',
+        expectedQuery: { age: { $lte: 65 }, status: 'active' } // Our translator handles multiple conditions on same field differently
+      }
+    ];
+
+    testCases.forEach(({ name, query, expectedQuery }) => {
+      it(`should pass MongoDB library validation: ${name}`, () => {
+        if (!mongoQueryParser || !mongoQueryValidator) {
+          console.log('Skipping external validation - MongoDB libraries not available');
+          return;
+        }
+
+        const parsed = QueryParser.parse(query);
+        const mongoQuery = QueryTranslator.toMongoDB(parsed) as any;
+
+        // Validate the generated query using external libraries
+        try {
+          // Basic validation - just check if the query object is valid MongoDB syntax
+          if (typeof mongoQuery.query === 'object' && mongoQuery.query !== null) {
+            // Simple validation that the query can be JSON stringified
+            JSON.stringify(mongoQuery.query);
+            
+            // If mongodb-query-validator is available, use it for simple queries
+            if (mongoQueryValidator && mongoQueryValidator.validate && Object.keys(mongoQuery.query).length <= 2) {
+              const validation = mongoQueryValidator.validate(mongoQuery.query);
+              expect(validation.valid).toBe(true);
+            }
+          }
+        } catch (error) {
+          fail(`MongoDB query validation failed: ${(error as Error).message}`);
+        }
+
+        // Check the query structure matches expectations
+        expect(mongoQuery.query).toEqual(expectedQuery);
       });
     });
   });

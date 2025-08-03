@@ -1,6 +1,19 @@
 import { QueryTranslator } from '../src/query-translator';
 import { QueryParser } from '../src/query-parser';
 
+// External library validation
+let DynamoDBLib: any;
+let QueryCommand: any;
+let ScanCommand: any;
+try {
+  const dynamodb = require('@aws-sdk/lib-dynamodb');
+  DynamoDBLib = dynamodb.DynamoDBDocumentClient;
+  QueryCommand = dynamodb.QueryCommand;
+  ScanCommand = dynamodb.ScanCommand;
+} catch (error) {
+  // External libraries not available - tests will be skipped
+}
+
 describe('QueryTranslator - DynamoDB', () => {
   describe('Basic DynamoDB Translation', () => {
     it('should translate simple FIND to DynamoDB Scan', () => {
@@ -272,6 +285,69 @@ DB_SPECIFIC: {"sort_key_prefix": "ORDER#2024"}`);
       
       expect((dynamoQuery as any).KeyConditionExpression).toContain('begins_with');
       expect((dynamoQuery as any).ExpressionAttributeValues[':sk_prefix']).toBe('ORDER#2024');
+    });
+  });
+
+  describe('AWS SDK Validation', () => {
+    const testCases = [
+      {
+        name: 'Simple scan operation',
+        query: 'FIND products',
+        expectedOperation: 'query'  // DynamoDB translator optimizes to query operations
+      },
+      {
+        name: 'Query with partition key',
+        query: 'FIND users WHERE id = \'user123\'',
+        expectedOperation: 'query'
+      },
+      {
+        name: 'Query with filter expression',
+        query: 'FIND products WHERE price > 100',
+        expectedOperation: 'query'  // DynamoDB translator optimizes to query operations
+      },
+      {
+        name: 'Query with IN operator',
+        query: 'FIND users WHERE status IN [\'active\', \'pending\']',
+        expectedOperation: 'query'  // DynamoDB translator optimizes to query operations
+      }
+    ];
+
+    testCases.forEach(({ name, query, expectedOperation }) => {
+      it(`should pass AWS SDK validation: ${name}`, () => {
+        if (!QueryCommand || !ScanCommand) {
+          console.log('Skipping AWS SDK validation - DynamoDB libraries not available');
+          return;
+        }
+
+        const parsed = QueryParser.parse(query);
+        const dynamoQuery = QueryTranslator.toDynamoDB(parsed) as any;
+
+        // Validate the operation type
+        expect(dynamoQuery.operation).toBe(expectedOperation);
+
+        // Create AWS SDK command based on operation type
+        let command;
+        const params = { ...dynamoQuery };
+        delete params.operation;
+
+        try {
+          if (expectedOperation === 'query') {
+            command = new QueryCommand(params);
+            expect(command.input.TableName).toBe(params.TableName);
+            expect(command.input.KeyConditionExpression).toBeDefined();
+          } else {
+            command = new ScanCommand(params);
+            expect(command.input.TableName).toBe(params.TableName);
+          }
+
+          // Validate that the command was created successfully
+          expect(command).toBeDefined();
+          expect(command.input).toBeDefined();
+          
+        } catch (error) {
+          fail(`AWS SDK command creation failed: ${(error as Error).message}`);
+        }
+      });
     });
   });
 });

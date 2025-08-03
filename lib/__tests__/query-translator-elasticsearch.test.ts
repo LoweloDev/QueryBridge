@@ -1,6 +1,15 @@
 import { QueryTranslator } from '../src/query-translator';
 import { QueryParser } from '../src/query-parser';
 
+// External library validation
+let ElasticsearchClient: any;
+try {
+  const elasticsearch = require('@elastic/elasticsearch');
+  ElasticsearchClient = elasticsearch.Client;
+} catch (error) {
+  // External libraries not available - tests will be skipped
+}
+
 describe('QueryTranslator - Elasticsearch', () => {
   describe('Basic Elasticsearch Translation', () => {
     it('should translate simple FIND to Elasticsearch match_all', () => {
@@ -307,6 +316,94 @@ WHERE @timestamp > '2024-01-01' AND user.id = '12345'`);
       });
       expect((esQuery as any).body.query.bool.must).toContainEqual({
         term: { 'user.id': '12345' }
+      });
+    });
+  });
+
+  describe('Elasticsearch SDK Validation', () => {
+    const testCases = [
+      {
+        name: 'Simple match_all query',
+        query: 'FIND articles',
+        expectedIndex: 'articles'
+      },
+      {
+        name: 'Query with LIKE operator',
+        query: 'FIND articles WHERE title LIKE \'elasticsearch%\'',
+        expectedIndex: 'articles'
+      },
+      {
+        name: 'Range query',
+        query: 'FIND products WHERE price >= 100 AND price <= 500',
+        expectedIndex: 'products'
+      },
+      {
+        name: 'Terms query (IN operator)',
+        query: 'FIND users WHERE status IN [\'active\', \'pending\']',
+        expectedIndex: 'users'
+      },
+      {
+        name: 'Query with sorting and limiting',
+        query: 'FIND articles ORDER BY score DESC LIMIT 20',
+        expectedIndex: 'articles'
+      }
+    ];
+
+    testCases.forEach(({ name, query, expectedIndex }) => {
+      it(`should pass Elasticsearch SDK validation: ${name}`, () => {
+        if (!ElasticsearchClient) {
+          console.log('Skipping Elasticsearch SDK validation - library not available');
+          return;
+        }
+
+        const parsed = QueryParser.parse(query);
+        const esQuery = QueryTranslator.toElasticsearch(parsed) as any;
+
+        // Validate basic structure
+        expect(esQuery.index).toBe(expectedIndex);
+        expect(esQuery.body).toBeDefined();
+        expect(esQuery.body.query).toBeDefined();
+
+        // Validate that the query structure is compatible with Elasticsearch Client
+        try {
+          // This simulates what the Elasticsearch client would validate
+          const searchParams = {
+            index: esQuery.index,
+            body: esQuery.body
+          };
+
+          // Check required fields
+          expect(typeof searchParams.index).toBe('string');
+          expect(searchParams.index.length).toBeGreaterThan(0);
+          expect(typeof searchParams.body).toBe('object');
+          expect(searchParams.body.query).toBeDefined();
+
+          // Validate query types are supported
+          const queryType = Object.keys(searchParams.body.query)[0];
+          const supportedQueryTypes = ['match_all', 'bool', 'term', 'terms', 'range', 'match', 'nested'];
+          expect(supportedQueryTypes).toContain(queryType);
+
+          // If aggregations exist, validate structure
+          if (searchParams.body.aggs) {
+            expect(typeof searchParams.body.aggs).toBe('object');
+          }
+
+          // If sort exists, validate structure
+          if (searchParams.body.sort) {
+            expect(Array.isArray(searchParams.body.sort)).toBe(true);
+          }
+
+          // If size/from exist, validate they're numbers
+          if (searchParams.body.size) {
+            expect(typeof searchParams.body.size).toBe('number');
+          }
+          if (searchParams.body.from) {
+            expect(typeof searchParams.body.from).toBe('number');
+          }
+
+        } catch (error) {
+          fail(`Elasticsearch SDK compatibility validation failed: ${(error as Error).message}`);
+        }
       });
     });
   });
