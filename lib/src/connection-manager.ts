@@ -168,8 +168,40 @@ export class ConnectionManager {
           throw new Error('DynamoDB execution not implemented');
 
         case 'redis':
-          // Redis execution logic would go here
-          throw new Error('Redis execution not implemented');
+          // Execute Redis query based on operation type
+          const redisQuery = query as any;
+          let redisResult: any;
+          
+          switch (redisQuery.operation) {
+            case 'SCAN':
+              redisResult = await client.scan(0, 'MATCH', redisQuery.pattern, 'COUNT', redisQuery.count || 1000);
+              return { rows: redisResult[1], count: redisResult[1].length, data: redisResult[1] };
+              
+            case 'GET':
+              redisResult = await client.get(redisQuery.key);
+              return { rows: redisResult ? [redisResult] : [], count: redisResult ? 1 : 0, data: redisResult ? [redisResult] : [] };
+              
+            case 'MGET':
+              redisResult = await client.mget(...redisQuery.keys);
+              const filteredResults = redisResult.filter((r: any) => r !== null);
+              return { rows: filteredResults, count: filteredResults.length, data: filteredResults };
+              
+            case 'HGETALL':
+              redisResult = await client.hgetall(redisQuery.key);
+              return { rows: [redisResult], count: 1, data: [redisResult] };
+              
+            case 'FT.SEARCH':
+              // Note: This requires RediSearch module
+              try {
+                redisResult = await client.call('FT.SEARCH', redisQuery.index, redisQuery.query, 'LIMIT', redisQuery.limit?.offset || 0, redisQuery.limit?.num || 10);
+                return { rows: redisResult.slice(1), count: redisResult[0], data: redisResult.slice(1) };
+              } catch (error: any) {
+                throw new Error(`RediSearch not available: ${error.message}`);
+              }
+              
+            default:
+              return { rows: [], count: 0, data: [] };
+          }
 
         default:
           throw new Error(`Unsupported database type: ${config.type}`);

@@ -933,22 +933,45 @@ export class QueryTranslator {
       }
     }
     
-    // Check for specific key lookup
-    const keyCondition = query.where?.find(w => w.field === 'key' && w.operator === '=');
+    // Check for specific key lookup (more flexible field matching)
+    const keyCondition = query.where?.find(w => 
+      (w.field === 'key' || w.field === 'id' || w.field.includes('_id') || w.field.includes('key')) && 
+      w.operator === '='
+    );
     if (keyCondition) {
+      // For hash IDs, format as table:id
+      if (keyCondition.field.includes('_id') || keyCondition.field === 'id') {
+        return {
+          operation: 'GET',
+          key: `${query.table}:${keyCondition.value}`
+        };
+      }
       return {
         operation: 'GET',
         key: keyCondition.value
       };
     }
     
-    // Check for batch key lookup
+    // Check for batch key lookup  
     const inCondition = query.where?.find(w => w.field === 'id' && w.operator === 'IN');
-    if (inCondition && Array.isArray(inCondition.value)) {
-      return {
-        operation: 'MGET',
-        keys: inCondition.value.map(id => `${query.table}:${id}`)
-      };
+    if (inCondition) {
+      let values = inCondition.value;
+      if (typeof values === 'string') {
+        // Parse array string like "[123, 456, 789]" or "['123', '456', '789']"
+        const cleanValue = values.replace(/[\[\]]/g, '').trim();
+        if (cleanValue) {
+          values = cleanValue.split(',').map(v => v.trim().replace(/['"]/g, ''));
+        } else {
+          values = [];
+        }
+      }
+      
+      if (Array.isArray(values) && values.length > 0) {
+        return {
+          operation: 'MGET',
+          keys: values.map(id => `${query.table}:${id}`)
+        };
+      }
     }
     
     // Default to SCAN operation
@@ -960,94 +983,108 @@ export class QueryTranslator {
   }
   
   private static toRedisSearch(query: QueryLanguage): object {
+    const dbSpecific = query.dbSpecific?.redis;
     const searchQuery: any = {
-      module: 'RediSearch',
-      command: 'FT.SEARCH',
-      index: query.table,
+      operation: 'FT.SEARCH',
+      index: dbSpecific?.search_index || `${query.table}_idx`,
       query: '*',
-      options: {}
+      limit: { offset: 0, num: query.limit || 10 }
     };
     
-    // Build search query string
+    // Build search query string  
     if (query.where && query.where.length > 0) {
-      const queryParts = query.where.map(condition => {
+      // Handle range queries specially - combine >= and <= for same field
+      const conditions = [...query.where];
+      const rangeMap = new Map<string, { min?: any, max?: any }>();
+      const nonRangeConditions = [];
+
+      for (const condition of conditions) {
+        if ((condition.operator === '>=' || condition.operator === '>') && 
+            conditions.some(c => c.field === condition.field && (c.operator === '<=' || c.operator === '<'))) {
+          // This is part of a range query
+          if (!rangeMap.has(condition.field)) {
+            rangeMap.set(condition.field, {});
+          }
+          const range = rangeMap.get(condition.field)!;
+          range.min = condition.value;
+        } else if ((condition.operator === '<=' || condition.operator === '<') &&
+                   conditions.some(c => c.field === condition.field && (c.operator === '>=' || c.operator === '>'))) {
+          // This is part of a range query
+          if (!rangeMap.has(condition.field)) {
+            rangeMap.set(condition.field, {});
+          }
+          const range = rangeMap.get(condition.field)!;
+          range.max = condition.value;
+        } else {
+          nonRangeConditions.push(condition);
+        }
+      }
+
+      const queryParts = [];
+
+      // Handle range queries
+      for (const [field, range] of rangeMap.entries()) {
+        if (range.min !== undefined && range.max !== undefined) {
+          queryParts.push(`@${field}:[${range.min} ${range.max}]`);
+        } else if (range.min !== undefined) {
+          queryParts.push(`@${field}:[${range.min} +inf]`);
+        } else if (range.max !== undefined) {
+          queryParts.push(`@${field}:[-inf ${range.max}]`);
+        }
+      }
+
+      // Handle non-range conditions
+      for (const condition of nonRangeConditions) {
+        if (rangeMap.has(condition.field)) continue; // Skip - already handled as range
+        
         switch (condition.operator) {
           case '=':
-            return `@${condition.field}:{${condition.value}}`;
+            queryParts.push(`@${condition.field}:{${condition.value}}`);
+            break;
           case '!=':
-            return `-@${condition.field}:{${condition.value}}`;
+            queryParts.push(`-@${condition.field}:{${condition.value}}`);
+            break;
           case '>':
-            return `@${condition.field}:[${condition.value} +inf]`;
+            queryParts.push(`@${condition.field}:[${condition.value} +inf]`);
+            break;
           case '<':
-            return `@${condition.field}:[-inf ${condition.value}]`;
+            queryParts.push(`@${condition.field}:[-inf ${condition.value}]`);
+            break;
           case '>=':
-            return `@${condition.field}:[${condition.value} +inf]`;
+            queryParts.push(`@${condition.field}:[${condition.value} +inf]`);
+            break;
           case '<=':
-            return `@${condition.field}:[-inf ${condition.value}]`;
+            queryParts.push(`@${condition.field}:[-inf ${condition.value}]`);
+            break;
           case 'LIKE':
-            return `@${condition.field}:*${condition.value}*`;
+            const likeValue = condition.value.toString().replace('%', '*');
+            // Handle quoted strings for exact phrase matching
+            if (likeValue.includes(' ')) {
+              queryParts.push(`${condition.field}:"${likeValue.replace('*', '')}"`);
+            } else {
+              queryParts.push(`${condition.field}:${likeValue}`);
+            }
+            break;
           case 'IN':
             const values = Array.isArray(condition.value) ? condition.value : [condition.value];
-            return `@${condition.field}:{${values.join('|')}}`;
+            queryParts.push(`@${condition.field}:{${values.join('|')}}`);
+            break;
           default:
-            return `@${condition.field}:{${condition.value}}`;
+            queryParts.push(`@${condition.field}:{${condition.value}}`);
         }
-      });
+      }
       
       searchQuery.query = queryParts.join(' ');
     }
     
-    // Add aggregation if present
+    // Handle aggregation
     if (query.aggregate && query.aggregate.length > 0) {
-      searchQuery.command = 'FT.AGGREGATE';
-      searchQuery.pipeline = [];
-      
-      // Group by clause
-      if (query.groupBy && query.groupBy.length > 0) {
-        const groupBy = query.groupBy.map(field => `@${field}`);
-        const reducers = query.aggregate.map(agg => {
-          const func = agg.function.toLowerCase();
-          return `REDUCE ${func.toUpperCase()} 1 @${agg.field} AS ${agg.alias || agg.field}`;
-        });
-        
-        searchQuery.pipeline.push({
-          operation: 'GROUPBY',
-          fields: groupBy,
-          reducers: reducers
-        });
-      } else {
-        // Global aggregation
-        const reducers = query.aggregate.map(agg => {
-          const func = agg.function.toLowerCase();
-          return `REDUCE ${func.toUpperCase()} 1 @${agg.field} AS ${agg.alias || agg.field}`;
-        });
-        
-        searchQuery.pipeline.push({
-          operation: 'GROUPBY',
-          fields: [],
-          reducers: reducers
-        });
-      }
+      searchQuery.operation = 'FT.AGGREGATE';
     }
     
-    // Sort by clause
-    if (query.orderBy && query.orderBy.length > 0) {
-      const sortBy = query.orderBy.map(order => `@${order.field} ${order.direction}`);
-      searchQuery.pipeline = searchQuery.pipeline || [];
-      searchQuery.pipeline.push({
-        operation: 'SORTBY',
-        fields: sortBy
-      });
-    }
-    
-    // Limit
+    // Update limit for specific cases
     if (query.limit) {
-      searchQuery.options.LIMIT = [0, query.limit];
-    }
-    
-    // Return specific fields
-    if (query.fields && query.fields.length > 0) {
-      searchQuery.options.RETURN = query.fields.map(field => `@${field}`);
+      searchQuery.limit = { offset: 0, num: query.limit };
     }
     
     return searchQuery;
@@ -1072,38 +1109,57 @@ export class QueryTranslator {
         }
         
         switch (condition.operator) {
-          case '=': return `n.${condition.field} = ${value}`;
-          case '!=': return `n.${condition.field} <> ${value}`;
-          case '>': return `n.${condition.field} > ${value}`;
-          case '<': return `n.${condition.field} < ${value}`;
-          case '>=': return `n.${condition.field} >= ${value}`;
-          case '<=': return `n.${condition.field} <= ${value}`;
-          case 'LIKE': return `n.${condition.field} CONTAINS ${value}`;
-          default: return `n.${condition.field} = ${value}`;
+          case '=': return `${query.table}.${condition.field} = ${value}`;
+          case '!=': return `${query.table}.${condition.field} <> ${value}`;
+          case '>': return `${query.table}.${condition.field} > ${value}`;
+          case '<': return `${query.table}.${condition.field} < ${value}`;
+          case '>=': return `${query.table}.${condition.field} >= ${value}`;
+          case '<=': return `${query.table}.${condition.field} <= ${value}`;
+          case 'LIKE': return `${query.table}.${condition.field} CONTAINS ${value}`;
+          default: return `${query.table}.${condition.field} = ${value}`;
         }
       });
       
       cypherQuery += ` WHERE ${whereConditions.join(' AND ')}`;
     }
+
+    // Handle JOINs as graph relationships (after WHERE clause)
+    if (query.joins && query.joins.length > 0) {
+      for (const joinClause of query.joins) {
+        // Determine relationship type based on table name or use generic connection
+        let relationshipType = 'CONNECTED_TO';
+        if (joinClause.table === 'follows') {
+          relationshipType = 'FOLLOWS';
+        } else if (joinClause.table === 'friends') {
+          relationshipType = 'FRIENDS_WITH';
+        }
+        
+        cypherQuery += ` OPTIONAL MATCH (${query.table})-[:${relationshipType}]->(${joinClause.table})`;
+      }
+    }
     
     // RETURN clause with aggregation
     if (query.aggregate && query.aggregate.length > 0) {
       const aggregations = query.aggregate.map(agg => {
-        const func = agg.function.toLowerCase();
-        return `${func}(n.${agg.field}) AS ${agg.alias || agg.field}`;
+        const func = agg.function.toUpperCase(); // Use uppercase for Cypher
+        return `${func}(${query.table}.${agg.field}) AS ${agg.alias || agg.field}`;
       });
       
       if (query.groupBy && query.groupBy.length > 0) {
-        const groupFields = query.groupBy.map(field => `n.${field}`);
+        const groupFields = query.groupBy.map(field => `${query.table}.${field}`);
         cypherQuery += ` RETURN ${groupFields.join(', ')}, ${aggregations.join(', ')}`;
       } else {
         cypherQuery += ` RETURN ${aggregations.join(', ')}`;
       }
     } else if (query.fields && query.fields.length > 0) {
-      const returnFields = query.fields.map(field => `n.${field}`);
+      const returnFields = query.fields.map(field => `${query.table}.${field}`);
       cypherQuery += ` RETURN ${returnFields.join(', ')}`;
+    } else if (query.joins && query.joins.length > 0) {
+      // Include joined tables in the return
+      const returnClause = [query.table, ...query.joins.map(j => j.table)].join(', ');
+      cypherQuery += ` RETURN ${returnClause}`;
     } else {
-      cypherQuery += ' RETURN n';
+      cypherQuery += ` RETURN ${query.table}`;
     }
     
     // ORDER BY clause

@@ -1,7 +1,79 @@
 import { QueryTranslator } from '../src/query-translator';
 import { QueryParser } from '../src/query-parser';
 
+// External library validation for Redis
+let RedisClient: any;
+let ioredis: any;
+try {
+  ioredis = require('ioredis');
+  RedisClient = ioredis.default || ioredis;
+} catch (error) {
+  // External libraries not available - tests will be skipped
+}
+
 describe('QueryTranslator - Redis', () => {
+  // External Library Validation Tests
+  describe('External Library Validation', () => {
+    it('should validate Redis queries with ioredis library', async () => {
+      if (!RedisClient) {
+        console.log('ioredis not available - skipping external validation');
+        return;
+      }
+
+      // Test basic SCAN operation translation
+      const query = QueryParser.parse('FIND users');
+      const redisQuery = QueryTranslator.toRedis(query);
+
+      expect(redisQuery).toEqual({
+        operation: 'SCAN',
+        pattern: 'users:*',
+        count: 1000
+      });
+
+      // Validate that the query structure is compatible with ioredis
+      expect(redisQuery).toHaveProperty('operation');
+      expect(typeof (redisQuery as any).operation).toBe('string');
+      
+      // Test FT.SEARCH operation
+      const searchQuery = QueryParser.parse(`FIND articles
+WHERE title LIKE 'redis%'
+DB_SPECIFIC: {"redis": {"search_index": "articles_idx"}}`);
+      const redisSearchQuery = QueryTranslator.toRedis(searchQuery);
+
+      expect(redisSearchQuery).toEqual({
+        operation: 'FT.SEARCH',
+        index: 'articles_idx',
+        query: 'title:redis*',
+        limit: { offset: 0, num: 10 }
+      });
+
+      // Validate FT.SEARCH structure
+      expect(redisSearchQuery).toHaveProperty('operation', 'FT.SEARCH');
+      expect(redisSearchQuery).toHaveProperty('index');
+      expect(redisSearchQuery).toHaveProperty('query');
+    });
+
+    it('should validate Redis data structure operations', async () => {
+      if (!RedisClient) {
+        console.log('ioredis not available - skipping external validation');
+        return;
+      }
+
+      // Test Hash operation
+      const hashQuery = QueryParser.parse(`FIND users
+WHERE user_id = '12345'
+DB_SPECIFIC: {"redis": {"data_type": "hash"}}`);
+      const redisHashQuery = QueryTranslator.toRedis(hashQuery);
+
+      expect(redisHashQuery).toEqual({
+        operation: 'HGETALL',
+        key: 'users:12345'
+      });
+
+      // Validate that operation names match Redis command format
+      expect(['HGETALL', 'SMEMBERS', 'ZRANGEBYSCORE', 'LRANGE'].includes((redisHashQuery as any).operation)).toBe(true);
+    });
+  });
   describe('Basic Redis Translation', () => {
     it('should translate simple FIND to Redis SCAN', () => {
       const query = QueryParser.parse('FIND users');

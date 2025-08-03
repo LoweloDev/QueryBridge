@@ -5,10 +5,8 @@ export class QueryParser {
     // Enhanced parser that handles both single-line and multi-line queries
     const input = queryString.trim();
     
-    // Check if it's a single-line query by detecting keywords on the same line
-    const isSingleLine = input.includes('WHERE') || input.includes('ORDER BY') || 
-                        input.includes('LIMIT') || input.includes('AGGREGATE') || 
-                        input.includes('GROUP BY');
+    // Check if it's a single-line query by checking if newlines exist
+    const isSingleLine = !input.includes('\n');
     
     let lines: string[];
     if (isSingleLine) {
@@ -85,11 +83,22 @@ export class QueryParser {
         const havingClause = line.substring(6).trim();
         result.having = this.parseWhere(havingClause);
       } else if (upperLine.startsWith('DB_SPECIFIC:')) {
+        // Process any buffered WHERE clause first
+        if (whereBuffer) {
+          result.where = this.parseWhere(whereBuffer);
+          whereBuffer = '';
+        }
         // Parse database-specific configurations
         currentSection = 'DB_SPECIFIC';
         const dbSpecificClause = line.substring(12).trim();
         if (dbSpecificClause) {
-          result.dbSpecific = this.parseDbSpecific(dbSpecificClause);
+          // Try parsing as JSON first
+          try {
+            result.dbSpecific = JSON.parse(dbSpecificClause);
+          } catch {
+            // Fallback to key-value parsing
+            result.dbSpecific = this.parseDbSpecific(dbSpecificClause);
+          }
         } else {
           // Initialize empty object for multi-line parsing
           result.dbSpecific = {};
@@ -101,8 +110,34 @@ export class QueryParser {
         // Deep merge the configurations
         this.mergeDbSpecific(result.dbSpecific, additionalConfig);
       } else if (currentSection === 'WHERE') {
-        // Continue building WHERE buffer
-        whereBuffer += ' ' + line;
+        // Check if this line starts a new section
+        if (upperLine.startsWith('DB_SPECIFIC:') || upperLine.startsWith('ORDER BY') || 
+            upperLine.startsWith('LIMIT') || upperLine.startsWith('AGGREGATE') || 
+            upperLine.startsWith('GROUP BY') || upperLine.startsWith('HAVING')) {
+          // Process buffered WHERE and start new section
+          result.where = this.parseWhere(whereBuffer);
+          whereBuffer = '';
+          currentSection = '';
+          
+          // Re-process this line
+          if (upperLine.startsWith('DB_SPECIFIC:')) {
+            currentSection = 'DB_SPECIFIC';
+            const dbSpecificClause = line.substring(12).trim();
+            if (dbSpecificClause) {
+              try {
+                result.dbSpecific = JSON.parse(dbSpecificClause);
+              } catch {
+                result.dbSpecific = this.parseDbSpecific(dbSpecificClause);
+              }
+            } else {
+              result.dbSpecific = {};
+            }
+          }
+          // Add other section handlers here if needed
+        } else {
+          // Continue building WHERE buffer
+          whereBuffer += ' ' + line;
+        }
       } else if (currentSection === 'AGGREGATE') {
         // Continue building AGGREGATE buffer
         aggregateBuffer += ' ' + line;
