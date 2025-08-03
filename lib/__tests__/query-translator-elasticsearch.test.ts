@@ -89,7 +89,7 @@ OFFSET 20`);
 WHERE title LIKE 'elasticsearch%'`);
       const esQuery = QueryTranslator.toElasticsearch(query);
       
-      expect(esQuery.body.query).toEqual({
+      expect((esQuery as any).body.query).toEqual({
         bool: {
           must: [
             { match: { title: 'elasticsearch*' } }
@@ -103,7 +103,7 @@ WHERE title LIKE 'elasticsearch%'`);
 WHERE name ILIKE 'john%'`);
       const esQuery = QueryTranslator.toElasticsearch(query);
       
-      expect(esQuery.body.query).toEqual({
+      expect((esQuery as any).body.query).toEqual({
         bool: {
           must: [
             { match: { name: { query: 'john*', case_insensitive: true } } }
@@ -117,7 +117,7 @@ WHERE name ILIKE 'john%'`);
 WHERE price >= 100 AND price <= 500`);
       const esQuery = QueryTranslator.toElasticsearch(query);
       
-      expect(esQuery.body.query).toEqual({
+      expect((esQuery as any).body.query).toEqual({
         bool: {
           must: [
             { range: { price: { gte: 100 } } },
@@ -132,7 +132,7 @@ WHERE price >= 100 AND price <= 500`);
 WHERE status IN ['active', 'pending', 'verified']`);
       const esQuery = QueryTranslator.toElasticsearch(query);
       
-      expect(esQuery.body.query).toEqual({
+      expect((esQuery as any).body.query).toEqual({
         bool: {
           must: [
             { terms: { status: ['active', 'pending', 'verified'] } }
@@ -146,7 +146,7 @@ WHERE status IN ['active', 'pending', 'verified']`);
 WHERE role NOT IN ['admin', 'super_admin']`);
       const esQuery = QueryTranslator.toElasticsearch(query);
       
-      expect(esQuery.body.query).toEqual({
+      expect((esQuery as any).body.query).toEqual({
         bool: {
           must_not: [
             { terms: { role: ['admin', 'super_admin'] } }
@@ -187,7 +187,7 @@ AGGREGATE COUNT(id) AS product_count, AVG(price) AS avg_price, MIN(price) AS min
 GROUP BY category`);
       const esQuery = QueryTranslator.toElasticsearch(query);
       
-      expect(esQuery.body.aggs.category_group.aggs).toEqual({
+      expect((esQuery as any).body.aggs.category_group.aggs).toEqual({
         product_count: { value_count: { field: 'id' } },
         avg_price: { avg: { field: 'price' } },
         min_price: { min: { field: 'price' } },
@@ -202,14 +202,14 @@ AGGREGATE SUM(amount) AS total_revenue
 GROUP BY customer_id`);
       const esQuery = QueryTranslator.toElasticsearch(query);
       
-      expect(esQuery.body.query).toEqual({
+      expect((esQuery as any).body.query).toEqual({
         bool: {
           must: [
             { term: { status: 'completed' } }
           ]
         }
       });
-      expect(esQuery.body.aggs).toBeDefined();
+      expect((esQuery as any).body.aggs).toBeDefined();
     });
   });
 
@@ -224,7 +224,7 @@ LIMIT 10`);
       
       const esQuery = QueryTranslator.toElasticsearch(query);
       
-      expect(esQuery.body.query).toEqual({
+      expect((esQuery as any).body.query).toEqual({
         bool: {
           must: [
             { term: { status: 'completed' } },
@@ -232,9 +232,9 @@ LIMIT 10`);
           ]
         }
       });
-      expect(esQuery.body.aggs).toBeDefined();
-      expect(esQuery.body.sort).toEqual([{ avg_amount: { order: 'desc' } }]);
-      expect(esQuery.body.size).toBe(10);
+      expect((esQuery as any).body.aggs).toBeDefined();
+      expect((esQuery as any).body.sort).toEqual([{ avg_amount: { order: 'desc' } }]);
+      expect((esQuery as any).body.size).toBe(10);
     });
 
     it('should handle text search with match queries', () => {
@@ -242,7 +242,7 @@ LIMIT 10`);
 WHERE title LIKE 'machine learning' AND content LIKE 'neural networks'`);
       const esQuery = QueryTranslator.toElasticsearch(query);
       
-      expect(esQuery.body.query).toEqual({
+      expect((esQuery as any).body.query).toEqual({
         bool: {
           must: [
             { match: { title: 'machine learning' } },
@@ -260,7 +260,7 @@ WHERE title LIKE 'elasticsearch'
 DB_SPECIFIC: {"elasticsearch": {"boost": {"title": 2.0}}}`);
       const esQuery = QueryTranslator.toElasticsearch(query);
       
-      expect(esQuery.body.query.bool.must[0].match.title).toEqual({
+      expect((esQuery as any).body.query.bool.must[0].match.title).toEqual({
         query: 'elasticsearch',
         boost: 2.0
       });
@@ -272,7 +272,7 @@ WHERE name LIKE 'john'
 DB_SPECIFIC: {"elasticsearch": {"fuzzy": {"name": {"fuzziness": "AUTO"}}}}`);
       const esQuery = QueryTranslator.toElasticsearch(query);
       
-      expect(esQuery.body.query.bool.must[0]).toEqual({
+      expect((esQuery as any).body.query.bool.must[0]).toEqual({
         fuzzy: { name: { value: 'john', fuzziness: 'AUTO' } }
       });
     });
@@ -283,7 +283,7 @@ WHERE content LIKE 'machine learning'
 DB_SPECIFIC: {"elasticsearch": {"highlight": {"fields": {"content": {}}}}}`);
       const esQuery = QueryTranslator.toElasticsearch(query);
       
-      expect(esQuery.body.highlight).toEqual({
+      expect((esQuery as any).body.highlight).toEqual({
         fields: { content: {} }
       });
     });
@@ -294,7 +294,7 @@ DB_SPECIFIC: {"elasticsearch": {"highlight": {"fields": {"content": {}}}}}`);
       const query = QueryParser.parse('FIND users');
       const esQuery = QueryTranslator.toElasticsearch(query);
       
-      expect(esQuery.body.query).toEqual({ match_all: {} });
+      expect((esQuery as any).body.query).toEqual({ match_all: {} });
     });
 
     it('should handle field names with special characters', () => {
@@ -302,10 +302,10 @@ DB_SPECIFIC: {"elasticsearch": {"highlight": {"fields": {"content": {}}}}}`);
 WHERE @timestamp > '2024-01-01' AND user.id = '12345'`);
       const esQuery = QueryTranslator.toElasticsearch(query);
       
-      expect(esQuery.body.query.bool.must).toContainEqual({
+      expect((esQuery as any).body.query.bool.must).toContainEqual({
         range: { '@timestamp': { gt: '2024-01-01' } }
       });
-      expect(esQuery.body.query.bool.must).toContainEqual({
+      expect((esQuery as any).body.query.bool.must).toContainEqual({
         term: { 'user.id': '12345' }
       });
     });

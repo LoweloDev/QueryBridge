@@ -361,6 +361,7 @@ export class QueryTranslator {
   
   static toElasticsearch(query: QueryLanguage): object {
     const esQuery: any = {
+      index: query.table,
       body: {
         query: { bool: { must: [] } }
       }
