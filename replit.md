@@ -1,8 +1,10 @@
-# QueryFlow - Universal Database Query Tool
+# Universal Query Translator
 
 ## Overview
 
-QueryFlow is a web-based database query tool that provides a unified interface for querying multiple database types through a common query language. The application features a React frontend with a Node.js/Express backend, supporting PostgreSQL, MongoDB, Redis, DynamoDB, and Elasticsearch databases. The core architecture centers around a universal query language that translates to database-specific queries, enabling users to work with different databases using consistent syntax.
+This is a comprehensive database query translation platform that allows users to write queries in a universal query language and translate them to multiple database formats (SQL, MongoDB, Elasticsearch, DynamoDB, and Redis). The application consists of a React frontend with a TypeScript backend and includes a standalone npm library for query translation functionality.
+
+The platform provides a visual query playground where users can connect to multiple databases, write queries in a common syntax, see real-time translations, and execute queries across different database types. It's designed as both a developer tool and a library that can be integrated into other applications.
 
 ## User Preferences
 
@@ -11,98 +13,68 @@ Preferred communication style: Simple, everyday language.
 ## System Architecture
 
 ### Frontend Architecture
-- **Framework**: React 18 with TypeScript using Vite as the build tool
-- **UI Library**: Shadcn/ui components built on Radix UI primitives with Tailwind CSS styling
-- **State Management**: TanStack Query (React Query) for server state management and API caching
+- **Framework**: React with TypeScript using Vite as the build tool
+- **UI Library**: shadcn/ui components built on Radix UI primitives
+- **Styling**: Tailwind CSS with custom design system variables
+- **State Management**: TanStack Query (React Query) for server state management
 - **Routing**: Wouter for lightweight client-side routing
-- **Form Handling**: React Hook Form with Zod schema validation
+- **Design Pattern**: Component-based architecture with reusable UI components
 
 ### Backend Architecture
-- **Runtime**: Node.js with Express.js framework
+- **Runtime**: Node.js with Express.js server
 - **Language**: TypeScript with ES modules
-- **API Design**: RESTful API with clean separation between routes and business logic
-- **Core Library**: ConnectionManager service that handles database connections and query translation
-- **Query Processing**: Two-stage approach with QueryParser for syntax parsing and QueryTranslator for database-specific translation
-- **Library Interface**: Clean API endpoints that accept universal query language and return translated results
+- **Database ORM**: Drizzle ORM configured for PostgreSQL
+- **Architecture Pattern**: RESTful API with thin route handlers that delegate to the core library
+- **Development Setup**: Vite middleware integration for seamless development experience
 
-### Recent Changes (January 2025)
-- **Complete System Cleanup**: Removed all mock/demonstration data functionality for production library
-- **Query Engine Fixes**: Fixed critical parsing errors in WHERE clause handling, multi-line query support, and SQL translation
-- **Database Integration**: PostgreSQL database configured with comprehensive test data (users, orders, products tables)
-- **SQL Compliance**: Fixed GROUP BY/ORDER BY compatibility issues and string value handling
-- **Library Architecture**: System now works as standalone npm package with clean connection management
-- **Library Separation**: Created standalone universal-query-translator library in `/lib` directory, separated from REST API testing service
-- **Clean Architecture**: Library exports ConnectionManager, QueryParser, QueryTranslator classes for external consumption  
-- **Testing API Service**: REST endpoints exist only for testing the library, demonstrating proper library usage patterns
-- **Backend Cleanup**: Removed duplicated logic from server, now imports and uses library classes properly
-- **Database Setup Separation**: Database setup logic moved to test backend only, library accepts connections by reference
-- **Library Interface**: Test backend instantiates library, passes database connections, and uses library methods for query operations
-- **Project Structure Cleanup**: Removed unused testing-api, data, and shared folders - clean monorepo with only client, server, and lib directories
-- **Multi-Database Setup Complete**: All database startup scripts created and tested (MongoDB, Redis, DynamoDB, Elasticsearch)
-- **Dual Elasticsearch Configuration**: PostgreSQL layer (port 9200) and DynamoDB layer (port 9201) for advanced search capabilities
-- **Local Development Ready**: Complete database environment configured for local development with production-ready features
-- **COMPLETE MONGODB SUCCESS (January 2025)**: MongoDB translation now 100% complete with all 15/15 tests passing, including complex JOIN operations, aggregation pipelines, and all operators (IN, NOT IN, LIKE). Combined with 100% SQL success (14/14 tests), the library now has production-ready translation for both major database paradigms - SQL and NoSQL document databases
-- **COMPLETE DYNAMODB SUCCESS (January 2025)**: DynamoDB translation achieved 100% AWS SDK compatibility with smart single-table design patterns, intelligent entity mapping, and comprehensive operator support (=, !=, >, >=, <, <=, IN, NOT IN). All queries optimize automatically between Query and Scan operations with proper KeyConditionExpression and FilterExpression generation
-- **COMPLETE ELASTICSEARCH SUCCESS (January 2025)**: Elasticsearch translation now 100% compatible with official @elastic/elasticsearch SDK, supporting full-text search, range queries, aggregations, nested objects, JOINs via nested queries, and all standard Elasticsearch query types (match_all, bool, term, terms, range, match)
-- **CONSOLIDATED TESTING ARCHITECTURE (January 2025)**: Replaced separate validation scripts with integrated external library validation directly in Jest tests. MongoDB, DynamoDB, and Elasticsearch translations now include comprehensive SDK compatibility testing within their respective test suites, ensuring both translation accuracy and real-world compatibility in a single test run
-- **COMPLETE REDIS SUCCESS (January 2025)**: Redis translation achieved 100% compatibility with 25/25 tests passing, including advanced features like RediSearch (FT.SEARCH), RedisGraph (GRAPH.QUERY), Redis Streams (XRANGE, XREADGROUP), Pub/Sub operations, geospatial queries (GEORADIUS), HyperLogLog operations, and comprehensive data structure support (HGETALL, SMEMBERS, ZRANGEBYSCORE, LRANGE). External library validation with ioredis confirms real-world SDK compatibility with proper Redis command structure and operation formatting
-- **COMPREHENSIVE DOCUMENTATION FRONTEND (January 2025)**: Complete documentation panel overhaul showcasing all library features with real dataset examples (users/orders/products). Interactive multi-database view system with dedicated tabs for Universal, SQL, MongoDB, Elasticsearch, DynamoDB, and Redis translations. Proper DynamoDB advanced features documentation including GSI queries, single-table design patterns, and intelligent mapping across all database types
+### Core Library Architecture
+- **Package Structure**: Standalone npm library (`universal-query-translator`) with TypeScript
+- **Query Processing**: Multi-stage pipeline with parsing, validation, and translation
+- **Connection Management**: External database connection registration system
+- **Translation Engine**: Modular translators for each database type (SQL, MongoDB, Elasticsearch, DynamoDB, Redis)
+- **Testing Strategy**: Comprehensive test suite with external library validation
 
 ### Data Storage Solutions
-- **Primary Database**: PostgreSQL with Neon serverless driver
-- **ORM**: Drizzle ORM with schema-first approach
-- **Schema Management**: Drizzle Kit for migrations and schema synchronization
-- **Connection Pooling**: Neon serverless connection pooling for PostgreSQL
+- **Primary Database**: PostgreSQL via Neon serverless with connection pooling
+- **Development Databases**: Local instances of MongoDB, Redis, DynamoDB, and Elasticsearch
+- **Schema Management**: Drizzle migrations with shared schema definitions
+- **Connection Strategy**: Connection manager accepts external database clients by reference
 
-### External Database Integration
-- **Multi-Database Support**: Connection manager supports PostgreSQL, MongoDB, Redis, DynamoDB, and Elasticsearch
-- **Database Clients**: AWS SDK for DynamoDB, Elasticsearch official client, and standard drivers for other databases
-- **Connection Management**: Centralized connection registry with health monitoring and automatic failover to mock databases
+### Authentication and Authorization
+- **Session Management**: connect-pg-simple for PostgreSQL-backed sessions
+- **Architecture**: Designed for future authentication integration
+- **Security**: CORS and security headers configured for production deployment
 
 ### Query Language Design
-- **Universal Syntax**: Custom query language that abstracts database differences
-- **Translation Layer**: Automatic conversion from universal syntax to database-specific queries (SQL, NoSQL, etc.)
-- **Parser Architecture**: Recursive descent parser handling joins, aggregations, filtering, and sorting
-- **Query Validation**: Syntax validation before translation and execution
+- **Syntax**: Custom universal query language with SQL-like syntax
+- **Features**: Supports SELECT, WHERE, JOIN, ORDER BY, GROUP BY, LIMIT operations
+- **Extensions**: Database-specific features via DB_SPECIFIC clause
+- **Validation**: Zod-based schema validation for type safety
 
-### Authentication and Session Management
-- **Session Storage**: PostgreSQL-based session storage using connect-pg-simple
-- **Connection Security**: Encrypted credential storage for database connections
-- **Access Control**: Connection-based permissions with user isolation
+### External Dependencies
 
-### Development Tools and Configuration
-- **Build System**: Vite for frontend bundling with hot module replacement
-- **Type Safety**: Comprehensive TypeScript configuration across frontend and backend
-- **Code Quality**: Shared types through workspace structure with path aliases
-- **Development Server**: Integrated Vite middleware for seamless development experience
+#### Database Drivers and Clients
+- **PostgreSQL**: @neondatabase/serverless for serverless PostgreSQL connections
+- **MongoDB**: Native MongoDB driver for document database operations
+- **Elasticsearch**: @elastic/elasticsearch for search and analytics queries
+- **DynamoDB**: @aws-sdk/client-dynamodb and @aws-sdk/lib-dynamodb for NoSQL operations
+- **Redis**: ioredis for advanced Redis data structure operations
 
-## External Dependencies
+#### UI and Frontend Libraries
+- **Component System**: Complete Radix UI ecosystem for accessible components
+- **Form Handling**: React Hook Form with Zod resolvers for type-safe forms
+- **Data Fetching**: TanStack Query for server state management and caching
+- **Styling**: Tailwind CSS with class-variance-authority for component variants
 
-### Database Services
-- **Neon PostgreSQL**: Serverless PostgreSQL for primary application data storage
-- **AWS DynamoDB**: NoSQL document database support via AWS SDK
-- **Elasticsearch**: Full-text search and analytics engine
-- **Redis**: In-memory data structure store for caching
-- **MongoDB**: Document-oriented NoSQL database
+#### Development and Build Tools
+- **Build System**: Vite with React plugin and Replit-specific development enhancements
+- **Testing Framework**: Jest with ts-jest for TypeScript testing
+- **Type System**: Full TypeScript coverage with strict configuration
+- **Code Quality**: ESLint and TypeScript compiler for code validation
 
-### Cloud and Infrastructure
-- **Replit Platform**: Development and hosting environment with integrated tools
-- **Vite Plugins**: Replit-specific plugins for error handling and cartographer integration
+#### Production Services
+- **Database Hosting**: Neon for managed PostgreSQL with serverless scaling
+- **Container Support**: Docker configurations for local database services
+- **Deployment**: Designed for Replit deployment with environment-specific configurations
 
-### Frontend Libraries
-- **UI Components**: Comprehensive Radix UI component library with accessibility features
-- **Styling**: Tailwind CSS with custom design system and CSS variables
-- **State Management**: TanStack Query for server state with optimistic updates
-- **Form Handling**: React Hook Form with resolver pattern for validation
-
-### Backend Libraries
-- **Database**: Drizzle ORM with PostgreSQL adapter and Neon serverless driver
-- **Authentication**: Session-based authentication with PostgreSQL session store
-- **API Tools**: Express.js with middleware for logging, CORS, and request parsing
-- **Development**: TSX for TypeScript execution and esbuild for production builds
-
-### Development and Build Tools
-- **TypeScript**: Strict type checking with comprehensive configuration
-- **ESLint/Prettier**: Code formatting and linting (implied by TypeScript setup)
-- **Vite**: Modern build tool with plugin ecosystem for development and production
-- **Drizzle Kit**: Database migration and schema management tools
+The architecture emphasizes modularity, type safety, and extensibility, making it easy to add new database types and query features while maintaining a clean separation between the library and application layers.
