@@ -28,8 +28,7 @@ This repository contains two main components:
 │   ├── README.md                # Library usage documentation
 │   └── DEVELOPER_GUIDE.md       # Development & publishing guide
 ├── client/                       # 🎮 React Frontend (Testing Platform)
-├── server/                       # 🖥️ Express Backend (API Layer)
-├── shared/                       # 📋 Shared TypeScript definitions
+├── server/                       # 🖥️ Express Backend (Example utilizing the lib)
 └── README.md                     # This file
 ```
 
