@@ -71,7 +71,7 @@ export function ConnectionSidebar() {
   const getStatusColor = (connectionId: string, defaultActive?: boolean) => {
     // Use local status if available, otherwise fall back to connection's default
     const isActive = connectionStatus[connectionId] ?? defaultActive ?? true; // Default to true since connections are working
-    return isActive ? "bg-success" : "bg-destructive";
+    return isActive ? "bg-green-500" : "bg-red-500";
   };
 
   if (isLoading) {
@@ -113,7 +113,13 @@ export function ConnectionSidebar() {
             <CardContent className="p-3">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center space-x-2">
-                  <div className={`w-2 h-2 rounded-full ${getStatusColor(connection.id, connection.isActive)}`} />
+                  <div 
+                    className={`w-3 h-3 rounded-full border ${getStatusColor(connection.id, connection.isActive)}`}
+                    title={connectionStatus[connection.id] !== undefined 
+                      ? (connectionStatus[connection.id] ? "Connection successful" : "Connection failed")
+                      : "Click to test connection"
+                    }
+                  />
                   <span className="font-medium text-sm">{connection.name}</span>
                 </div>
                 <Button size="sm" variant="ghost" className="h-auto p-1">
