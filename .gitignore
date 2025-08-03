@@ -8,3 +8,4 @@ vite.config.ts.*
 # Exclude only the large Elasticsearch installation (1.1GB)
 server/elasticsearch/
 *.tar.gz
+attached_assets
