@@ -133,11 +133,17 @@ GROUP BY status;`,
         note: "Complex aggregations translate to native optimizations: SQL GROUP BY, MongoDB pipelines, Elasticsearch aggregations"
       }
     },
-    dynamodb_smart: {
-      title: "DynamoDB Intelligent Mapping",
+    intelligent_mapping: {
+      title: "Intelligent Mapping",
       formats: {
         common: `FIND users WHERE id = 1`,
         common_scan: `FIND products WHERE category = "Electronics"`,
+        sql: `SELECT * FROM users WHERE id = 1;`,
+        mongodb: `db.users.findOne({ "id": 1 })`,
+        elasticsearch: `{
+  "query": { "term": { "id": 1 } },
+  "size": 1
+}`,
         dynamodb: `// Query Operation (Fast)
 {
   "TableName": "users",
@@ -151,27 +157,105 @@ GROUP BY status;`,
   "FilterExpression": "category = :cat",
   "ExpressionAttributeValues": { ":cat": "Electronics" }
 }`,
-        note: "Smart detection: Primary key queries use Query operation (fast), non-key queries use Scan with filters"
+        redis: `// Hash lookup by key
+HGETALL user:1
+
+// Search by field value
+FT.SEARCH products "@category:Electronics"`,
+        note: "Smart detection: Primary key queries use optimal operations (DynamoDB Query vs Scan, Redis direct lookup vs search)"
       }
     },
-    redis_advanced: {
-      title: "Redis Multi-Structure",
+    dynamodb_advanced: {
+      title: "DynamoDB Advanced Features",
+      formats: {
+        common: `FIND orders 
+WHERE user_id = 1 AND amount > 100
+FIELDS user_id, amount, status
+ORDER BY created_at DESC`,
+        common_gsi: `FIND orders
+WHERE status = "completed"
+ORDER BY created_at DESC
+LIMIT 10`,
+        common_single_table: `FIND user_orders
+DB_SPECIFIC: partition_key="USER#1", sort_key_prefix="ORDER#"`,
+        dynamodb: `// Standard Table Query
+{
+  "TableName": "orders",
+  "KeyConditionExpression": "user_id = :uid",
+  "FilterExpression": "amount > :amt",
+  "ExpressionAttributeValues": {
+    ":uid": 1,
+    ":amt": 100
+  },
+  "ProjectionExpression": "user_id, amount, #status",
+  "ExpressionAttributeNames": { "#status": "status" },
+  "ScanIndexForward": false
+}
+
+// GSI Query
+{
+  "TableName": "orders",
+  "IndexName": "StatusIndex",
+  "KeyConditionExpression": "#status = :status",
+  "ExpressionAttributeNames": { "#status": "status" },
+  "ExpressionAttributeValues": { ":status": "completed" },
+  "ScanIndexForward": false,
+  "Limit": 10
+}
+
+// Single Table Design
+{
+  "TableName": "user_orders",
+  "KeyConditionExpression": "PK = :pk AND begins_with(SK, :sk_prefix)",
+  "ExpressionAttributeValues": {
+    ":pk": "USER#1",
+    ":sk_prefix": "ORDER#"
+  }
+}`,
+        note: "Full DynamoDB feature support: GSI queries, single-table design patterns, projection expressions, filter expressions"
+      }
+    },
+    redis_structures: {
+      title: "Redis Data Structures",
       formats: {
         common: `FIND user_sessions
 WHERE user_id = 1 AND active = true`,
         common_search: `FIND products 
 SEARCH name LIKE "Laptop*" 
 WHERE price BETWEEN 1000 AND 2000`,
+        common_sorted: `FIND user_scores
+WHERE score BETWEEN 1000 AND 2000
+ORDER BY score DESC`,
+        sql: `SELECT * FROM user_sessions 
+WHERE user_id = 1 AND active = true;`,
+        mongodb: `db.user_sessions.find({
+  "user_id": 1,
+  "active": true
+})`,
+        elasticsearch: `{
+  "query": {
+    "bool": {
+      "must": [
+        { "term": { "user_id": 1 } },
+        { "term": { "active": true } }
+      ]
+    }
+  }
+}`,
         redis: `// Hash Operations
 HGETALL user:1:session
-HMGET user:1:profile name email
+HMGET user:1:profile name email active
 
 // RediSearch (FT.SEARCH)
 FT.SEARCH products "@name:Laptop* @price:[1000 2000]"
 
 // Sorted Sets
-ZRANGEBYSCORE user:1:orders 1000 2000`,
-        note: "Redis operations map to appropriate data structures: HASHes, SETs, Sorted Sets, RediSearch modules"
+ZRANGEBYSCORE user_scores 1000 2000 WITHSCORES REV
+
+// String Operations
+GET user:1:status
+MGET user:1:name user:1:email`,
+        note: "Redis operations map to appropriate data structures: HASHes, SETs, Sorted Sets, RediSearch, Strings with automatic optimization"
       }
     },
     complex: {
@@ -292,12 +376,13 @@ const results = await manager.executeQuery(
             </div>
 
             <Tabs defaultValue="common" className="w-full">
-              <TabsList className="grid w-full grid-cols-5 mb-4">
+              <TabsList className="grid w-full grid-cols-6 mb-4">
                 <TabsTrigger value="common" className="text-xs">Universal</TabsTrigger>
                 <TabsTrigger value="sql" className="text-xs">SQL</TabsTrigger>
                 <TabsTrigger value="mongodb" className="text-xs">MongoDB</TabsTrigger>
                 <TabsTrigger value="elasticsearch" className="text-xs">Elasticsearch</TabsTrigger>
-                <TabsTrigger value="native" className="text-xs">Native</TabsTrigger>
+                <TabsTrigger value="dynamodb" className="text-xs">DynamoDB</TabsTrigger>
+                <TabsTrigger value="redis" className="text-xs">Redis</TabsTrigger>
               </TabsList>
 
               <TabsContent value="common">
@@ -318,7 +403,7 @@ const results = await manager.executeQuery(
                 )}
               </TabsContent>
 
-              {['sql', 'mongodb', 'elasticsearch'].map(dbType => (
+              {['sql', 'mongodb', 'elasticsearch', 'dynamodb', 'redis'].map(dbType => (
                 <TabsContent key={dbType} value={dbType}>
                   {selectedExample && examples[selectedExample as keyof typeof examples] && 
                    (examples[selectedExample as keyof typeof examples].formats as any)[dbType] && (
@@ -334,25 +419,7 @@ const results = await manager.executeQuery(
                 </TabsContent>
               ))}
 
-              <TabsContent value="native">
-                {selectedExample && examples[selectedExample as keyof typeof examples] && (
-                  <div className="space-y-3">
-                    {Object.entries(examples[selectedExample as keyof typeof examples].formats)
-                      .filter(([key]) => !['common', 'note'].includes(key))
-                      .map(([formatKey, query]) => (
-                        <ExampleCard
-                          key={formatKey}
-                          title={formatKey.toUpperCase()}
-                          onCopy={() => copyToClipboard(query)}
-                        >
-                          <pre className="text-xs text-muted-foreground whitespace-pre-wrap">
-                            {query}
-                          </pre>
-                        </ExampleCard>
-                      ))}
-                  </div>
-                )}
-              </TabsContent>
+
             </Tabs>
           </div>
 
