@@ -765,9 +765,13 @@ export class QueryTranslator {
       dynamoQuery.Limit = query.limit;
     }
 
-    // Note: DynamoDB doesn't support complex aggregations natively
-    if ((query.aggregate && query.aggregate.length > 0) || query.groupBy) {
-      dynamoQuery.note = 'DynamoDB aggregations require client-side processing';
+    // DynamoDB doesn't support complex aggregations natively - throw error
+    if (query.aggregate && query.aggregate.length > 0) {
+      throw new Error('DynamoDB does not support native aggregations (COUNT, SUM, AVG, etc.). Consider using application-level processing or switch to a different database type.');
+    }
+    
+    if (query.groupBy && query.groupBy.length > 0) {
+      throw new Error('DynamoDB does not support GROUP BY operations. Consider using application-level processing or switch to a different database type.');
     }
 
     return dynamoQuery;

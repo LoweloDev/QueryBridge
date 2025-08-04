@@ -1,8 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { X, Copy, Database, CheckCircle2, Zap, Shield, Code2 } from "lucide-react";
+import { X, Copy, Book, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
 
 interface DocumentationPanelProps {
@@ -10,7 +9,7 @@ interface DocumentationPanelProps {
 }
 
 export function DocumentationPanel({ onClose }: DocumentationPanelProps) {
-  const [selectedExample, setSelectedExample] = useState<string>('basic');
+  const [selectedDatabase, setSelectedDatabase] = useState<string>('sql');
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -32,60 +31,82 @@ export function DocumentationPanel({ onClose }: DocumentationPanelProps) {
     </Card>
   );
 
-  // Real dataset examples based on our users, orders, products tables
-  const examples = {
-    basic: {
-      title: "Basic Queries",
-      formats: {
-        common: `FIND users
-WHERE status = "active"
-ORDER BY created_at DESC
-LIMIT 5`,
-        sql: `SELECT * FROM users 
+  const FeatureBadge = ({ supported }: { supported: boolean }) => (
+    <Badge variant={supported ? "default" : "secondary"} className={`text-xs ${supported ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}>
+      {supported ? "✓ Supported" : "✗ Not Available"}
+    </Badge>
+  );
+
+  // Database-specific feature support and examples
+  const databaseFeatures = {
+    sql: {
+      name: "SQL (PostgreSQL)",
+      icon: "🐘",
+      description: "Full relational database with comprehensive query support",
+      features: {
+        basicQueries: true,
+        whereConditions: true,
+        joins: true,
+        aggregations: true,
+        groupBy: true,
+        orderBy: true,
+        limit: true,
+        fullTextSearch: true,
+        transactions: true,
+        indexOptimization: true
+      },
+      examples: {
+        basic: `-- Basic Query
+SELECT * FROM users 
 WHERE status = 'active' 
 ORDER BY created_at DESC 
 LIMIT 5;`,
-        mongodb: `db.users.find(
-  { "status": "active" }
-).sort({ "created_at": -1 }).limit(5)`,
-        elasticsearch: `{
-  "query": { "term": { "status": "active" } },
-  "sort": [{ "created_at": { "order": "desc" } }],
-  "size": 5
-}`,
-        dynamodb: `{
-  "TableName": "users",
-  "FilterExpression": "#status = :status",
-  "ExpressionAttributeNames": { "#status": "status" },
-  "ExpressionAttributeValues": { ":status": "active" },
-  "Limit": 5
-}`,
-        redis: `// String-based key lookup
-GET user:1
-
-// Hash field retrieval  
-HGET user:1 status
-HGETALL user:1
-
-// Set membership check
-SISMEMBER active_users 1`,
-        note: "Single syntax translates to optimal native queries across all database types"
+        joins: `-- JOIN Operations
+SELECT u.name, u.email, o.amount 
+FROM users u
+JOIN orders o ON u.id = o.user_id 
+WHERE u.status = 'active' 
+ORDER BY o.amount DESC;`,
+        aggregations: `-- Aggregations & GROUP BY
+SELECT 
+  category,
+  COUNT(*) as product_count,
+  AVG(price) as avg_price,
+  SUM(stock) as total_stock
+FROM products 
+WHERE active = true
+GROUP BY category
+HAVING COUNT(*) > 5
+ORDER BY avg_price DESC;`,
+        fullText: `-- Full-Text Search
+SELECT * FROM products 
+WHERE name ILIKE '%laptop%' 
+  AND description @@ to_tsquery('gaming & portable');`
       }
     },
-    joins: {
-      title: "Cross-Table Relations",
-      formats: {
-        common: `FIND users
-JOIN orders ON users.id = orders.user_id
-WHERE users.status = "active"
-FIELDS users.name, users.email, orders.amount
-ORDER BY orders.amount DESC`,
-        sql: `SELECT users.name, users.email, orders.amount 
-FROM users 
-JOIN orders ON users.id = orders.user_id 
-WHERE users.status = 'active' 
-ORDER BY orders.amount DESC;`,
-        mongodb: `db.users.aggregate([
+    mongodb: {
+      name: "MongoDB",
+      icon: "🍃",
+      description: "Document database with powerful aggregation pipelines",
+      features: {
+        basicQueries: true,
+        whereConditions: true,
+        joins: true,
+        aggregations: true,
+        groupBy: true,
+        orderBy: true,
+        limit: true,
+        fullTextSearch: true,
+        transactions: true,
+        indexOptimization: true
+      },
+      examples: {
+        basic: `// Basic Document Query
+db.users.find(
+  { "status": "active" }
+).sort({ "created_at": -1 }).limit(5)`,
+        joins: `// Lookup (JOIN) with Aggregation
+db.users.aggregate([
   { $match: { "status": "active" } },
   { $lookup: {
       from: "orders",
@@ -94,862 +115,279 @@ ORDER BY orders.amount DESC;`,
       as: "orders"
     }},
   { $unwind: "$orders" },
-  { $project: { "name": 1, "email": 1, "amount": "$orders.amount" } },
-  { $sort: { "amount": -1 } }
+  { $sort: { "orders.amount": -1 } }
 ])`,
-        elasticsearch: `{
-  "query": {
-    "bool": {
-      "must": [
-        { "term": { "status": "active" } },
-        { "has_child": { "type": "order", "query": { "match_all": {} } } }
-      ]
-    }
-  },
-  "_source": ["name", "email"],
-  "sort": [{ "orders.amount": { "order": "desc" } }]
-}`,
-        dynamodb: `// Join simulation with batch operations
-{
-  "RequestItems": {
-    "users": {
-      "Keys": [{ "id": { "N": "1" } }, { "id": { "N": "2" } }]
-    },
-    "orders": {
-      "KeyConditionExpression": "user_id = :uid",
-      "ExpressionAttributeValues": { ":uid": { "N": "1" } }
-    }
-  }
-}`,
-        redis: `// Multi-key retrieval for JOIN simulation
-MGET user:1 user:2 user:3
-
-// Hash operations for related data
-HMGET user:1 name email status
-HMGET order:101 user_id amount created_at
-
-// RediSearch for complex queries
-FT.SEARCH orders "@user_id:1" SORTBY amount DESC`,
-        note: "JOIN operations automatically optimized: SQL JOINs, MongoDB $lookup, Elasticsearch nested queries"
+        aggregations: `// Aggregation Pipeline
+db.products.aggregate([
+  { $match: { "active": true } },
+  { $group: {
+      _id: "$category",
+      product_count: { $sum: 1 },
+      avg_price: { $avg: "$price" },
+      total_stock: { $sum: "$stock" }
+    }},
+  { $match: { product_count: { $gt: 5 } } },
+  { $sort: { avg_price: -1 } }
+])`,
+        fullText: `// Text Search with Index
+db.products.find({
+  $text: { $search: "laptop gaming portable" },
+  "active": true
+}).sort({ score: { $meta: "textScore" } })`
       }
     },
-    aggregation: {
-      title: "Analytics & Aggregation",
-      formats: {
-        common: `FIND orders
-GROUP BY status
-COUNT(*) as order_count, SUM(amount) as total_revenue
-WHERE created_at >= "2023-02-01"`,
-        sql: `SELECT status, COUNT(*) as order_count, SUM(amount) as total_revenue
-FROM orders 
-WHERE created_at >= '2023-02-01'
-GROUP BY status;`,
-        mongodb: `db.orders.aggregate([
-  { $match: { "created_at": { $gte: ISODate("2023-02-01") } } },
-  { $group: {
-      _id: "$status",
-      order_count: { $sum: 1 },
-      total_revenue: { $sum: "$amount" }
-    }}
-])`,
-        elasticsearch: `{
-  "query": {
-    "range": { "created_at": { "gte": "2023-02-01" } }
-  },
+    elasticsearch: {
+      name: "Elasticsearch",
+      icon: "🔍",
+      description: "Search engine with advanced text analysis and aggregations",
+      features: {
+        basicQueries: true,
+        whereConditions: true,
+        joins: false, // Parent-child relationships only
+        aggregations: true,
+        groupBy: true,
+        orderBy: true,
+        limit: true,
+        fullTextSearch: true,
+        transactions: false,
+        indexOptimization: true
+      },
+      examples: {
+        basic: `{
+  "query": { "term": { "status": "active" } },
+  "sort": [{ "created_at": { "order": "desc" } }],
+  "size": 5
+}`,
+        aggregations: `{
+  "query": { "term": { "active": true } },
   "aggs": {
-    "by_status": {
-      "terms": { "field": "status" },
+    "by_category": {
+      "terms": { "field": "category" },
       "aggs": {
-        "order_count": { "value_count": { "field": "_id" } },
-        "total_revenue": { "sum": { "field": "amount" } }
+        "avg_price": { "avg": { "field": "price" } },
+        "total_stock": { "sum": { "field": "stock" } }
       }
     }
   },
   "size": 0
 }`,
-        dynamodb: `// DynamoDB aggregation with scan
-{
-  "TableName": "orders",
-  "FilterExpression": "created_at >= :date",
-  "ExpressionAttributeValues": { ":date": "2023-02-01" },
-  "Select": "ALL_ATTRIBUTES"
-}
-
-// Note: Aggregation done client-side due to DynamoDB limitations`,
-        redis: `// Redis aggregation via scripting
-EVAL "
-local orders = redis.call('KEYS', 'order:*')
-local total = 0
-for i=1,#orders do 
-  local amount = redis.call('HGET', orders[i], 'amount')
-  if amount then total = total + tonumber(amount) end
-end
-return total
-" 0
-
-// RediSearch aggregations
-FT.AGGREGATE orders "*" GROUPBY 1 @user_id REDUCE SUM 1 @amount AS total_revenue`,
-        note: "Complex aggregations translate to native optimizations: SQL GROUP BY, MongoDB pipelines, Elasticsearch aggregations"
-      }
-    },
-    intelligent_mapping: {
-      title: "Intelligent Mapping",
-      formats: {
-        common: `FIND users WHERE id = 1`,
-        common_scan: `FIND products WHERE category = "Electronics"`,
-        sql: `SELECT * FROM users WHERE id = 1;`,
-        mongodb: `db.users.findOne({ "id": 1 })`,
-        elasticsearch: `{
-  "query": { "term": { "id": 1 } },
-  "size": 1
-}`,
-        dynamodb: `// Query Operation (Fast)
-{
-  "TableName": "users",
-  "KeyConditionExpression": "id = :id",
-  "ExpressionAttributeValues": { ":id": 1 }
-}
-
-// Scan Operation (Auto-detected)
-{
-  "TableName": "products", 
-  "FilterExpression": "category = :cat",
-  "ExpressionAttributeValues": { ":cat": "Electronics" }
-}`,
-        redis: `// Hash lookup by key (intelligent)
-HGETALL user:1
-
-// Search by field value (scan fallback)
-FT.SEARCH products "@category:Electronics"
-
-// Sorted set range queries
-ZRANGEBYSCORE user:1:scores 1000 2000`,
-        note: "Smart detection: Primary key queries use optimal operations (DynamoDB Query vs Scan, Redis direct lookup vs search)"
-      }
-    },
-    advanced_features: {
-      title: "Advanced Features",
-      formats: {
-        common: `FIND orders 
-WHERE user_id = 1 AND amount > 100
-FIELDS user_id, amount, status
-ORDER BY created_at DESC`,
-        common_gsi: `FIND orders
-WHERE status = "completed"
-ORDER BY created_at DESC
-LIMIT 10`,
-        common_single_table: `FIND user_orders
-DB_SPECIFIC: partition_key="USER#1", sort_key_prefix="ORDER#"`,
-        sql: `-- Standard SQL with indexes
-SELECT user_id, amount, status 
-FROM orders 
-WHERE user_id = 1 AND amount > 100 
-ORDER BY created_at DESC;
-
--- Index query
-SELECT * FROM orders 
-WHERE status = 'completed' 
-ORDER BY created_at DESC 
-LIMIT 10;`,
-        mongodb: `// Standard collection query
-db.orders.find({
-  "user_id": 1,
-  "amount": { $gt: 100 }
-}, {
-  "user_id": 1, "amount": 1, "status": 1
-}).sort({ "created_at": -1 })
-
-// Index-optimized query
-db.orders.find({ "status": "completed" })
-  .sort({ "created_at": -1 })
-  .limit(10)`,
-        elasticsearch: `// Standard Elasticsearch query
-{
+        fullText: `{
   "query": {
     "bool": {
       "must": [
-        { "term": { "user_id": 1 } },
-        { "range": { "amount": { "gt": 100 } } }
+        { "match": { "name": "laptop" } },
+        { "match": { "description": "gaming portable" } }
+      ],
+      "filter": [
+        { "term": { "active": true } }
       ]
     }
   },
-  "_source": ["user_id", "amount", "status"],
-  "sort": [{ "created_at": { "order": "desc" } }]
-}
-
-// Index query with aggregations
-{
-  "query": { "term": { "status": "completed" } },
-  "sort": [{ "created_at": { "order": "desc" } }],
-  "size": 10
+  "highlight": {
+    "fields": { "name": {}, "description": {} }
+  }
+}`
+      }
+    },
+    dynamodb: {
+      name: "DynamoDB",
+      icon: "⚡",
+      description: "NoSQL database optimized for high performance and scalability",
+      features: {
+        basicQueries: true,
+        whereConditions: true,
+        joins: false, // No native joins
+        aggregations: false, // No native aggregations - WILL THROW ERROR
+        groupBy: false, // No native GROUP BY - WILL THROW ERROR
+        orderBy: true, // Via sort key only
+        limit: true,
+        fullTextSearch: false, // Basic contains() only
+        transactions: true,
+        indexOptimization: true
+      },
+      examples: {
+        basic: `{
+  "TableName": "users",
+  "KeyConditionExpression": "id = :id",
+  "ExpressionAttributeValues": { ":id": 1 }
 }`,
-        redis: `// Hash-based queries
-HMGET order:1 user_id amount status
-HGETALL order:1
-
-// RediSearch with indexes
-FT.SEARCH orders "@status:completed" SORTBY created_at DESC LIMIT 0 10
-
-// Sorted sets for time-based queries
-ZREVRANGEBYSCORE orders:by_time +inf -inf LIMIT 0 10`,
-        dynamodb: `// Standard Table Query
-{
-  "TableName": "orders",
-  "KeyConditionExpression": "user_id = :uid",
-  "FilterExpression": "amount > :amt",
-  "ExpressionAttributeValues": {
-    ":uid": 1,
-    ":amt": 100
-  },
-  "ProjectionExpression": "user_id, amount, #status",
+        scan: `{
+  "TableName": "users", 
+  "FilterExpression": "#status = :status",
   "ExpressionAttributeNames": { "#status": "status" },
-  "ScanIndexForward": false
-}
-
-// GSI Query
-{
+  "ExpressionAttributeValues": { ":status": "active" },
+  "Limit": 5
+}`,
+        gsi: `{
   "TableName": "orders",
   "IndexName": "StatusIndex",
   "KeyConditionExpression": "#status = :status",
   "ExpressionAttributeNames": { "#status": "status" },
   "ExpressionAttributeValues": { ":status": "completed" },
-  "ScanIndexForward": false,
-  "Limit": 10
-}
-
-// Single Table Design
-{
-  "TableName": "user_orders",
-  "KeyConditionExpression": "PK = :pk AND begins_with(SK, :sk_prefix)",
-  "ExpressionAttributeValues": {
-    ":pk": "USER#1",
-    ":sk_prefix": "ORDER#"
-  }
-}
-
-// Traditional Schema Design  
-{
-  "TableName": "orders",
-  "KeyConditionExpression": "user_id = :uid AND created_at BETWEEN :start AND :end",
-  "ExpressionAttributeValues": {
-    ":uid": 1,
-    ":start": "2023-01-01",
-    ":end": "2023-12-31"
-  }
+  "ScanIndexForward": false
 }`,
-        note: "Advanced features across all databases: SQL indexes, MongoDB compound queries, Elasticsearch nested queries, DynamoDB GSI/single-table design, Redis RediSearch"
+        limitations: `// ❌ THESE WILL THROW ERRORS:
+// Aggregations not supported
+FIND products 
+AGGREGATE COUNT(*) as total, AVG(price) as avg_price
+
+// GROUP BY not supported  
+FIND sales
+GROUP BY category
+COUNT(*) as count`
       }
     },
-    redis_structures: {
-      title: "Redis Data Structures",
-      formats: {
-        common: `FIND user_sessions
-WHERE user_id = 1 AND active = true`,
-        common_search: `FIND products 
-SEARCH name LIKE "Laptop*" 
-WHERE price BETWEEN 1000 AND 2000`,
-        common_sorted: `FIND user_scores
-WHERE score BETWEEN 1000 AND 2000
-ORDER BY score DESC`,
-        common_full_text: `FIND products
-SEARCH name LIKE "Laptop*"
-WHERE category = "Electronics"`,
-        sql: `SELECT * FROM user_sessions 
-WHERE user_id = 1 AND active = true;
-
--- Full-text search with PostgreSQL
-SELECT * FROM products 
-WHERE name ILIKE 'Laptop%' 
-  AND category = 'Electronics';`,
-        mongodb: `db.user_sessions.find({
-  "user_id": 1,
-  "active": true
-})
-
-// Full-text search with text index
-db.products.find({
-  $text: { $search: "Laptop" },
-  "category": "Electronics"
-})`,
-        elasticsearch: `{
-  "query": {
-    "bool": {
-      "must": [
-        { "term": { "user_id": 1 } },
-        { "term": { "active": true } }
-      ]
-    }
-  }
-}
-
-// Full-text search
-{
-  "query": {
-    "bool": {
-      "must": [
-        { "wildcard": { "name": "Laptop*" } },
-        { "term": { "category": "Electronics" } }
-      ]
-    }
-  }
-}`,
-        dynamodb: `// DynamoDB text search (scan required)
-{
-  "TableName": "user_sessions",
-  "FilterExpression": "user_id = :uid AND active = :active",
-  "ExpressionAttributeValues": {
-    ":uid": 1,
-    ":active": true
-  }
-}
-
-// GSI for text search patterns
-{
-  "TableName": "products",
-  "IndexName": "CategoryIndex", 
-  "KeyConditionExpression": "category = :cat",
-  "FilterExpression": "contains(#name, :search)",
-  "ExpressionAttributeNames": { "#name": "name" },
-  "ExpressionAttributeValues": {
-    ":cat": "Electronics",
-    ":search": "Laptop"
-  }
-}`,
-        redis: `// Hash Operations
-HGETALL user:1:session
-HMGET user:1:profile name email active
-
-// RediSearch (FT.SEARCH)
-FT.SEARCH products "@name:Laptop* @price:[1000 2000]"
-
-// Sorted Sets
-ZRANGEBYSCORE user_scores 1000 2000 WITHSCORES REV
+    redis: {
+      name: "Redis",
+      icon: "🔴",
+      description: "In-memory data store with optional RediSearch modules",
+      features: {
+        basicQueries: true,
+        whereConditions: true, // With RediSearch
+        joins: false, // Manual key relationships only
+        aggregations: true, // With RediSearch FT.AGGREGATE
+        groupBy: true, // With RediSearch
+        orderBy: true, // With RediSearch or sorted sets
+        limit: true,
+        fullTextSearch: true, // With RediSearch
+        transactions: true, // Via Lua scripts
+        indexOptimization: true // Via RediSearch indexes
+      },
+      examples: {
+        basic: `// Hash Operations
+HGETALL user:1
+HMGET user:1 name email status
 
 // String Operations
-GET user:1:status
-MGET user:1:name user:1:email
+GET user:1:session
+MGET user:1:name user:1:email`,
+        search: `// RediSearch Queries (requires Redis Stack)
+FT.SEARCH users "@status:active" SORTBY created_at DESC LIMIT 0 5
 
-// Full-text search
-FT.SEARCH products "@name:Laptop* @category:Electronics"
-
-// Geospatial queries
-GEORADIUS locations:stores -122.4194 37.7749 10 km`,
-        note: "Redis operations map to appropriate data structures: HASHes, SETs, Sorted Sets, RediSearch, Strings, Geospatial with automatic optimization"
-      }
-    },
-    single_table: {
-      title: "Single Table Schema Queries",
-      formats: {
-        common: `// Manual partition key specification
-FIND user_data
-DB_SPECIFIC: partition_key="USER#123"
-
-// Partition + sort key prefix
-FIND user_orders  
-DB_SPECIFIC: partition_key="USER#123", sort_key_prefix="ORDER#"
-
-// Partition + exact sort key
-FIND user_profile
-DB_SPECIFIC: partition_key="USER#123", sort_key="PROFILE#main"`,
-        common_range: `// Sort key range queries
-FIND user_activity
-DB_SPECIFIC: partition_key="USER#123", sort_key_between=["2023-01-01", "2023-12-31"]`,
-        sql: `-- Single table emulation with prefixed columns
-SELECT * FROM unified_table 
-WHERE pk = 'USER#123';
-
--- Range queries on sort key column
-SELECT * FROM unified_table 
-WHERE pk = 'USER#123' 
-  AND sk BETWEEN 'ORDER#2023-01-01' AND 'ORDER#2023-12-31';`,
-        mongodb: `// Document-based single table pattern
-db.unified_collection.find({
-  "pk": "USER#123"
-})
-
-// Range queries with sort key patterns
-db.unified_collection.find({
-  "pk": "USER#123",
-  "sk": { 
-    $gte: "ORDER#2023-01-01", 
-    $lte: "ORDER#2023-12-31" 
-  }
-})`,
-        elasticsearch: `// Single index with type-based routing
-{
-  "query": {
-    "term": { "pk": "USER#123" }
-  }
-}
-
-// Range queries on sort key field
-{
-  "query": {
-    "bool": {
-      "must": [
-        { "term": { "pk": "USER#123" } },
-        { "range": { 
-            "sk": { 
-              "gte": "ORDER#2023-01-01",
-              "lte": "ORDER#2023-12-31"
-            }
-          }}
-      ]
-    }
-  }
-}`,
-        dynamodb: `// Manual partition key query
-{
-  "TableName": "unified_table",
-  "KeyConditionExpression": "PK = :pk",
-  "ExpressionAttributeValues": { ":pk": "USER#123" }
-}
-
-// Partition + sort key prefix
-{
-  "TableName": "unified_table", 
-  "KeyConditionExpression": "PK = :pk AND begins_with(SK, :sk_prefix)",
-  "ExpressionAttributeValues": {
-    ":pk": "USER#123",
-    ":sk_prefix": "ORDER#"
-  }
-}
-
-// Exact partition + sort key
-{
-  "TableName": "unified_table",
-  "KeyConditionExpression": "PK = :pk AND SK = :sk", 
-  "ExpressionAttributeValues": {
-    ":pk": "USER#123",
-    ":sk": "PROFILE#main"
-  }
-}
-
-// Sort key range queries
-{
-  "TableName": "unified_table",
-  "KeyConditionExpression": "PK = :pk AND SK BETWEEN :start AND :end",
-  "ExpressionAttributeValues": {
-    ":pk": "USER#123", 
-    ":start": "2023-01-01",
-    ":end": "2023-12-31"
-  }
-}`,
-        redis: `// Hash-based single table simulation
-HGETALL "USER#123"
-
-// Pattern-based key retrieval
-KEYS "USER#123:ORDER#*"
-
-// Sorted set for time-range queries
-ZRANGEBYSCORE "USER#123:timeline" 1672531200 1703980800
-
-// RediSearch with composite keys
-FT.SEARCH unified_index "@pk:USER\\#123 @sk:ORDER\\#*"`,
-        note: "Single table design patterns: DynamoDB native support, other databases emulate with composite keys and prefixed identifiers"
-      }
-    },
-    complex: {
-      title: "Complex Multi-Database Query",
-      formats: {
-        common: `FIND users
-JOIN orders ON users.id = orders.user_id
-JOIN products ON orders.product_id = products.id
-WHERE users.age BETWEEN 25 AND 35
-  AND products.category IN ("Electronics", "Furniture")
-  AND orders.created_at >= "2023-02-01"
-GROUP BY users.id, users.name
-COUNT(orders.id) as order_count,
-SUM(orders.amount) as total_spent
-HAVING total_spent > 500
-ORDER BY total_spent DESC
-LIMIT 10`,
-        sql: `SELECT 
-  users.id, 
-  users.name,
-  COUNT(orders.id) as order_count,
-  SUM(orders.amount) as total_spent
-FROM users
-JOIN orders ON users.id = orders.user_id
-JOIN products ON orders.product_id = products.id
-WHERE users.age BETWEEN 25 AND 35
-  AND products.category IN ('Electronics', 'Furniture')
-  AND orders.created_at >= '2023-02-01'
-GROUP BY users.id, users.name
-HAVING SUM(orders.amount) > 500
-ORDER BY total_spent DESC
-LIMIT 10;`,
-        mongodb: `db.users.aggregate([
-  {
-    $match: {
-      "age": { $gte: 25, $lte: 35 }
-    }
-  },
-  {
-    $lookup: {
-      from: "orders",
-      localField: "id",
-      foreignField: "user_id",
-      as: "user_orders"
-    }
-  },
-  { $unwind: "$user_orders" },
-  {
-    $lookup: {
-      from: "products", 
-      localField: "user_orders.product_id",
-      foreignField: "id",
-      as: "product_details"
-    }
-  },
-  { $unwind: "$product_details" },
-  {
-    $match: {
-      "product_details.category": { $in: ["Electronics", "Furniture"] },
-      "user_orders.created_at": { $gte: ISODate("2023-02-01") }
-    }
-  },
-  {
-    $group: {
-      _id: { id: "$id", name: "$name" },
-      order_count: { $sum: 1 },
-      total_spent: { $sum: "$user_orders.amount" }
-    }
-  },
-  {
-    $match: {
-      "total_spent": { $gt: 500 }
-    }
-  },
-  { $sort: { "total_spent": -1 } },
-  { $limit: 10 }
-])`,
-        elasticsearch: `{
-  "query": {
-    "bool": {
-      "must": [
-        { "range": { "age": { "gte": 25, "lte": 35 } } },
-        { "terms": { "orders.products.category": ["Electronics", "Furniture"] } },
-        { "range": { "orders.created_at": { "gte": "2023-02-01" } } }
-      ]
-    }
-  },
-  "aggs": {
-    "users": {
-      "terms": { "field": "id", "size": 1000 },
-      "aggs": {
-        "order_count": { "value_count": { "field": "orders.id" } },
-        "total_spent": { "sum": { "field": "orders.amount" } },
-        "spent_filter": {
-          "bucket_selector": {
-            "buckets_path": { "total": "total_spent" },
-            "script": "params.total > 500"
-          }
-        }
-      }
-    },
-    "top_spenders": {
-      "bucket_sort": {
-        "sort": [{ "total_spent": { "order": "desc" } }],
-        "size": 10
-      }
-    }
-  },
-  "size": 0
-}`,
-        dynamodb: `// Multi-table batch operations for complex query
-{
-  "RequestItems": {
-    "users": {
-      "FilterExpression": "age BETWEEN :min_age AND :max_age",
-      "ExpressionAttributeValues": {
-        ":min_age": 25,
-        ":max_age": 35
-      }
-    }
-  }
-}
-
-// Follow-up queries for each user
-{
-  "TableName": "orders",
-  "FilterExpression": "user_id = :uid AND created_at >= :date AND product_category IN (:cat1, :cat2)",
-  "ExpressionAttributeValues": {
-    ":uid": 1,
-    ":date": "2023-02-01",
-    ":cat1": "Electronics",
-    ":cat2": "Furniture"
-  }
-}
-
-// Client-side aggregation required for HAVING clause
-// Total calculation and filtering done in application code`,
-        redis: `// Complex Redis query with Lua scripting
-EVAL "
-local users = redis.call('FT.SEARCH', 'users', '@age:[25 35]')
-local results = {}
-for i=1,#users do
-  local orders = redis.call('FT.SEARCH', 'orders', '@user_id:' .. users[i].id .. ' @created_at:[2023-02-01 +inf]')
-  local total = 0
-  local count = 0
-  for j=1,#orders do
-    total = total + tonumber(orders[j].amount)
-    count = count + 1
-  end
-  if total > 500 then
-    table.insert(results, {user=users[i], count=count, total=total})
-  end
-end
-return results
-" 0
-
-// Multi-step Redis operations
-FT.SEARCH users "@age:[25 35]"
-FT.SEARCH orders "@user_id:1 @created_at:[2023-02-01 +inf]"
-FT.AGGREGATE orders "*" GROUPBY 1 @user_id REDUCE SUM 1 @amount`,
-        note: "Complex queries with multiple JOINs, filters, aggregations, and sorting work across all database types with optimal native translations"
+// Range Queries
+FT.SEARCH products "@price:[100 500]"`,
+        aggregations: `// RediSearch Aggregations
+FT.AGGREGATE orders "*" 
+  GROUPBY 1 @category 
+  REDUCE COUNT 0 AS product_count
+  REDUCE AVG 1 @price AS avg_price
+  SORTBY 2 @avg_price DESC`,
+        sortedSets: `// Sorted Set Operations  
+ZREVRANGEBYSCORE user_scores +inf -inf LIMIT 0 10
+ZRANGEBYSCORE orders:by_amount 100 500`
       }
     }
   };
 
+  const currentDb = databaseFeatures[selectedDatabase as keyof typeof databaseFeatures];
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-background w-full max-w-4xl h-full max-h-[90vh] rounded-lg border shadow-lg flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b">
-          <div className="flex items-center space-x-3">
-            <Code2 size={20} className="text-primary" />
-            <div>
-              <h2 className="text-lg font-semibold text-foreground">Universal Query Translator</h2>
-              <p className="text-sm text-muted-foreground">Multi-database query abstraction library</p>
-            </div>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-background border border-border rounded-lg shadow-lg max-w-6xl w-full max-h-[90vh] overflow-hidden">
+        <div className="flex items-center justify-between p-4 border-b border-border">
+          <div className="flex items-center space-x-2">
+            <Book className="text-accent" size={20} />
+            <h2 className="text-lg font-semibold text-foreground">Universal Query Language Documentation</h2>
+            <Badge variant="outline" className="text-xs">v1.0.0</Badge>
           </div>
           <Button variant="ghost" size="sm" onClick={onClose}>
             <X size={16} />
           </Button>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
-          {/* Library Overview */}
-          <div className="p-4 border-b bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-              <div className="flex items-center space-x-2">
-                <Shield className="text-green-600" size={16} />
-                <div className="text-sm">
-                  <div className="font-medium">Production Ready</div>
-                  <div className="text-xs text-muted-foreground">100% test coverage across all databases</div>
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Zap className="text-yellow-600" size={16} />
-                <div className="text-sm">
-                  <div className="font-medium">Intelligent Optimization</div>
-                  <div className="text-xs text-muted-foreground">Automatic query performance tuning</div>
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Database className="text-blue-600" size={16} />
-                <div className="text-sm">
-                  <div className="font-medium">5 Database Types</div>
-                  <div className="text-xs text-muted-foreground">SQL, NoSQL, Search, Key-Value, Graph</div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="text-sm text-muted-foreground">
-              Write queries once in our universal syntax and execute them across PostgreSQL, MongoDB, 
-              DynamoDB, Elasticsearch, and Redis with automatic optimization and native performance.
-            </div>
-          </div>
-
-          {/* Quick Start */}
-          <div className="p-4 border-b">
-            <h3 className="font-medium text-primary mb-3 flex items-center">
-              <Code2 size={14} className="mr-2" />
-              Quick Start
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <ExampleCard title="NPM Installation" onCopy={() => copyToClipboard("npm install universal-query-translator")}>
-                <pre className="text-xs text-muted-foreground">npm install universal-query-translator</pre>
-              </ExampleCard>
-              <ExampleCard title="Basic Usage" onCopy={() => copyToClipboard(`import { ConnectionManager } from 'universal-query-translator';
-
-const manager = new ConnectionManager();
-const results = await manager.executeQuery(connectionId, 'FIND users WHERE status = "active"');`)}>
-                <pre className="text-xs text-muted-foreground">{`import { ConnectionManager } from 'universal-query-translator';
-
-const manager = new ConnectionManager();
-const results = await manager.executeQuery(
-  connectionId, 
-  'FIND users WHERE status = "active"'
-);`}</pre>
-              </ExampleCard>
-            </div>
-          </div>
-
-          {/* Interactive Examples */}
-          <div className="p-4">
-            <h3 className="font-medium text-primary mb-3 flex items-center">
-              <Database size={14} className="mr-2" />
-              Interactive Examples
-              <Badge variant="secondary" className="ml-2 text-xs">Based on Real Dataset</Badge>
-            </h3>
-            
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4">
-              {Object.entries(examples).map(([key, example]) => (
-                <Button
-                  key={key}
-                  size="sm"
-                  variant={selectedExample === key ? "default" : "outline"}
-                  className="justify-start text-xs h-8"
-                  onClick={() => setSelectedExample(key)}
+        <div className="flex-1 overflow-auto">
+          {/* Database Selection Tabs */}
+          <div className="sticky top-0 bg-background border-b border-border p-4">
+            <div className="grid grid-cols-5 gap-2 mb-4">
+              {Object.entries(databaseFeatures).map(([dbKey, db]) => (
+                <button
+                  key={dbKey}
+                  onClick={() => setSelectedDatabase(dbKey)}
+                  className={`p-3 rounded-lg border text-sm font-medium transition-colors ${
+                    selectedDatabase === dbKey 
+                      ? 'bg-accent text-accent-foreground border-accent' 
+                      : 'bg-background hover:bg-muted border-border'
+                  }`}
                 >
-                  {example.title}
-                </Button>
+                  <div className="text-lg mb-1">{db.icon}</div>
+                  <div className="text-xs">{db.name}</div>
+                </button>
               ))}
-            </div>
-
-            <Tabs defaultValue="common" className="w-full">
-              <TabsList className="grid w-full grid-cols-6 mb-4">
-                <TabsTrigger value="common" className="text-xs">Universal</TabsTrigger>
-                <TabsTrigger value="sql" className="text-xs">SQL</TabsTrigger>
-                <TabsTrigger value="mongodb" className="text-xs">MongoDB</TabsTrigger>
-                <TabsTrigger value="elasticsearch" className="text-xs">Elasticsearch</TabsTrigger>
-                <TabsTrigger value="dynamodb" className="text-xs">DynamoDB</TabsTrigger>
-                <TabsTrigger value="redis" className="text-xs">Redis</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="common">
-                {selectedExample && examples[selectedExample as keyof typeof examples] && (
-                  <div className="space-y-3">
-                    <ExampleCard
-                      title="Universal Query Language"
-                      onCopy={() => copyToClipboard(examples[selectedExample as keyof typeof examples].formats.common || "")}
-                    >
-                      <pre className="text-xs text-muted-foreground whitespace-pre-wrap">
-                        {examples[selectedExample as keyof typeof examples].formats.common}
-                      </pre>
-                    </ExampleCard>
-                    <div className="text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 p-2 rounded border">
-                      💡 {examples[selectedExample as keyof typeof examples].formats.note}
-                    </div>
-                  </div>
-                )}
-              </TabsContent>
-
-              {['sql', 'mongodb', 'elasticsearch', 'dynamodb', 'redis'].map(dbType => (
-                <TabsContent key={dbType} value={dbType}>
-                  {selectedExample && examples[selectedExample as keyof typeof examples] && 
-                   (examples[selectedExample as keyof typeof examples].formats as any)[dbType] && (
-                    <ExampleCard
-                      title={`Native ${dbType.toUpperCase()} Translation`}
-                      onCopy={() => copyToClipboard((examples[selectedExample as keyof typeof examples].formats as any)[dbType] || "")}
-                    >
-                      <pre className="text-xs text-muted-foreground whitespace-pre-wrap">
-                        {(examples[selectedExample as keyof typeof examples].formats as any)[dbType]}
-                      </pre>
-                    </ExampleCard>
-                  )}
-                </TabsContent>
-              ))}
-
-
-            </Tabs>
-          </div>
-
-          {/* Database Support */}
-          <div className="p-4 border-t">
-            <h3 className="font-medium text-primary mb-3 flex items-center">
-              <CheckCircle2 size={14} className="mr-2" />
-              Database Support Status
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-3">
-                <div className="flex items-center space-x-3">
-                  <div className="w-2 h-2 rounded-full bg-green-500" />
-                  <div className="flex-1">
-                    <div className="font-medium text-sm">PostgreSQL / MySQL / SQLite</div>
-                    <div className="text-xs text-muted-foreground">Full SQL compliance, JOINs, aggregations, window functions</div>
-                  </div>
-                  <Badge variant="secondary" className="text-xs">100%</Badge>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <div className="w-2 h-2 rounded-full bg-green-500" />
-                  <div className="flex-1">
-                    <div className="font-medium text-sm">MongoDB</div>
-                    <div className="text-xs text-muted-foreground">Aggregation pipelines, $lookup JOINs, all operators</div>
-                  </div>
-                  <Badge variant="secondary" className="text-xs">100%</Badge>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <div className="w-2 h-2 rounded-full bg-green-500" />
-                  <div className="flex-1">
-                    <div className="font-medium text-sm">Elasticsearch</div>
-                    <div className="text-xs text-muted-foreground">Full-text search, nested queries, aggregations</div>
-                  </div>
-                  <Badge variant="secondary" className="text-xs">100%</Badge>
-                </div>
-              </div>
-              <div className="space-y-3">
-                <div className="flex items-center space-x-3">
-                  <div className="w-2 h-2 rounded-full bg-green-500" />
-                  <div className="flex-1">
-                    <div className="font-medium text-sm">Amazon DynamoDB</div>
-                    <div className="text-xs text-muted-foreground">Smart Query/Scan detection, single-table design</div>
-                  </div>
-                  <Badge variant="secondary" className="text-xs">100%</Badge>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <div className="w-2 h-2 rounded-full bg-green-500" />
-                  <div className="flex-1">
-                    <div className="font-medium text-sm">Redis</div>
-                    <div className="text-xs text-muted-foreground">RediSearch, RedisGraph, Streams, all data structures</div>
-                  </div>
-                  <Badge variant="secondary" className="text-xs">100%</Badge>
-                </div>
-                <div className="mt-4 p-3 bg-green-50 dark:bg-green-950/30 rounded border border-green-200 dark:border-green-800">
-                  <div className="text-xs font-medium text-green-800 dark:text-green-200 mb-1">
-                    🎉 Complete Implementation
-                  </div>
-                  <div className="text-xs text-green-700 dark:text-green-300">
-                    76/76 tests passing across all database types with full SDK compatibility
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
 
-          {/* Data Model */}
-          <div className="p-4 border-t">
-            <h3 className="font-medium text-primary mb-3">Example Dataset Structure</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-              <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded border">
-                <div className="font-medium mb-2">users</div>
-                <div className="space-y-1 text-muted-foreground">
-                  <div>• id (Primary Key)</div>
-                  <div>• name, email</div>
-                  <div>• age, status</div>
-                  <div>• order_count</div>
-                  <div>• created_at</div>
+          {/* Database-Specific Content */}
+          <div className="p-6">
+            <div className="mb-6">
+              <h2 className="text-xl font-bold text-foreground mb-2 flex items-center">
+                <span className="text-2xl mr-3">{currentDb.icon}</span>
+                {currentDb.name}
+              </h2>
+              <p className="text-muted-foreground mb-4">{currentDb.description}</p>
+              
+              {/* Feature Support Matrix */}
+              <div className="bg-muted/30 rounded-lg p-4 mb-6">
+                <h3 className="font-semibold mb-3 flex items-center">
+                  <CheckCircle2 className="mr-2 text-green-600" size={16} />
+                  Feature Support
+                </h3>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span>Basic Queries</span>
+                    <FeatureBadge supported={currentDb.features.basicQueries} />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>WHERE Conditions</span>
+                    <FeatureBadge supported={currentDb.features.whereConditions} />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>JOIN Operations</span>
+                    <FeatureBadge supported={currentDb.features.joins} />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Aggregations</span>
+                    <FeatureBadge supported={currentDb.features.aggregations} />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>GROUP BY</span>
+                    <FeatureBadge supported={currentDb.features.groupBy} />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>ORDER BY</span>
+                    <FeatureBadge supported={currentDb.features.orderBy} />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>LIMIT</span>
+                    <FeatureBadge supported={currentDb.features.limit} />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Full-Text Search</span>
+                    <FeatureBadge supported={currentDb.features.fullTextSearch} />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Transactions</span>
+                    <FeatureBadge supported={currentDb.features.transactions} />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Index Optimization</span>
+                    <FeatureBadge supported={currentDb.features.indexOptimization} />
+                  </div>
                 </div>
               </div>
-              <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded border">
-                <div className="font-medium mb-2">orders</div>
-                <div className="space-y-1 text-muted-foreground">
-                  <div>• id (Primary Key)</div>
-                  <div>• user_id (Foreign Key)</div>
-                  <div>• amount, status</div>
-                  <div>• created_at</div>
-                </div>
-              </div>
-              <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded border">
-                <div className="font-medium mb-2">products</div>
-                <div className="space-y-1 text-muted-foreground">
-                  <div>• id (Primary Key)</div>
-                  <div>• name, price</div>
-                  <div>• category, in_stock</div>
-                  <div>• created_at</div>
-                </div>
+
+              {/* Code Examples */}
+              <div className="space-y-4">
+                {Object.entries(currentDb.examples).map(([exampleKey, code]) => (
+                  <ExampleCard 
+                    key={exampleKey}
+                    title={exampleKey.charAt(0).toUpperCase() + exampleKey.slice(1).replace(/([A-Z])/g, ' $1')}
+                    onCopy={() => copyToClipboard(code)}
+                  >
+                    <pre className="text-xs overflow-x-auto whitespace-pre-wrap bg-muted/50 p-3 rounded border">
+                      <code className="text-muted-foreground">{code}</code>
+                    </pre>
+                  </ExampleCard>
+                ))}
               </div>
             </div>
           </div>
