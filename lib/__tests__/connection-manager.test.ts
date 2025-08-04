@@ -137,8 +137,7 @@ describe('ConnectionManager', () => {
 
       const result = await connectionManager.executeQuery('dynamo-conn', 'FIND users');
       expect(result.translatedQuery).toEqual({
-        TableName: 'users',
-        operation: 'scan'
+        TableName: 'users'
       });
     });
 

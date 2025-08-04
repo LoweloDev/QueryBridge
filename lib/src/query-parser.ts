@@ -28,9 +28,17 @@ export class QueryParser {
       if (upperLine.startsWith('FIND ')) {
         result.operation = 'FIND';
         const tablePart = line.substring(5).trim();
-        // Extract just the table name, not everything after FIND
-        const firstSpace = tablePart.indexOf(' ');
-        result.table = firstSpace > 0 ? tablePart.substring(0, firstSpace) : tablePart;
+        
+        // Check for field selection in parentheses: FIND users (name, email)
+        const parenMatch = tablePart.match(/^(\w+)\s*\(([^)]+)\)/);
+        if (parenMatch) {
+          result.table = parenMatch[1];
+          result.fields = parenMatch[2].split(',').map(field => field.trim());
+        } else {
+          // Extract just the table name, not everything after FIND
+          const firstSpace = tablePart.indexOf(' ');
+          result.table = firstSpace > 0 ? tablePart.substring(0, firstSpace) : tablePart;
+        }
       } else if (upperLine.includes('JOIN')) {
         // Parse JOIN clauses (handle both "JOIN" and "LEFT JOIN", "RIGHT JOIN", etc.)
         if (!result.joins) result.joins = [];

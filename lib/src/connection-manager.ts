@@ -206,19 +206,23 @@ export class ConnectionManager {
           };
 
         case 'dynamodb':
-          // Execute DynamoDB query based on operation type
+          // Execute DynamoDB query - determine operation type based on query structure
           const dynamoQuery = query as any;
-          const operation = dynamoQuery.operation;
           
-          // Remove operation field before passing to DynamoDB client
-          const { operation: _, ...dynamoParams } = dynamoQuery;
+          // Determine operation type based on query structure
+          let operation: string;
+          if (dynamoQuery.KeyConditionExpression) {
+            operation = 'query';
+          } else {
+            operation = 'scan';
+          }
           
           let dynamoResult: any;
           
           switch (operation) {
             case 'query':
               if (client.query) {
-                dynamoResult = await client.query(dynamoParams);
+                dynamoResult = await client.query(dynamoQuery);
               } else {
                 // Mock client simulation
                 dynamoResult = { Items: [] };
@@ -227,28 +231,12 @@ export class ConnectionManager {
               
             case 'scan':
               if (client.scan) {
-                dynamoResult = await client.scan(dynamoParams);  
+                dynamoResult = await client.scan(dynamoQuery);  
               } else {
                 // Mock client simulation with promise support
-                dynamoResult = client.scan && client.scan(dynamoParams).promise ? 
-                  await client.scan(dynamoParams).promise() : { Items: [] };
+                dynamoResult = client.scan && client.scan(dynamoQuery).promise ? 
+                  await client.scan(dynamoQuery).promise() : { Items: [] };
               }
-              break;
-              
-            case 'getItem':
-              dynamoResult = await client.getItem(dynamoParams);
-              break;
-              
-            case 'putItem':
-              dynamoResult = await client.putItem(dynamoParams);
-              break;
-              
-            case 'updateItem':
-              dynamoResult = await client.updateItem(dynamoParams);
-              break;
-              
-            case 'deleteItem':
-              dynamoResult = await client.deleteItem(dynamoParams);
               break;
               
             default:
