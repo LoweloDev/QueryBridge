@@ -106,6 +106,35 @@ echo "🧪 Testing Elasticsearch installation..."
 ELASTICSEARCH_VERSION=$(server/elasticsearch/bin/elasticsearch --version 2>/dev/null | head -1 || echo "Version check failed")
 echo "✅ $ELASTICSEARCH_VERSION"
 
+# Setup Redis Stack (includes RediSearch, RedisJSON, RedisGraph)
+echo ""
+echo "🔍 Setting up Redis Stack..."
+
+# Check if running in supported environment for Redis Stack
+if [ "$(uname)" == "Darwin" ]; then
+    echo "📦 Installing Redis Stack via Homebrew (macOS)..."
+    if command -v brew &> /dev/null; then
+        if ! brew list redis-stack &> /dev/null; then
+            brew tap redis-stack/redis-stack
+            brew install redis-stack
+        else
+            echo "✅ Redis Stack already installed"
+        fi
+    else
+        echo "⚠️  Homebrew not found. Please install Redis Stack manually from: https://redis.io/download"
+    fi
+elif [ -f /etc/debian_version ]; then
+    echo "📦 Adding Redis Stack repository (Debian/Ubuntu)..."
+    curl -fsSL https://packages.redis.io/gpg | sudo gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
+    echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/redis.list
+    sudo apt-get update
+    sudo apt-get install -y redis-stack-server
+else
+    echo "⚠️  Automated Redis Stack installation not supported for this OS."
+    echo "   Please install Redis Stack manually from: https://redis.io/download"
+    echo "   This provides RediSearch, RedisJSON, and RedisGraph modules."
+fi
+
 # Show final status
 echo ""
 echo "🎉 Installation Complete!"
@@ -115,6 +144,7 @@ echo "📊 Setup Summary:"
 echo "  ✅ Node.js $(node --version) installed via nvm"
 echo "  ✅ Java $(java -version 2>&1 | head -1) installed via brew"
 echo "  ✅ Elasticsearch 8.15.0 installed"
+echo "  ✅ Redis Stack installation attempted"
 echo "  ✅ Database data directories created"
 echo "  ✅ Startup scripts configured"
 echo ""
@@ -127,7 +157,7 @@ echo ""
 echo "📚 Database Ports:"
 echo "  PostgreSQL: Production (Neon)"
 echo "  MongoDB: localhost:27017"
-echo "  Redis: localhost:6379"
+echo "  Redis Stack: localhost:6379 (with RediSearch, RedisJSON, RedisGraph)"
 echo "  DynamoDB: localhost:8000"
 echo "  Elasticsearch PostgreSQL: localhost:9200"
 echo "  Elasticsearch DynamoDB: localhost:9201"

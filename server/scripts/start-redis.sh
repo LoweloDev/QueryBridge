@@ -6,16 +6,23 @@ mkdir -p server/data/redis
 
 echo "Starting Redis server..."
 
-# Check if Redis is available
-if ! command -v redis-server &> /dev/null; then
-    echo "❌ Redis server not found. Make sure Redis is installed."
+# Check if Redis Stack is available (preferred) or fall back to regular Redis
+if command -v redis-stack-server &> /dev/null; then
+    REDIS_CMD="redis-stack-server"
+    echo "✅ Redis Stack found (includes RediSearch, RedisJSON, RedisGraph)"
+elif command -v redis-server &> /dev/null; then
+    REDIS_CMD="redis-server"
+    echo "⚠️  Basic Redis found (Redis Stack with modules not available)"
+    echo "   For full query translation features, install Redis Stack: https://redis.io/download"
+else
+    echo "❌ Redis server not found. Please install Redis or Redis Stack."
     exit 1
 fi
 
 echo "Redis version: $(redis-server --version | head -1)"
 
-# Start Redis server in daemon mode (basic configuration for broad compatibility)
-redis-server --daemonize yes \
+# Start Redis server in daemon mode with configuration for broad compatibility
+$REDIS_CMD --daemonize yes \
     --port 6379 \
     --bind 127.0.0.1 \
     --dir ./server/data/redis \
@@ -52,9 +59,25 @@ if redis-cli ping > /dev/null 2>&1; then
     
     # Check for modules (Redis Stack features)
     echo "Checking Redis capabilities..."
-    redis-cli module list > /dev/null 2>&1
+    MODULES=$(redis-cli module list 2>/dev/null)
     if [ $? -eq 0 ]; then
         echo "ℹ️  Redis module system available"
+        # Check for specific modules
+        if echo "$MODULES" | grep -q "search"; then
+            echo "✅ RediSearch module detected"
+        else
+            echo "⚠️  RediSearch module not detected"
+        fi
+        if echo "$MODULES" | grep -q "graph"; then
+            echo "✅ RedisGraph module detected"
+        else
+            echo "⚠️  RedisGraph module not detected"
+        fi
+        if echo "$MODULES" | grep -q "json"; then
+            echo "✅ RedisJSON module detected"
+        else
+            echo "⚠️  RedisJSON module not detected"
+        fi
     fi
     
     # Show Redis info
@@ -73,3 +96,9 @@ echo "  - Advanced data structures (Lists, Sets, Hashes, etc.)"
 echo "  - Pub/Sub messaging"
 echo "  - Lua scripting"
 echo "  - Memory-efficient operations with LRU eviction"
+if [ "$REDIS_CMD" = "redis-stack-server" ]; then
+    echo "  - RediSearch: Full-text search and secondary indexing"
+    echo "  - RedisJSON: Native JSON data type support"
+    echo "  - RedisGraph: Graph database capabilities"
+    echo "  - Time Series: Time-series data operations"
+fi

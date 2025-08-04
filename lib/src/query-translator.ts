@@ -959,8 +959,7 @@ export class QueryTranslator {
         query: this.buildRedisSearchQuery(query),
         limit: { offset: query.offset || 0, num: query.limit || 10 },
         sortBy: query.orderBy ? { field: query.orderBy[0].field, direction: query.orderBy[0].direction } : undefined,
-        aggregations: query.aggregate ? this.buildRedisAggregations(query.aggregate) : undefined,
-        note: 'This query requires RediSearch module. Ensure index exists: FT.CREATE ' + query.table + '_idx'
+        aggregations: query.aggregate ? this.buildRedisAggregations(query.aggregate) : undefined
       };
     }
 

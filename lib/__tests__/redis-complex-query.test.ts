@@ -36,8 +36,7 @@ describe('Redis Complex Query Generation', () => {
         expect.objectContaining({ function: 'COUNT' }),
         expect.objectContaining({ function: 'AVG', field: 'age' }),
         expect.objectContaining({ function: 'SUM', field: 'order_count' })
-      ]),
-      note: expect.stringContaining('RediSearch module')
+      ])
     });
     
     // Verify the search query contains all conditions
