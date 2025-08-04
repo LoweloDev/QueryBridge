@@ -56,18 +56,38 @@ export function DocumentationPanel({ onClose }: DocumentationPanelProps) {
         indexOptimization: true
       },
       examples: {
-        basic: `-- Basic Query
+        basic: {
+          universal: `FIND users
+WHERE status = "active"
+ORDER BY created_at DESC
+LIMIT 5`,
+          native: `-- PostgreSQL Translation
 SELECT * FROM users 
 WHERE status = 'active' 
 ORDER BY created_at DESC 
-LIMIT 5;`,
-        joins: `-- JOIN Operations
+LIMIT 5;`
+        },
+        joins: {
+          universal: `FIND users
+JOIN orders ON users.id = orders.user_id
+WHERE users.status = "active"
+FIELDS users.name, users.email, orders.amount
+ORDER BY orders.amount DESC`,
+          native: `-- PostgreSQL Translation
 SELECT u.name, u.email, o.amount 
 FROM users u
 JOIN orders o ON u.id = o.user_id 
 WHERE u.status = 'active' 
-ORDER BY o.amount DESC;`,
-        aggregations: `-- Aggregations & GROUP BY
+ORDER BY o.amount DESC;`
+        },
+        aggregations: {
+          universal: `FIND products
+WHERE active = true
+GROUP BY category
+AGGREGATE COUNT(*) as product_count, AVG(price) as avg_price, SUM(stock) as total_stock
+HAVING product_count > 5
+ORDER BY avg_price DESC`,
+          native: `-- PostgreSQL Translation
 SELECT 
   category,
   COUNT(*) as product_count,
@@ -77,11 +97,16 @@ FROM products
 WHERE active = true
 GROUP BY category
 HAVING COUNT(*) > 5
-ORDER BY avg_price DESC;`,
-        fullText: `-- Full-Text Search
+ORDER BY avg_price DESC;`
+        },
+        fullText: {
+          universal: `FIND products
+WHERE name LIKE "%laptop%" AND description LIKE "%gaming%"`,
+          native: `-- PostgreSQL Translation  
 SELECT * FROM products 
 WHERE name ILIKE '%laptop%' 
-  AND description @@ to_tsquery('gaming & portable');`
+  AND description @@ to_tsquery('gaming');`
+        }
       }
     },
     mongodb: {
@@ -101,11 +126,23 @@ WHERE name ILIKE '%laptop%'
         indexOptimization: true
       },
       examples: {
-        basic: `// Basic Document Query
+        basic: {
+          universal: `FIND users
+WHERE status = "active"
+ORDER BY created_at DESC
+LIMIT 5`,
+          native: `// MongoDB Translation
 db.users.find(
   { "status": "active" }
-).sort({ "created_at": -1 }).limit(5)`,
-        joins: `// Lookup (JOIN) with Aggregation
+).sort({ "created_at": -1 }).limit(5)`
+        },
+        joins: {
+          universal: `FIND users
+JOIN orders ON users.id = orders.user_id
+WHERE users.status = "active"
+FIELDS users.name, users.email, orders.amount
+ORDER BY orders.amount DESC`,
+          native: `// MongoDB Translation
 db.users.aggregate([
   { $match: { "status": "active" } },
   { $lookup: {
@@ -115,9 +152,18 @@ db.users.aggregate([
       as: "orders"
     }},
   { $unwind: "$orders" },
-  { $sort: { "orders.amount": -1 } }
-])`,
-        aggregations: `// Aggregation Pipeline
+  { $project: { "name": 1, "email": 1, "amount": "$orders.amount" } },
+  { $sort: { "amount": -1 } }
+])`
+        },
+        aggregations: {
+          universal: `FIND products
+WHERE active = true
+GROUP BY category
+AGGREGATE COUNT(*) as product_count, AVG(price) as avg_price, SUM(stock) as total_stock
+HAVING product_count > 5
+ORDER BY avg_price DESC`,
+          native: `// MongoDB Translation
 db.products.aggregate([
   { $match: { "active": true } },
   { $group: {
@@ -128,12 +174,18 @@ db.products.aggregate([
     }},
   { $match: { product_count: { $gt: 5 } } },
   { $sort: { avg_price: -1 } }
-])`,
-        fullText: `// Text Search with Index
+])`
+        },
+        fullText: {
+          universal: `FIND products
+WHERE name LIKE "%laptop%" AND description LIKE "%gaming%"
+WHERE active = true`,
+          native: `// MongoDB Translation
 db.products.find({
-  $text: { $search: "laptop gaming portable" },
+  $text: { $search: "laptop gaming" },
   "active": true
 }).sort({ score: { $meta: "textScore" } })`
+        }
       }
     },
     elasticsearch: {
@@ -153,30 +205,50 @@ db.products.find({
         indexOptimization: true
       },
       examples: {
-        basic: `{
+        basic: {
+          universal: `FIND users
+WHERE status = "active"
+ORDER BY created_at DESC
+LIMIT 5`,
+          native: `// Elasticsearch Translation
+{
   "query": { "term": { "status": "active" } },
   "sort": [{ "created_at": { "order": "desc" } }],
   "size": 5
-}`,
-        aggregations: `{
+}`
+        },
+        aggregations: {
+          universal: `FIND products
+WHERE active = true
+GROUP BY category
+AGGREGATE COUNT(*) as product_count, AVG(price) as avg_price, SUM(stock) as total_stock`,
+          native: `// Elasticsearch Translation
+{
   "query": { "term": { "active": true } },
   "aggs": {
     "by_category": {
       "terms": { "field": "category" },
       "aggs": {
+        "product_count": { "value_count": { "field": "_id" } },
         "avg_price": { "avg": { "field": "price" } },
         "total_stock": { "sum": { "field": "stock" } }
       }
     }
   },
   "size": 0
-}`,
-        fullText: `{
+}`
+        },
+        fullText: {
+          universal: `FIND products
+WHERE name LIKE "%laptop%" AND description LIKE "%gaming%"
+WHERE active = true`,
+          native: `// Elasticsearch Translation
+{
   "query": {
     "bool": {
       "must": [
         { "match": { "name": "laptop" } },
-        { "match": { "description": "gaming portable" } }
+        { "match": { "description": "gaming" } }
       ],
       "filter": [
         { "term": { "active": true } }
@@ -187,6 +259,7 @@ db.products.find({
     "fields": { "name": {}, "description": {} }
   }
 }`
+        }
       }
     },
     dynamodb: {
@@ -206,35 +279,57 @@ db.products.find({
         indexOptimization: true
       },
       examples: {
-        basic: `{
+        basic: {
+          universal: `FIND users
+WHERE id = 1`,
+          native: `// DynamoDB Translation (Query)
+{
   "TableName": "users",
   "KeyConditionExpression": "id = :id",
   "ExpressionAttributeValues": { ":id": 1 }
-}`,
-        scan: `{
+}`
+        },
+        scan: {
+          universal: `FIND users
+WHERE status = "active"
+LIMIT 5`,
+          native: `// DynamoDB Translation (Scan)
+{
   "TableName": "users", 
   "FilterExpression": "#status = :status",
   "ExpressionAttributeNames": { "#status": "status" },
   "ExpressionAttributeValues": { ":status": "active" },
   "Limit": 5
-}`,
-        gsi: `{
+}`
+        },
+        gsi: {
+          universal: `FIND orders
+WHERE status = "completed"
+ORDER BY created_at DESC`,
+          native: `// DynamoDB Translation (GSI Query)
+{
   "TableName": "orders",
   "IndexName": "StatusIndex",
   "KeyConditionExpression": "#status = :status",
   "ExpressionAttributeNames": { "#status": "status" },
   "ExpressionAttributeValues": { ":status": "completed" },
   "ScanIndexForward": false
-}`,
-        limitations: `// ❌ THESE WILL THROW ERRORS:
-// Aggregations not supported
+}`
+        },
+        limitations: {
+          universal: `// ❌ THESE WILL THROW ERRORS:
+
 FIND products 
 AGGREGATE COUNT(*) as total, AVG(price) as avg_price
 
-// GROUP BY not supported  
 FIND sales
 GROUP BY category
-COUNT(*) as count`
+AGGREGATE COUNT(*) as count`,
+          native: `// DynamoDB Error Response
+{
+  "error": "DynamoDB does not support native aggregations (COUNT, SUM, AVG, etc.). Consider using application-level processing or switch to a different database type."
+}`
+        }
       }
     },
     redis: {
@@ -254,27 +349,51 @@ COUNT(*) as count`
         indexOptimization: true // Via RediSearch indexes
       },
       examples: {
-        basic: `// Hash Operations
-HGETALL user:1
-HMGET user:1 name email status
+        basic: {
+          universal: `FIND users
+WHERE status = "active"
+ORDER BY created_at DESC
+LIMIT 5`,
+          native: `// Redis Translation (RediSearch)
+FT.SEARCH users_idx "@status:{active}" SORTBY created_at DESC LIMIT 0 5
 
-// String Operations
-GET user:1:session
-MGET user:1:name user:1:email`,
-        search: `// RediSearch Queries (requires Redis Stack)
-FT.SEARCH users "@status:active" SORTBY created_at DESC LIMIT 0 5
+// Or Hash Operations
+HGETALL user:1
+HMGET user:1 name email status`
+        },
+        search: {
+          universal: `FIND products
+WHERE price > 100 AND price < 500
+WHERE category = "Electronics"`,
+          native: `// Redis Translation (RediSearch)
+FT.SEARCH products_idx "@price:[100 500] @category:{Electronics}"
 
 // Range Queries
-FT.SEARCH products "@price:[100 500]"`,
-        aggregations: `// RediSearch Aggregations
-FT.AGGREGATE orders "*" 
+FT.SEARCH products_idx "@price:[100 500]"`
+        },
+        aggregations: {
+          universal: `FIND orders
+GROUP BY category
+AGGREGATE COUNT(*) as product_count, AVG(price) as avg_price
+ORDER BY avg_price DESC`,
+          native: `// Redis Translation (RediSearch Aggregations)
+FT.AGGREGATE orders_idx "*" 
   GROUPBY 1 @category 
   REDUCE COUNT 0 AS product_count
   REDUCE AVG 1 @price AS avg_price
-  SORTBY 2 @avg_price DESC`,
-        sortedSets: `// Sorted Set Operations  
-ZREVRANGEBYSCORE user_scores +inf -inf LIMIT 0 10
+  SORTBY 2 @avg_price DESC`
+        },
+        sortedSets: {
+          universal: `FIND user_scores
+WHERE score > 1000
+ORDER BY score DESC
+LIMIT 10`,
+          native: `// Redis Translation (Sorted Sets)
+ZREVRANGEBYSCORE user_scores +inf 1000 LIMIT 0 10
+
+// Range by score
 ZRANGEBYSCORE orders:by_amount 100 500`
+        }
       }
     }
   };
@@ -377,15 +496,35 @@ ZRANGEBYSCORE orders:by_amount 100 500`
 
               {/* Code Examples */}
               <div className="space-y-4">
-                {Object.entries(currentDb.examples).map(([exampleKey, code]) => (
+                {Object.entries(currentDb.examples).map(([exampleKey, example]) => (
                   <ExampleCard 
                     key={exampleKey}
                     title={exampleKey.charAt(0).toUpperCase() + exampleKey.slice(1).replace(/([A-Z])/g, ' $1')}
-                    onCopy={() => copyToClipboard(code)}
+                    onCopy={() => copyToClipboard(example.universal + '\n\n' + example.native)}
                   >
-                    <pre className="text-xs overflow-x-auto whitespace-pre-wrap bg-muted/50 p-3 rounded border">
-                      <code className="text-muted-foreground">{code}</code>
-                    </pre>
+                    <div className="space-y-3">
+                      {/* Universal Query */}
+                      <div>
+                        <div className="text-xs font-medium text-foreground mb-1 flex items-center">
+                          <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                          Universal Query Language
+                        </div>
+                        <pre className="text-xs overflow-x-auto whitespace-pre-wrap bg-blue-50 dark:bg-blue-950/30 p-3 rounded border border-blue-200 dark:border-blue-800">
+                          <code className="text-blue-800 dark:text-blue-200">{example.universal}</code>
+                        </pre>
+                      </div>
+                      
+                      {/* Native Translation */}
+                      <div>
+                        <div className="text-xs font-medium text-foreground mb-1 flex items-center">
+                          <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                          {currentDb.name} Translation
+                        </div>
+                        <pre className="text-xs overflow-x-auto whitespace-pre-wrap bg-green-50 dark:bg-green-950/30 p-3 rounded border border-green-200 dark:border-green-800">
+                          <code className="text-green-800 dark:text-green-200">{example.native}</code>
+                        </pre>
+                      </div>
+                    </div>
                   </ExampleCard>
                 ))}
               </div>
