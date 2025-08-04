@@ -68,11 +68,20 @@ else
     exit 1
 fi
 
-echo "Redis version: $(redis-server --version | head -1)"
+# Get Redis version safely (avoid redis-stack-server --version which causes config errors)
+if [ "$REDIS_CMD" = "redis-stack-server" ]; then
+    echo "Redis Stack available"
+    echo "Redis version: $(redis-server --version | head -1)"
+else
+    echo "Redis version: $(redis-server --version | head -1)"
+fi
 
-# Create optimized Redis configuration
+# Create optimized Redis configuration with proper escaping
 REDIS_CONF="$REDIS_DATA_DIR/redis.conf"
 echo "Creating Redis configuration: $REDIS_CONF"
+
+# Use absolute path variables to avoid quoting issues
+REDIS_LOG_FILE="$REDIS_DATA_DIR/redis.log"
 
 cat > "$REDIS_CONF" << EOF
 # Redis Configuration for Universal Query Translator
@@ -80,7 +89,7 @@ port 6379
 bind 127.0.0.1
 daemonize yes
 
-# Data persistence
+# Data persistence - use absolute paths without quotes
 dir $REDIS_DATA_DIR
 save 60 1000
 appendonly yes
@@ -90,8 +99,8 @@ appendfilename appendonly.aof
 maxmemory 100mb
 maxmemory-policy allkeys-lru
 
-# Logging
-logfile $REDIS_DATA_DIR/redis.log
+# Logging - use absolute path without quotes
+logfile $REDIS_LOG_FILE
 loglevel notice
 
 # Security

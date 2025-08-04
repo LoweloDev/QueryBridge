@@ -163,7 +163,10 @@ For testing and validating query translations:
 cp .env.example .env
 # Edit .env with your database credentials (especially DATABASE_URL for PostgreSQL)
 
-# Install dependencies
+# Quick setup (recommended - handles path issues automatically)
+./install-simple.sh
+
+# OR comprehensive installation (installs all database prerequisites)
 ./install.sh
 
 # Start the development server (builds and installs local npm package)
