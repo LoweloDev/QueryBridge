@@ -1,185 +1,188 @@
 #!/bin/bash
-# Start Redis server with advanced features for testing
+# Redis startup script with comprehensive path handling and error resolution
+
+set -e  # Exit on any error
+
+# Get the project root directory (assumes script is in server/scripts/)
+PROJECT_ROOT=$(cd "$(dirname "$0")/../.." && pwd)
+REDIS_DATA_DIR="$PROJECT_ROOT/server/data/redis"
 
 echo "Starting Redis server..."
 
-# Check if Redis is already running
-if pgrep redis-server >/dev/null 2>&1 ||
-   ps aux 2>/dev/null | grep -q "[r]edis-server"; then
-    echo "✅ Redis is already running"
-    exit 0
+# Check for spaces in path and handle appropriately
+if [[ "$PROJECT_ROOT" == *" "* ]]; then
+    echo "⚠️  CRITICAL: Project path contains spaces: $PROJECT_ROOT"
+    echo "Redis Stack cannot handle configuration files with spaces in paths."
+    echo ""
+    echo "This is a fundamental limitation of Redis Stack's configuration parser."
+    echo "Redis Stack splits arguments on spaces, breaking paths like:"
+    echo "  '/Users/user/My Projects/app' becomes '/Users/user/My' and 'Projects/app'"
+    echo ""
+    echo "SOLUTIONS:"
+    echo "1. Move project to path without spaces (recommended)"
+    echo "2. Use symbolic link: ln -s '$PROJECT_ROOT' ~/dev/QueryBridge"
+    echo "3. Continue with basic Redis (no RediSearch/RedisJSON/RedisGraph modules)"
+    echo ""
+    
+    read -p "Continue with basic Redis? (y/N): " -n 1 -r
+    echo ""
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "Installation cancelled. Please resolve path issue and try again."
+        exit 1
+    fi
+    
+    echo "⚠️  Proceeding with basic Redis (Redis Stack modules disabled)"
+    FORCE_BASIC_REDIS=true
+else
+    echo "✅ Project path compatible with Redis Stack: $PROJECT_ROOT"
+    FORCE_BASIC_REDIS=false
 fi
 
-# Create data directory with absolute path
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-REDIS_DATA_DIR="$PROJECT_ROOT/server/data/redis"
-
-echo "Creating Redis data directory: $REDIS_DATA_DIR"
+# Create data directory if it doesn't exist
 mkdir -p "$REDIS_DATA_DIR"
-chmod 755 "$REDIS_DATA_DIR"
+echo "Redis data directory: $REDIS_DATA_DIR"
 
-# Check if Redis Stack is available (preferred) or fall back to regular Redis
-if command -v redis-stack-server &> /dev/null; then
-    REDIS_CMD="redis-stack-server"
-    echo "✅ Redis Stack found (includes RediSearch, RedisJSON, RedisGraph)"
-elif command -v redis-server &> /dev/null; then
+# Stop any existing Redis processes
+if pgrep -f "redis.*6379" > /dev/null; then
+    echo "⚠️  Stopping existing Redis processes on port 6379..."
+    pkill -f "redis.*6379" || true
+    sleep 2
+fi
+
+# Determine Redis installation and capabilities
+if [ "$FORCE_BASIC_REDIS" = "true" ]; then
+    echo "🔧 Using basic Redis (forced due to path spaces)"
     REDIS_CMD="redis-server"
-    echo "⚠️  Basic Redis found (Redis Stack with modules not available)"
-    echo "   For full query translation features, install Redis Stack: https://redis.io/download"
+    REDIS_HAS_MODULES=false
+elif command -v redis-stack-server >/dev/null 2>&1; then
+    REDIS_CMD="redis-stack-server"
+    REDIS_HAS_MODULES=true
+    echo "✅ Redis Stack available (RediSearch, RedisJSON, RedisGraph)"
+elif command -v redis-server >/dev/null 2>&1; then
+    REDIS_CMD="redis-server"
+    REDIS_HAS_MODULES=false
+    echo "⚠️  Basic Redis only (install Redis Stack for advanced features)"
 else
-    echo "❌ Redis server not found. Please install Redis or Redis Stack."
+    echo "❌ No Redis installation found"
+    echo "Install Redis: brew install redis-stack (macOS) or apt install redis-stack-server (Linux)"
     exit 1
 fi
 
 echo "Redis version: $(redis-server --version | head -1)"
 
-# Handle paths with spaces by creating a proper configuration file
+# Create optimized Redis configuration
 REDIS_CONF="$REDIS_DATA_DIR/redis.conf"
 echo "Creating Redis configuration: $REDIS_CONF"
 
 cat > "$REDIS_CONF" << EOF
+# Redis Configuration for Universal Query Translator
 port 6379
 bind 127.0.0.1
 daemonize yes
-dir "$REDIS_DATA_DIR"
+
+# Data persistence
+dir $REDIS_DATA_DIR
 save 60 1000
 appendonly yes
 appendfilename appendonly.aof
+
+# Memory management
 maxmemory 100mb
 maxmemory-policy allkeys-lru
-logfile "$REDIS_DATA_DIR/redis.log"
+
+# Logging
+logfile $REDIS_DATA_DIR/redis.log
+loglevel notice
+
+# Security
+protected-mode yes
+
+# Performance
+tcp-keepalive 300
+timeout 0
 EOF
 
-# Start Redis server using configuration file to handle paths with spaces
-echo "Starting Redis with configuration file to handle paths with spaces"
-if [ "$REDIS_CMD" = "redis-stack-server" ]; then
-    echo "Using Redis Stack configuration approach..."
-    # Redis Stack needs special handling for modules
-    redis-stack-server "$REDIS_CONF"
+# Add module configuration for Redis Stack
+if [ "$REDIS_HAS_MODULES" = "true" ]; then
+    echo "# Redis Stack modules will be auto-loaded" >> "$REDIS_CONF"
+fi
+
+# Start Redis with proper error handling
+echo "Starting Redis..."
+if [ "$REDIS_HAS_MODULES" = "true" ]; then
+    echo "🚀 Starting Redis Stack with modules..."
+    if redis-stack-server "$REDIS_CONF"; then
+        echo "✅ Redis Stack started successfully"
+    else
+        echo "❌ Redis Stack failed, falling back to basic Redis"
+        redis-server "$REDIS_CONF"
+        REDIS_HAS_MODULES=false
+    fi
 else
-    echo "Using standard Redis configuration..."
+    echo "🚀 Starting basic Redis..."
     redis-server "$REDIS_CONF"
 fi
 
-if [ $? -eq 0 ]; then
-    echo "✅ Redis server startup initiated on port 6379"
-else
-    echo "❌ Failed to start Redis server"
-    
-    # Try alternative startup method for troubleshooting
-    echo "Attempting alternative startup method..."
-    
-    if [ "$REDIS_CMD" = "redis-stack-server" ]; then
-        echo "Redis Stack failed with command line args, trying basic redis-server..."
-        # Try to start redis-server and then manually load modules if available
-        redis-server "$REDIS_CONF"
-        
-        if [ $? -eq 0 ]; then
-            echo "✅ Redis started successfully (basic mode due to path spaces issue)"
-            echo "   Note: RediSearch, RedisJSON, RedisGraph modules unavailable due to path containing spaces"
-            echo "   Recommendation: Move project to path without spaces for full Redis Stack support"
-        fi
-    else
-        # Try basic configuration for regular Redis
-        echo "Trying basic Redis configuration..."
-        redis-server "$REDIS_CONF"
-    fi
-    
-    if [ $? -ne 0 ]; then
-        echo "❌ All Redis startup methods failed"
-        exit 1
-    else
-        echo "✅ Redis started with fallback configuration"
-    fi
-fi
-
-echo "Data directory: $REDIS_DATA_DIR"
-echo "Configuration: In-memory cache with persistence"
-
-# Wait for startup
+# Wait for Redis to start
 sleep 3
 
-# Test connection
-echo "Testing Redis connection..."
+# Verify Redis is running
+echo "Verifying Redis connection..."
 if redis-cli ping > /dev/null 2>&1; then
     echo "✅ Redis server is running and accessible"
     
     # Test basic operations
-    redis-cli set "test:connection" "success" EX 60 > /dev/null 2>&1
-    TEST_VALUE=$(redis-cli get "test:connection" 2>/dev/null)
+    redis-cli set "test:startup" "success" EX 60 > /dev/null 2>&1
+    TEST_VALUE=$(redis-cli get "test:startup" 2>/dev/null)
     if [ "$TEST_VALUE" = "success" ]; then
         echo "✅ Basic Redis operations working"
     fi
     
-    # Check for modules (Redis Stack features)
-    echo "Checking Redis capabilities..."
-    MODULES=$(redis-cli module list 2>/dev/null)
-    if [ $? -eq 0 ]; then
-        echo "ℹ️  Redis module system available"
-        
-        # Check for specific modules and provide helpful information
+    # Check module availability if Redis Stack
+    if [ "$REDIS_HAS_MODULES" = "true" ]; then
+        echo "Checking Redis Stack modules..."
+        MODULES=$(redis-cli module list 2>/dev/null)
         MODULE_COUNT=0
+        
         if echo "$MODULES" | grep -q "search"; then
-            echo "✅ RediSearch module detected"
+            echo "✅ RediSearch module loaded"
             MODULE_COUNT=$((MODULE_COUNT + 1))
-        else
-            echo "⚠️  RediSearch module not detected"
         fi
         
         if echo "$MODULES" | grep -q "json"; then
-            echo "✅ RedisJSON module detected"
+            echo "✅ RedisJSON module loaded"
             MODULE_COUNT=$((MODULE_COUNT + 1))
-        else
-            echo "⚠️  RedisJSON module not detected"
         fi
         
         if echo "$MODULES" | grep -q "graph"; then
-            echo "✅ RedisGraph module detected"
+            echo "✅ RedisGraph module loaded"
             MODULE_COUNT=$((MODULE_COUNT + 1))
-        else
-            echo "⚠️  RedisGraph module not detected"
         fi
         
-        # Provide guidance based on module availability
-        if [ $MODULE_COUNT -eq 0 ]; then
-            echo ""
-            echo "ℹ️  Redis Stack modules not available"
-            if [[ "$(pwd)" == *" "* ]]; then
-                echo "   This is likely due to spaces in the project path"
-                echo "   Run './install-redis-stack-modules.sh' for solutions"
-            else
-                echo "   Redis Stack may not be properly installed"
-                echo "   Install Redis Stack for advanced query features"
-            fi
-        elif [ $MODULE_COUNT -lt 3 ]; then
-            echo ""
-            echo "ℹ️  Partial Redis Stack module support ($MODULE_COUNT/3 modules)"
+        if [ $MODULE_COUNT -eq 3 ]; then
+            echo "🎉 All Redis Stack modules available!"
+        elif [ $MODULE_COUNT -gt 0 ]; then
+            echo "⚠️  Partial Redis Stack support ($MODULE_COUNT/3 modules)"
         else
-            echo ""
-            echo "✅ Full Redis Stack support available (all modules loaded)"
+            echo "⚠️  Redis Stack modules not loaded (running in basic mode)"
         fi
+    else
+        echo "ℹ️  Running in basic Redis mode"
+        echo "   For advanced features, resolve path issues and install Redis Stack"
     fi
     
-    # Show Redis info
-    echo "Redis info:"
-    redis-cli info server | grep -E "redis_version|process_id|tcp_port" | head -3
+    # Display Redis info
+    echo ""
+    echo "Redis Status:"
+    echo "- Version: $(redis-cli info server | grep redis_version | cut -d: -f2 | tr -d '\r')"
+    echo "- Port: 6379"
+    echo "- Data directory: $REDIS_DATA_DIR"
+    echo "- Modules: $([ "$REDIS_HAS_MODULES" = "true" ] && echo "Redis Stack" || echo "Basic Redis")"
+    
 else
-    echo "❌ Redis server may not be fully started yet"
+    echo "❌ Redis connection failed"
+    echo "Check Redis log: $REDIS_DATA_DIR/redis.log"
+    exit 1
 fi
 
-echo ""
-echo "Note: In containerized environments like Replit, the daemon process may not persist"
-echo "but will work correctly when running locally on your machine."
-echo "For local development, this setup supports:"
-echo "  - Standard Redis operations (GET, SET, etc.)"
-echo "  - Advanced data structures (Lists, Sets, Hashes, etc.)"
-echo "  - Pub/Sub messaging"
-echo "  - Lua scripting"
-echo "  - Memory-efficient operations with LRU eviction"
-if [ "$REDIS_CMD" = "redis-stack-server" ]; then
-    echo "  - RediSearch: Full-text search and secondary indexing"
-    echo "  - RedisJSON: Native JSON data type support"
-    echo "  - RedisGraph: Graph database capabilities"
-    echo "  - Time Series: Time-series data operations"
-fi
+echo "✅ Redis startup completed successfully"

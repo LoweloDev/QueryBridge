@@ -214,10 +214,10 @@ If you encounter port conflicts or database startup issues:
 4. Ensures out-of-the-box functionality
 
 *Redis Stack:*
-1. Handles paths with spaces using configuration files
-2. Falls back to basic Redis if Stack modules fail
-3. Provides guidance for enabling advanced modules
-4. Run `./install-redis-stack-modules.sh` for module troubleshooting
+1. Detects paths with spaces and provides solutions
+2. Creates symbolic links automatically when requested
+3. Falls back to basic Redis if Stack modules fail
+4. Forces basic Redis mode if paths cannot be resolved
 
 ---------------------------------------------------------------------------
 

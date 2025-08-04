@@ -24,6 +24,8 @@ Preferred communication style: Simple, everyday language.
 - **MongoDB WiredTiger Corruption Auto-Fix**: Implemented automatic database repair and fresh initialization strategies for out-of-the-box functionality on macOS/Linux systems
 - **Redis Stack Configuration Fix**: Enhanced Redis startup script to handle macOS configuration file path issues with absolute paths and fallback mechanisms
 - **Redis Stack Path Spaces Issue Resolution**: Implemented configuration file approach to handle project paths containing spaces, with automatic fallback to basic Redis and clear guidance for enabling modules
+- **Comprehensive Installation Script**: Created install.sh with step-by-step prerequisite installation, path validation, symbolic link creation, and detailed error handling for out-of-the-box functionality
+- **Redis Startup Script Cleanup**: Completely rewritten Redis startup to properly detect path issues, provide clear solutions, and prevent broken configurations
 - **DynamoDB Schema Configuration Implemented**: Added configuration-based approach for custom partition/sort key names, eliminating hardcoded PK/SK assumptions
 - **Extended Connection Types**: Updated DatabaseConnection interface to accept custom schema configuration
 - **Flexible Key Mapping**: DynamoDB translator now uses configured schema instead of hardcoded values, maintaining backward compatibility
