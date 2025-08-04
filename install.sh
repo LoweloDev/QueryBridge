@@ -154,25 +154,7 @@ echo "🔍 Setting up Redis Stack..."
 if command -v redis-server &> /dev/null; then
     echo "✅ Redis already installed: $(redis-server --version | head -1)"
     # Check if it's Redis Stack with modules
-    if command -v redis-stack-server &> /dev/null; then
-        echo "✅ Redis Stack server detected"
-        # Test modules
-        TEMP_DIR="/tmp/redis-test-$$"
-        mkdir -p "$TEMP_DIR"
-        
-        redis-stack-server --port 6380 --dir "$TEMP_DIR" --daemonize yes --logfile "$TEMP_DIR/redis.log" 2>/dev/null
-        if [ $? -eq 0 ]; then
-            sleep 2
-            MODULES=$(redis-cli -p 6380 module list 2>/dev/null)
-            if echo "$MODULES" | grep -q "search\|json\|graph"; then
-                echo "✅ Redis Stack modules (RediSearch, RedisJSON, RedisGraph) are working"
-            else
-                echo "⚠️  Redis Stack installed but modules not detected"
-            fi
-            redis-cli -p 6380 shutdown nosave 2>/dev/null
-        fi
-        rm -rf "$TEMP_DIR"
-    elif redis-server --help 2>&1 | grep -q "RediSearch\|RedisJSON\|RedisGraph"; then
+    if redis-server --help 2>&1 | grep -q "RediSearch\|RedisJSON\|RedisGraph"; then
         echo "✅ Redis Stack modules detected"
     else
         echo "⚠️  Redis found but may not include Stack modules (RediSearch, RedisJSON, RedisGraph)"
@@ -184,21 +166,10 @@ else
         echo "📦 Installing Redis Stack via Homebrew (macOS)..."
         if command -v brew &> /dev/null; then
             if ! brew list redis-stack &> /dev/null; then
-                echo "📦 Installing Redis Stack..."
                 brew tap redis-stack/redis-stack
                 brew install redis-stack
-                echo "✅ Redis Stack installed"
-                
-                # Verify installation
-                if command -v redis-stack-server &> /dev/null; then
-                    echo "✅ redis-stack-server command available"
-                else
-                    echo "⚠️  redis-stack-server not found after installation"
-                    echo "   You may need to restart your terminal or run:"
-                    echo "   source ~/.bash_profile (or ~/.zshrc)"
-                fi
             else
-                echo "✅ Redis Stack already installed via Homebrew"
+                echo "✅ Redis Stack already installed"
             fi
         else
             echo "⚠️  Homebrew not found. Please install Redis Stack manually from: https://redis.io/download"
