@@ -245,15 +245,39 @@ describe('QueryTranslator - DynamoDB (Rewritten)', () => {
   });
 
   describe('Aggregation Handling', () => {
-    it('should add note for aggregations (not natively supported)', () => {
+    it('should throw error for aggregations (not natively supported)', () => {
       const query = QueryParser.parse('FIND orders GROUP BY status COUNT(*) as order_count');
-      const result = QueryTranslator.toDynamoDB(query);
+      
+      expect(() => {
+        QueryTranslator.toDynamoDB(query);
+      }).toThrow('DynamoDB does not support GROUP BY operations. Consider using application-level processing or switch to a different database type.');
+    });
 
-      expect(result).toMatchObject({
-        TableName: 'orders',
-        note: 'DynamoDB aggregations require client-side processing'
-      });
-      expect(validateDynamoQuery(result)).toBe(true);
+    it('should throw error for AGGREGATE functions with GROUP BY', () => {
+      const query = QueryParser.parse(`
+        FIND orders 
+        AGGREGATE 
+          count: COUNT(*),
+          total_amount: SUM(amount)
+        GROUP BY status
+      `);
+      
+      expect(() => {
+        QueryTranslator.toDynamoDB(query);
+      }).toThrow('DynamoDB does not support native aggregations (COUNT, SUM, AVG, etc.). Consider using application-level processing or switch to a different database type.');
+    });
+
+    it('should throw error for AGGREGATE without GROUP BY', () => {
+      const query = QueryParser.parse(`
+        FIND orders 
+        AGGREGATE 
+          count: COUNT(*),
+          avg_amount: AVG(amount)
+      `);
+      
+      expect(() => {
+        QueryTranslator.toDynamoDB(query);
+      }).toThrow('DynamoDB does not support native aggregations (COUNT, SUM, AVG, etc.). Consider using application-level processing or switch to a different database type.');
     });
   });
 
