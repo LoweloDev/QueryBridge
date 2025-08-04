@@ -48,7 +48,7 @@ echo "Current path: $PROJECT_PATH"
 
 if [[ "$PROJECT_PATH" == *" "* ]]; then
     echo "⚠️  WARNING: Project path contains spaces"
-    echo "This will cause issues with Redis Stack modules due to configuration parsing limitations."
+    echo "This may cause issues with some Redis Stack configurations."
     echo ""
     echo "Solutions:"
     echo "1. Move project to path without spaces (recommended)"
@@ -166,7 +166,7 @@ echo "✅ MongoDB data directory created: $MONGO_DATA_DIR"
 # Check and install Redis
 print_step "7" "Installing Redis"
 if [ "$SKIP_REDIS_STACK" = "true" ]; then
-    echo "⚠️  Installing basic Redis only (Redis Stack skipped due to path spaces)"
+    echo "⚠️  Installing basic Redis only"
     if command_exists redis-server; then
         REDIS_VERSION=$(redis-server --version | head -1)
         echo "✅ Redis found: $REDIS_VERSION"
@@ -184,12 +184,8 @@ else
     # Install Redis Stack for full module support
     if command_exists redis-stack-server; then
         echo "✅ Redis Stack found"
-        # Test Redis Stack without version flag (causes config errors)
-        if redis-stack-server --help >/dev/null 2>&1; then
-            echo "✅ Redis Stack is functional"
-        else
-            echo "⚠️  Redis Stack found but may have issues"
-        fi
+        # Simply check if the command exists - don't call it with any flags
+        echo "✅ Redis Stack is available"
     else
         echo "📦 Installing Redis Stack with modules..."
         if [ "$OS" = "macOS" ]; then
