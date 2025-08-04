@@ -317,162 +317,31 @@ ZREVRANGEBYSCORE orders:by_time +inf -inf LIMIT 0 10`,
   "Limit": 10
 }
 
-// Single Table Design (with configured PK/SK)
+// Single Table Design
 {
   "TableName": "user_orders",
-  "KeyConditionExpression": "#pk = :pk AND begins_with(#sk, :sk_prefix)",
-  "ExpressionAttributeNames": { "#pk": "PK", "#sk": "SK" },
+  "KeyConditionExpression": "PK = :pk AND begins_with(SK, :sk_prefix)",
   "ExpressionAttributeValues": {
     ":pk": "USER#1",
     ":sk_prefix": "ORDER#"
   }
 }
 
-// Traditional Schema with Custom Keys (userId, createdAt)
+// Traditional Schema Design  
 {
   "TableName": "orders",
-  "KeyConditionExpression": "#uid = :uid AND #created BETWEEN :start AND :end",
-  "ExpressionAttributeNames": { "#uid": "userId", "#created": "createdAt" },
+  "KeyConditionExpression": "user_id = :uid AND created_at BETWEEN :start AND :end",
   "ExpressionAttributeValues": {
     ":uid": 1,
     ":start": "2023-01-01",
     ":end": "2023-12-31"
   }
-}
-
-// Custom Schema Configuration Example
-{
-  "TableName": "products",
-  "KeyConditionExpression": "#cpk = :cpk",
-  "ExpressionAttributeNames": { "#cpk": "customPartitionKey" },
-  "ExpressionAttributeValues": {
-    ":cpk": "PRODUCT#electronics"
-  }
 }`,
-        note: "Advanced features: SQL indexes, MongoDB compound queries, Elasticsearch nested queries, DynamoDB configurable schemas with GSI/single-table design, Redis RediSearch. DynamoDB now supports custom partition/sort key names via schema configuration."
-      }
-    },
-    dynamodb_schema_config: {
-      title: "DynamoDB Schema Configuration",
-      formats: {
-        common: `// Universal Query with Traditional Schema
-FIND users WHERE id = "user-123"
-
-// Universal Query with Single-Table Design  
-FIND orders 
-DB_SPECIFIC: partition_key="USER#123", sort_key_prefix="ORDER#"
-
-// Universal Query with Custom Schema
-FIND products WHERE customId = "product-456"`,
-        setup: `// Traditional Table Schema Configuration
-{
-  id: 'users-table',
-  type: 'dynamodb',
-  database: 'users',
-  dynamodb: {
-    partitionKey: 'userId',    // Maps to your actual partition key field
-    sortKey: 'createdAt'       // Maps to your actual sort key field
-  }
-}
-
-// Single-Table Design Configuration
-{
-  id: 'single-table',
-  type: 'dynamodb', 
-  database: 'app_data',
-  dynamodb: {
-    partitionKey: 'PK',        // Standard single-table design
-    sortKey: 'SK',
-    globalSecondaryIndexes: [
-      {
-        name: 'GSI1',
-        partitionKey: 'GSI1PK',
-        sortKey: 'GSI1SK'
-      }
-    ]
-  }
-}
-
-// Custom Schema Configuration
-{
-  id: 'custom-table',
-  type: 'dynamodb',
-  database: 'orders',
-  dynamodb: {
-    partitionKey: 'customPartitionKey',  // Any field name
-    sortKey: 'customSortKey'            // Any field name
-  }
-}`,
-        sql: `-- Traditional SQL equivalent
-SELECT * FROM users WHERE user_id = 'user-123';
-
--- Complex query
-SELECT * FROM orders 
-WHERE user_id = 'USER#123' 
-  AND order_id LIKE 'ORDER#%';`,
-        mongodb: `// MongoDB equivalent
-db.users.findOne({ "userId": "user-123" })
-
-// Complex query  
-db.orders.find({
-  "userId": "USER#123",
-  "orderId": { $regex: /^ORDER#/ }
-})`,
-        elasticsearch: `{
-  "query": {
-    "term": { "userId": "user-123" }
-  }
-}
-
-// Complex query
-{
-  "query": {
-    "bool": {
-      "must": [
-        { "term": { "userId": "USER#123" } },
-        { "prefix": { "orderId": "ORDER#" } }
-      ]
-    }
-  }
-}`,
-        dynamodb: `// Traditional Schema (userId, createdAt keys)
-{
-  "TableName": "users",
-  "KeyConditionExpression": "#uid = :uid",
-  "ExpressionAttributeNames": { "#uid": "userId" },
-  "ExpressionAttributeValues": { ":uid": "user-123" }
-}
-
-// Single-Table Design (PK, SK keys)
-{
-  "TableName": "app_data", 
-  "KeyConditionExpression": "#pk = :pk AND begins_with(#sk, :sk_prefix)",
-  "ExpressionAttributeNames": { "#pk": "PK", "#sk": "SK" },
-  "ExpressionAttributeValues": {
-    ":pk": "USER#123",
-    ":sk_prefix": "ORDER#"
-  }
-}
-
-// Custom Schema (customPartitionKey, customSortKey)  
-{
-  "TableName": "orders",
-  "KeyConditionExpression": "#cpk = :cpk",
-  "ExpressionAttributeNames": { "#cpk": "customPartitionKey" },
-  "ExpressionAttributeValues": { ":cpk": "product-456" }
-}`,
-        redis: `// Hash-based storage
-HGET user:user-123 *
-HMGET user:user-123 userId createdAt
-
-// Key pattern matching
-KEYS USER#123:ORDER#*
-MGET USER#123:ORDER#1 USER#123:ORDER#2`,
-        note: "Schema configuration eliminates hardcoded PK/SK assumptions. Works with any DynamoDB table design - traditional tables, single-table design, or custom key names. Maintains backward compatibility with automatic PK/SK fallback."
+        note: "Advanced features across all databases: SQL indexes, MongoDB compound queries, Elasticsearch nested queries, DynamoDB GSI/single-table design, Redis RediSearch"
       }
     },
     redis_structures: {
-      title: "Redis Data Structures", 
+      title: "Redis Data Structures",
       formats: {
         common: `FIND user_sessions
 WHERE user_id = 1 AND active = true`,
