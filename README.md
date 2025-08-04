@@ -187,9 +187,21 @@ If you encounter port conflicts or database startup issues:
 # Clean up ports manually if needed
 ./server/scripts/cleanup-ports.sh
 
+# Test individual database startup
+./server/scripts/start-mongodb.sh
+./server/scripts/start-redis.sh
+./server/scripts/start-dynamodb.sh
+./server/scripts/start-elasticsearch.sh
+
 # Restart the development server
 ./start-dev.sh
 ```
+
+**Common Issues:**
+- **MongoDB fork error**: Usually due to permission issues or existing processes. The cleanup script resolves this.
+- **DynamoDB "Address already in use"**: Port 8000 conflict. Cleanup script kills existing processes.
+- **Redis connection spam**: Previous failed connections. Improved error handling prevents this.
+- **Elasticsearch not starting**: Requires significant memory. May not work in constrained environments.
 
 ---------------------------------------------------------------------------
 
