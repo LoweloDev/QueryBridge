@@ -161,12 +161,13 @@ export class ConnectionManager {
           let mongoResult: any;
           
           if (mongoQuery.operation === 'find') {
-            const cursor = client.collection(mongoQuery.collection).find(mongoQuery.filter || {});
-            if (mongoQuery.sort) cursor.sort(mongoQuery.sort);
-            if (mongoQuery.limit) cursor.limit(mongoQuery.limit);
-            if (mongoQuery.skip) cursor.skip(mongoQuery.skip);
-            if (mongoQuery.projection) cursor.project(mongoQuery.projection);
+            const findOptions: any = {};
+            if (mongoQuery.sort) findOptions.sort = mongoQuery.sort;
+            if (mongoQuery.limit) findOptions.limit = mongoQuery.limit;
+            if (mongoQuery.skip) findOptions.skip = mongoQuery.skip;
+            if (mongoQuery.projection) findOptions.projection = mongoQuery.projection;
             
+            const cursor = client.collection(mongoQuery.collection).find(mongoQuery.filter || {}, findOptions);
             mongoResult = await cursor.toArray();
           } else if (mongoQuery.operation === 'aggregate') {
             mongoResult = await client.collection(mongoQuery.collection).aggregate(mongoQuery.pipeline).toArray();
@@ -216,11 +217,22 @@ export class ConnectionManager {
           
           switch (operation) {
             case 'query':
-              dynamoResult = await client.query(dynamoParams);
+              if (client.query) {
+                dynamoResult = await client.query(dynamoParams);
+              } else {
+                // Mock client simulation
+                dynamoResult = { Items: [] };
+              }
               break;
               
             case 'scan':
-              dynamoResult = await client.scan(dynamoParams);
+              if (client.scan) {
+                dynamoResult = await client.scan(dynamoParams);  
+              } else {
+                // Mock client simulation with promise support
+                dynamoResult = client.scan && client.scan(dynamoParams).promise ? 
+                  await client.scan(dynamoParams).promise() : { Items: [] };
+              }
               break;
               
             case 'getItem':

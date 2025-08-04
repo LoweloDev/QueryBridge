@@ -722,32 +722,34 @@ export class QueryTranslator {
     const expressionAttributeValues: any = {};
     const expressionAttributeNames: any = {};
     
-    // Partition Key condition
-    keyConditionExpression.push('#pk = :pk');
-    expressionAttributeNames['#pk'] = dbSpecific.partitionKey || 'PK';
-    expressionAttributeValues[':pk'] = dbSpecific.keyCondition.pk;
+    // Use GSI if specified
+    if (dbSpecific.gsiName) {
+      dynamoQuery.IndexName = dbSpecific.gsiName;
+    }
     
-    // Sort Key condition (optional)
-    if (dbSpecific.keyCondition.sk && dbSpecific.sortKey) {
-      keyConditionExpression.push('#sk = :sk');
-      expressionAttributeNames['#sk'] = dbSpecific.sortKey;
-      expressionAttributeValues[':sk'] = dbSpecific.keyCondition.sk;
+    // Build key conditions based on keyCondition object
+    if (dbSpecific.keyCondition) {
+      for (const [field, value] of Object.entries(dbSpecific.keyCondition)) {
+        const namePlaceholder = `#${field}`;
+        const valuePlaceholder = `:${field}`;
+        keyConditionExpression.push(`${namePlaceholder} = ${valuePlaceholder}`);
+        expressionAttributeNames[namePlaceholder] = field;
+        expressionAttributeValues[valuePlaceholder] = value;
+      }
     }
     
     dynamoQuery.KeyConditionExpression = keyConditionExpression.join(' AND ');
     dynamoQuery.ExpressionAttributeNames = expressionAttributeNames;
     dynamoQuery.ExpressionAttributeValues = expressionAttributeValues;
     
-    // Use GSI if specified
-    if (dbSpecific.gsiName) {
-      dynamoQuery.IndexName = dbSpecific.gsiName;
-    }
-    
     // Add filter expressions for additional WHERE conditions
     if (query.where && query.where.length > 0) {
       const filterExpressions: string[] = [];
       
       for (const condition of query.where) {
+        // Skip conditions already handled in key condition
+        if (dbSpecific.keyCondition && dbSpecific.keyCondition[condition.field]) continue;
+        
         const placeholder = `:val${Object.keys(expressionAttributeValues).length}`;
         const namePlaceholder = `#${condition.field}`;
         

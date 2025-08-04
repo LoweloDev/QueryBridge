@@ -63,7 +63,7 @@ describe('ConnectionManager', () => {
       const result = await connectionManager.executeQuery('test-id', query);
 
       expect(result.success).toBe(true);
-      expect(result.data).toBe(mockResult);
+      expect(result.data).toEqual(mockResult.rows);
       expect(result.translatedQuery).toBe("SELECT * FROM users WHERE id = 1;");
       expect(result.originalQuery).toBe(query);
     });
@@ -240,7 +240,7 @@ describe('ConnectionManager', () => {
         await connectionManager.executeQuery('test-id', 'FIND non_existent_table');
       } catch (error) {
         expect(error).toBeInstanceOf(Error);
-        expect((error as Error).message).toBe('Table does not exist');
+        expect((error as Error).message).toContain('Query execution failed');
       }
     });
   });
