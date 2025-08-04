@@ -198,10 +198,18 @@ If you encounter port conflicts or database startup issues:
 ```
 
 **Common Issues:**
-- **MongoDB fork error**: Usually due to permission issues or existing processes. The cleanup script resolves this.
+- **MongoDB WiredTiger corruption**: Automatically repaired or fresh database created. No manual intervention required.
+- **MongoDB fork error**: Port conflicts or permission issues. Cleanup script resolves this.
 - **DynamoDB "Address already in use"**: Port 8000 conflict. Cleanup script kills existing processes.
 - **Redis connection spam**: Previous failed connections. Improved error handling prevents this.
 - **Elasticsearch not starting**: Requires significant memory. May not work in constrained environments.
+
+**MongoDB Repair Process:**
+The MongoDB startup script automatically handles database corruption by:
+1. Attempting normal startup first
+2. Running `--repair` if WiredTiger corruption is detected
+3. Creating a fresh database if repair fails
+4. This ensures out-of-the-box functionality on macOS/Linux systems
 
 ---------------------------------------------------------------------------
 

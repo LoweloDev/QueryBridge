@@ -15,52 +15,108 @@ mkdir -p server/data/mongodb
 
 echo "Starting MongoDB..."
 
-# Check if MongoDB is already running
-if pgrep mongod >/dev/null 2>&1; then
+# Check if MongoDB is already running using multiple detection methods
+# Note: lsof may not be available in all environments
+if pgrep mongod >/dev/null 2>&1 ||
+   ps aux 2>/dev/null | grep -q "[m]ongod"; then
     echo "✅ MongoDB is already running"
     exit 0
 fi
 
-# Check if port 27017 is in use
-if lsof -Pi :27017 -sTCP:LISTEN -t >/dev/null 2>&1; then
-    echo "⚠️  Port 27017 is already in use"
-    pid=$(lsof -ti:27017 2>/dev/null)
-    if [ -n "$pid" ]; then
-        echo "   Killing process $pid on port 27017..."
-        kill -TERM $pid 2>/dev/null
-        sleep 2
+# Secondary check using port if lsof is available
+if command -v lsof >/dev/null 2>&1; then
+    if lsof -Pi :27017 -sTCP:LISTEN -t >/dev/null 2>&1; then
+        echo "✅ MongoDB is already running (port 27017 in use)"
+        exit 0
+    fi
+fi
+
+# Check if port 27017 is in use (only if lsof is available)
+if command -v lsof >/dev/null 2>&1; then
+    if lsof -Pi :27017 -sTCP:LISTEN -t >/dev/null 2>&1; then
+        echo "⚠️  Port 27017 is already in use"
+        pid=$(lsof -ti:27017 2>/dev/null)
+        if [ -n "$pid" ]; then
+            echo "   Killing process $pid on port 27017..."
+            kill -TERM $pid 2>/dev/null
+            sleep 2
+        fi
     fi
 fi
 
 # Set proper permissions on data directory
 chmod 755 server/data/mongodb
 
-# Try to start MongoDB with better error handling
-echo "Launching mongod process..."
-if mongod --dbpath ./server/data/mongodb --port 27017 --bind_ip 127.0.0.1 --logpath ./server/data/mongodb/mongod.log --fork 2>&1; then
-    echo "✅ MongoDB started successfully on port 27017"
-    echo "   Data directory: ./server/data/mongodb"
-    echo "   Log file: ./server/data/mongodb/mongod.log"
+# Function to attempt MongoDB startup with optional repair
+start_mongodb_attempt() {
+    local repair_flag="$1"
+    local attempt_name="$2"
     
-    # Wait a moment and verify it's running
-    sleep 2
-    if pgrep mongod >/dev/null 2>&1; then
-        echo "✅ MongoDB process confirmed running"
-        exit 0
+    echo "Attempting $attempt_name..."
+    
+    if [ "$repair_flag" = "--repair" ]; then
+        # Run repair first, then start normally
+        echo "Running MongoDB repair..."
+        if mongod --dbpath ./server/data/mongodb --repair --quiet 2>/dev/null; then
+            echo "✅ MongoDB repair completed"
+        else
+            echo "⚠️  MongoDB repair had issues, continuing anyway..."
+        fi
+        
+        # Start normally after repair
+        mongod --dbpath ./server/data/mongodb --port 27017 --bind_ip 127.0.0.1 --logpath ./server/data/mongodb/mongod.log --fork --quiet 2>&1
     else
-        echo "❌ MongoDB process failed to start properly"
-        echo "   Check log file: ./server/data/mongodb/mongod.log"
-        exit 1
+        mongod --dbpath ./server/data/mongodb --port 27017 --bind_ip 127.0.0.1 --logpath ./server/data/mongodb/mongod.log --fork --quiet 2>&1
+    fi
+}
+
+# Try multiple startup strategies
+echo "Launching mongod process..."
+
+# Strategy 1: Normal startup
+if start_mongodb_attempt "" "normal startup"; then
+    echo "✅ MongoDB started successfully on port 27017"
+elif grep -q "WiredTiger metadata corruption" ./server/data/mongodb/mongod.log 2>/dev/null; then
+    # Strategy 2: Repair and restart
+    echo "⚠️  WiredTiger corruption detected, attempting repair..."
+    if start_mongodb_attempt "--repair" "repair and restart"; then
+        echo "✅ MongoDB started successfully after repair"
+    else
+        # Strategy 3: Fresh start with clean data directory
+        echo "⚠️  Repair failed, creating fresh data directory..."
+        rm -rf ./server/data/mongodb/*
+        mkdir -p ./server/data/mongodb
+        chmod 755 ./server/data/mongodb
+        
+        if start_mongodb_attempt "" "fresh database startup"; then
+            echo "✅ MongoDB started successfully with fresh database"
+        else
+            echo "❌ All MongoDB startup strategies failed"
+            if [ -f "./server/data/mongodb/mongod.log" ]; then
+                echo "   Last few lines from log:"
+                tail -5 ./server/data/mongodb/mongod.log | sed 's/^/   /'
+            fi
+            exit 1
+        fi
     fi
 else
     echo "❌ MongoDB failed to start"
-    echo "   Check log file: ./server/data/mongodb/mongod.log"
-    
-    # Show the last few lines of the log if it exists
     if [ -f "./server/data/mongodb/mongod.log" ]; then
         echo "   Last few lines from log:"
         tail -5 ./server/data/mongodb/mongod.log | sed 's/^/   /'
     fi
-    
+    exit 1
+fi
+
+# Verify MongoDB is running and accessible
+sleep 3
+if pgrep mongod >/dev/null 2>&1; then
+    echo "✅ MongoDB process confirmed running"
+    echo "   Data directory: ./server/data/mongodb"
+    echo "   Log file: ./server/data/mongodb/mongod.log"
+    echo "   Port: 27017"
+    exit 0
+else
+    echo "❌ MongoDB process failed to start properly"
     exit 1
 fi
