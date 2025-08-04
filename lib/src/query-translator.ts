@@ -763,7 +763,6 @@ export class QueryTranslator {
       }
     }
     
-    dynamoQuery.operation = 'query';
     return this.addProjectionAndLimits(query, dynamoQuery);
   }
   
@@ -794,14 +793,21 @@ export class QueryTranslator {
       expressionAttributeNames['#sk'] = 'SK';
       keyConditions.push('begins_with(#sk, :sk_prefix)');
       expressionAttributeValues[':sk_prefix'] = query.dbSpecific.sort_key_prefix;
-    } else if (entityIdCondition && entityMapping.sortKeyPrefix) {
-      // Intelligent entity ID mapping
+    } else if (entityIdCondition && (entityMapping.sortKeyPrefix || query.dbSpecific?.partition_key)) {
+      // Intelligent entity ID mapping - handle both cases
       expressionAttributeNames['#sk'] = 'SK';
       keyConditions.push('#sk = :sk');
       
       let sortKeyValue = String(entityIdCondition.value);
-      if (!sortKeyValue.startsWith(entityMapping.sortKeyPrefix)) {
-        sortKeyValue = `${entityMapping.sortKeyPrefix}${sortKeyValue}`;
+      let sortPrefix = entityMapping.sortKeyPrefix;
+      
+      // If no sortKeyPrefix from mapping but custom partition provided, infer the prefix
+      if (!sortPrefix && query.dbSpecific?.partition_key) {
+        sortPrefix = `${query.table.toUpperCase().slice(0, -1)}#`; // Remove 's' and add '#'
+      }
+      
+      if (sortPrefix && !sortKeyValue.startsWith(sortPrefix)) {
+        sortKeyValue = `${sortPrefix}${sortKeyValue}`;
       }
       expressionAttributeValues[':sk'] = sortKeyValue;
       
@@ -848,13 +854,11 @@ export class QueryTranslator {
       }
     }
     
-    dynamoQuery.operation = 'query';
     return this.addProjectionAndLimits(query, dynamoQuery);
   }
   
   private static buildTraditionalDynamoQuery(query: QueryLanguage, dynamoQuery: any): object {
     // Fallback to scan operation for traditional queries
-    dynamoQuery.operation = 'scan';
     
     if (query.where && query.where.length > 0) {
       const filterExpressions: string[] = [];

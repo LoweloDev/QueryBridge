@@ -22,7 +22,7 @@ describe('QueryTranslator - DynamoDB', () => {
       
       expect(dynamoQuery).toEqual({
         TableName: 'products',
-        operation: 'query',
+
         KeyConditionExpression: '#pk = :pk AND begins_with(#sk, :sk_prefix)',
         ExpressionAttributeNames: {
           '#pk': 'PK',
@@ -45,7 +45,7 @@ FIELDS name, email, age`);
       
       expect(dynamoQuery).toEqual({
         TableName: 'users',
-        operation: 'query',
+
         KeyConditionExpression: '#pk = :pk AND begins_with(#sk, :sk_prefix)',
         ExpressionAttributeNames: {
           '#pk': 'PK',
@@ -72,7 +72,7 @@ LIMIT 10`);
       
       expect(dynamoQuery).toEqual({
         TableName: 'users',
-        operation: 'query',
+
         KeyConditionExpression: '#pk = :pk AND begins_with(#sk, :sk_prefix)',
         ExpressionAttributeNames: {
           '#pk': 'PK',
@@ -98,7 +98,7 @@ WHERE id = 'user123'`);
       
       expect(dynamoQuery).toEqual({
         TableName: 'users',
-        operation: 'query',
+
         KeyConditionExpression: '#pk = :pk AND #sk = :sk',
         ExpressionAttributeNames: {
           '#pk': 'PK',
@@ -117,7 +117,7 @@ WHERE id = 'user123'`);
       
       expect(dynamoQuery).toEqual({
         TableName: 'orders',
-        operation: 'query',
+
         KeyConditionExpression: '#pk = :pk AND begins_with(#sk, :sk_prefix)',
         ExpressionAttributeNames: {
           '#pk': 'PK',
@@ -141,7 +141,7 @@ DB_SPECIFIC: {"partition_key": "TENANT#456"}`);
       
       expect(dynamoQuery).toEqual({
         TableName: 'users',
-        operation: 'query',
+
         KeyConditionExpression: '#pk = :pk AND #sk = :sk',
         ExpressionAttributeNames: {
           '#pk': 'PK',
@@ -161,7 +161,7 @@ DB_SPECIFIC: {"sort_key_prefix": "PRODUCT#electronics"}`);
       
       expect(dynamoQuery).toEqual({
         TableName: 'products',
-        operation: 'query',
+
         KeyConditionExpression: '#pk = :pk AND begins_with(#sk, :sk_prefix)',
         ExpressionAttributeNames: {
           '#pk': 'PK',
@@ -184,7 +184,7 @@ DB_SPECIFIC: {"dynamodb": {"gsiName": "user-status-index", "keyCondition": {"sta
       
       expect(dynamoQuery).toEqual({
         TableName: 'users',
-        operation: 'query',
+
         IndexName: 'user-status-index',
         KeyConditionExpression: '#status = :status',
         ExpressionAttributeNames: {
@@ -204,7 +204,7 @@ DB_SPECIFIC: {"dynamodb": {"gsiName": "user-status-index", "keyCondition": {"pk"
       
       expect(dynamoQuery).toEqual({
         TableName: 'users',
-        operation: 'query',
+
         IndexName: 'user-status-index',
         KeyConditionExpression: '#pk = :pk',
         FilterExpression: '#status = :val0 AND #age > :val1',
@@ -265,7 +265,7 @@ DB_SPECIFIC: {"partition_key": "USER#12345", "sort_key": "ORDER#67890"}`);
       
       expect(dynamoQuery).toEqual({
         TableName: 'orders',
-        operation: 'query',
+
         KeyConditionExpression: '#pk = :pk AND #sk = :sk',
         ExpressionAttributeNames: {
           '#pk': 'PK',
@@ -283,7 +283,7 @@ DB_SPECIFIC: {"partition_key": "USER#12345", "sort_key": "ORDER#67890"}`);
 WHERE random_field = 'value'`);
       const dynamoQuery = QueryTranslator.toDynamoDB(query);
       
-      expect((dynamoQuery as any).operation).toBe('scan');
+
       expect(dynamoQuery).toHaveProperty('FilterExpression');
     });
 
@@ -324,7 +324,7 @@ WHERE status IN ['active', 'pending', 'verified']`);
 WHERE id = 'user123'`);
       const dynamoQuery = QueryTranslator.toDynamoDB(query);
       
-      expect((dynamoQuery as any).operation).toBe('query');
+
       expect(dynamoQuery).toHaveProperty('KeyConditionExpression');
     });
 
