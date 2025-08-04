@@ -996,6 +996,8 @@ export class QueryTranslator {
       '>': '>',
       '<=': '<=',
       '>=': '>=',
+      'IN': 'IN',
+      'NOT IN': 'NOT IN'
     };
     return mapping[sqlOp] || '=';
   }

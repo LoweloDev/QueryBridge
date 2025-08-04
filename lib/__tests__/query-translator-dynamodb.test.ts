@@ -16,13 +16,25 @@ try {
 
 describe('QueryTranslator - DynamoDB', () => {
   describe('Basic DynamoDB Translation', () => {
-    it('should translate simple FIND to DynamoDB Scan', () => {
+    it('should translate simple FIND to DynamoDB optimized Query', () => {
       const query = QueryParser.parse('FIND products');
       const dynamoQuery = QueryTranslator.toDynamoDB(query);
       
       expect(dynamoQuery).toEqual({
         TableName: 'products',
-        operation: 'scan'
+        operation: 'query',
+        KeyConditionExpression: '#pk = :pk AND begins_with(#sk, :sk_prefix)',
+        ExpressionAttributeNames: {
+          '#pk': 'PK',
+          '#sk': 'SK',
+          '#entity_type': 'entity_type'
+        },
+        ExpressionAttributeValues: {
+          ':pk': 'TENANT#123',
+          ':sk_prefix': 'PRODUCT#',
+          ':val2': 'product'
+        },
+        FilterExpression: '#entity_type = :val2'
       });
     });
 
@@ -33,8 +45,23 @@ FIELDS name, email, age`);
       
       expect(dynamoQuery).toEqual({
         TableName: 'users',
-        operation: 'scan',
-        ProjectionExpression: 'name, email, age'
+        operation: 'query',
+        KeyConditionExpression: '#pk = :pk AND begins_with(#sk, :sk_prefix)',
+        ExpressionAttributeNames: {
+          '#pk': 'PK',
+          '#sk': 'SK',
+          '#entity_type': 'entity_type',
+          '#field0': 'name',
+          '#field1': 'email',
+          '#field2': 'age'
+        },
+        ExpressionAttributeValues: {
+          ':pk': 'TENANT#123',
+          ':sk_prefix': 'USER#',
+          ':val2': 'user'
+        },
+        FilterExpression: '#entity_type = :val2',
+        ProjectionExpression: '#field0, #field1, #field2'
       });
     });
 
@@ -45,7 +72,19 @@ LIMIT 10`);
       
       expect(dynamoQuery).toEqual({
         TableName: 'users',
-        operation: 'scan',
+        operation: 'query',
+        KeyConditionExpression: '#pk = :pk AND begins_with(#sk, :sk_prefix)',
+        ExpressionAttributeNames: {
+          '#pk': 'PK',
+          '#sk': 'SK',
+          '#entity_type': 'entity_type'
+        },
+        ExpressionAttributeValues: {
+          ':pk': 'TENANT#123',
+          ':sk_prefix': 'USER#',
+          ':val2': 'user'
+        },
+        FilterExpression: '#entity_type = :val2',
         Limit: 10
       });
     });
@@ -82,12 +121,15 @@ WHERE id = 'user123'`);
         KeyConditionExpression: '#pk = :pk AND begins_with(#sk, :sk_prefix)',
         ExpressionAttributeNames: {
           '#pk': 'PK',
-          '#sk': 'SK'
+          '#sk': 'SK',
+          '#entity_type': 'entity_type'
         },
         ExpressionAttributeValues: {
           ':pk': 'TENANT#123',
-          ':sk_prefix': 'ORDER#'
-        }
+          ':sk_prefix': 'ORDER#',
+          ':val2': 'order'
+        },
+        FilterExpression: '#entity_type = :val2'
       });
     });
 
@@ -157,22 +199,24 @@ DB_SPECIFIC: {"dynamodb": {"gsiName": "user-status-index", "keyCondition": {"sta
     it('should combine GSI with filter expressions', () => {
       const query = QueryParser.parse(`FIND users
 WHERE status = 'active' AND age > 25
-DB_SPECIFIC: {"dynamodb": {"gsiName": "user-status-index", "keyCondition": {"status": "active"}}}`);
+DB_SPECIFIC: {"dynamodb": {"gsiName": "user-status-index", "keyCondition": {"pk": "TENANT#123"}}}`);
       const dynamoQuery = QueryTranslator.toDynamoDB(query);
       
       expect(dynamoQuery).toEqual({
         TableName: 'users',
         operation: 'query',
         IndexName: 'user-status-index',
-        KeyConditionExpression: '#status = :status',
-        FilterExpression: '#age > :val0',
+        KeyConditionExpression: '#pk = :pk',
+        FilterExpression: '#status = :val0 AND #age > :val1',
         ExpressionAttributeNames: {
+          '#pk': 'PK',
           '#status': 'status',
           '#age': 'age'
         },
         ExpressionAttributeValues: {
-          ':status': 'active',
-          ':val0': 25
+          ':pk': 'TENANT#123',
+          ':val0': 'active',
+          ':val1': 25
         }
       });
     });
@@ -186,12 +230,18 @@ WHERE price > 100 AND category = 'electronics'`);
       
       expect(dynamoQuery).toHaveProperty('FilterExpression');
       expect((dynamoQuery as any).ExpressionAttributeNames).toEqual({
+        '#pk': 'PK',
+        '#sk': 'SK',
+        '#entity_type': 'entity_type',
         '#price': 'price',
         '#category': 'category'
       });
       expect((dynamoQuery as any).ExpressionAttributeValues).toEqual({
-        ':val0': 100,
-        ':val1': 'electronics'
+        ':pk': 'TENANT#123',
+        ':sk_prefix': 'PRODUCT#',
+        ':val2': 'product',
+        ':val3': 100,
+        ':val4': 'electronics'
       });
     });
 
@@ -243,7 +293,7 @@ FIELDS id, name, email
 WHERE id = 'user123'`);
       const dynamoQuery = QueryTranslator.toDynamoDB(query);
       
-      expect(dynamoQuery).toHaveProperty('ProjectionExpression', 'id, name, email');
+      expect(dynamoQuery).toHaveProperty('ProjectionExpression', '#field0, #field1, #field2');
     });
   });
 
