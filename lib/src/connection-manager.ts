@@ -56,7 +56,7 @@ export class ConnectionManager {
         translatedQuery = QueryTranslator.toElasticsearch(parsedQuery);
         break;
       case 'dynamodb':
-        translatedQuery = QueryTranslator.toDynamoDB(parsedQuery);
+        translatedQuery = QueryTranslator.toDynamoDB(parsedQuery, connection.config.dynamodb);
         break;
       case 'redis':
         translatedQuery = QueryTranslator.toRedis(parsedQuery);
@@ -97,8 +97,15 @@ export class ConnectionManager {
   /**
    * Translate a query without executing it
    */
-  translateQuery(queryString: string, targetType: DatabaseType): string | object {
+  translateQuery(queryString: string, targetType: DatabaseType, connectionId?: string): string | object {
     const parsedQuery = QueryParser.parse(queryString);
+    
+    // Get schema configuration for DynamoDB if connection ID is provided
+    let schemaConfig;
+    if (targetType === 'dynamodb' && connectionId) {
+      const connectionConfig = this.connectionConfigs.get(connectionId);
+      schemaConfig = connectionConfig?.dynamodb;
+    }
     
     switch (targetType) {
       case 'postgresql':
@@ -108,7 +115,7 @@ export class ConnectionManager {
       case 'elasticsearch':
         return QueryTranslator.toElasticsearch(parsedQuery);
       case 'dynamodb':
-        return QueryTranslator.toDynamoDB(parsedQuery);
+        return QueryTranslator.toDynamoDB(parsedQuery, schemaConfig);
       case 'redis':
         return QueryTranslator.toRedis(parsedQuery);
       default:

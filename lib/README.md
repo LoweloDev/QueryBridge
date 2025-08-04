@@ -174,6 +174,48 @@ console.log(translated);
 // Output: { query: { bool: { must: [{ match: { title: "search term" } }] } } }
 ```
 
+### DynamoDB Translation with Schema Configuration
+
+The library supports flexible DynamoDB schema configuration to work with both traditional table designs and single-table designs.
+
+```javascript
+// Register DynamoDB connection with custom schema
+connectionManager.registerConnection('my-dynamo', dynamoClient, {
+  id: 'my-dynamo',
+  name: 'My DynamoDB Table',
+  type: 'dynamodb',
+  host: 'localhost',
+  port: 8000,
+  database: 'users',
+  // Custom schema configuration
+  dynamodb: {
+    partitionKey: 'userId',     // Custom partition key name (instead of 'PK')
+    sortKey: 'timestamp',       // Custom sort key name (instead of 'SK')
+    globalSecondaryIndexes: [   // Optional GSI configuration
+      {
+        name: 'status-index',
+        partitionKey: 'status',
+        sortKey: 'createdAt'
+      }
+    ]
+  }
+});
+
+// Traditional table query using configured key names
+const query1 = `FIND users WHERE id = "user-123"`;
+// Translates to: { KeyConditionExpression: '#id = :id', ExpressionAttributeNames: { '#id': 'userId' } }
+
+// Single-table design with DB_SPECIFIC syntax
+const query2 = `FIND orders DB_SPECIFIC: partition_key="USER#123", sort_key_prefix="ORDER#"`;
+// Translates to use configured partitionKey and sortKey names
+```
+
+#### Schema Configuration Benefits:
+- **Flexible Key Names**: Use any field names for partition/sort keys (not limited to PK/SK)
+- **Traditional Tables**: Works with standard DynamoDB table designs
+- **Single-Table Design**: Full support via DB_SPECIFIC syntax
+- **Backward Compatibility**: Falls back to PK/SK when no configuration provided
+
 ## API Reference
 
 ### ConnectionManager
@@ -216,13 +258,15 @@ const results = await connectionManager.executeQuery('my-db', 'FIND users LIMIT 
 
 **Returns:** `Promise<QueryResult>`
 
-##### `translateQuery(query, targetType)`
+##### `translateQuery(query, targetType, connectionId?)`
 
 Translate a universal query to database-specific format without execution.
 
 ```javascript
 const sqlQuery = connectionManager.translateQuery('FIND users', 'postgresql');
 const mongoQuery = connectionManager.translateQuery('FIND users', 'mongodb');
+// For DynamoDB with schema configuration
+const dynamoQuery = connectionManager.translateQuery('FIND users', 'dynamodb', 'my-dynamo-connection');
 ```
 
 **Parameters:**

@@ -597,7 +597,7 @@ export class QueryTranslator {
     return esQuery;
   }
   
-  static toDynamoDB(query: QueryLanguage): object {
+  static toDynamoDB(query: QueryLanguage, schemaConfig?: { partitionKey?: string; sortKey?: string; globalSecondaryIndexes?: Array<{ name: string; partitionKey: string; sortKey?: string; }>; }): object {
     if (query.operation !== 'FIND') {
       return { TableName: query.table };
     }
@@ -608,7 +608,7 @@ export class QueryTranslator {
 
     // Handle DB_SPECIFIC for advanced DynamoDB features
     if (query.dbSpecific?.partition_key || query.dbSpecific?.sort_key) {
-      return this.buildDBSpecificDynamoQuery(query, dynamoQuery);
+      return this.buildDBSpecificDynamoQuery(query, dynamoQuery, schemaConfig);
     }
 
     // Check if this is a primary key query (efficient Query operation)
@@ -618,33 +618,37 @@ export class QueryTranslator {
 
     if (primaryKeyCondition) {
       // Use Query operation for primary key lookups
-      return this.buildDynamoQueryOperation(query, dynamoQuery, primaryKeyCondition);
+      return this.buildDynamoQueryOperation(query, dynamoQuery, primaryKeyCondition, schemaConfig);
     }
 
     // Default to Scan operation with filters
     return this.buildDynamoScanOperation(query, dynamoQuery);
   }
   
-  private static buildDBSpecificDynamoQuery(query: QueryLanguage, dynamoQuery: any): object {
+  private static buildDBSpecificDynamoQuery(query: QueryLanguage, dynamoQuery: any, schemaConfig?: { partitionKey?: string; sortKey?: string; globalSecondaryIndexes?: Array<{ name: string; partitionKey: string; sortKey?: string; }>; }): object {
     // Handle explicit DB_SPECIFIC parameters for single-table design
     const expressionAttributeNames: any = {};
     const expressionAttributeValues: any = {};
     const keyConditions: string[] = [];
 
+    // Get actual key names from schema config or default to 'PK'/'SK'  
+    const partitionKeyName = schemaConfig?.partitionKey || 'PK';
+    const sortKeyName = schemaConfig?.sortKey || 'SK';
+
     // Handle partition key
     if (query.dbSpecific!.partition_key) {
-      expressionAttributeNames['#pk'] = 'PK';
+      expressionAttributeNames['#pk'] = partitionKeyName;
       keyConditions.push('#pk = :pk');
       expressionAttributeValues[':pk'] = query.dbSpecific!.partition_key;
     }
 
     // Handle sort key
     if (query.dbSpecific!.sort_key) {
-      expressionAttributeNames['#sk'] = 'SK';
+      expressionAttributeNames['#sk'] = sortKeyName;
       keyConditions.push('#sk = :sk');
       expressionAttributeValues[':sk'] = query.dbSpecific!.sort_key;
     } else if (query.dbSpecific!.sort_key_prefix) {
-      expressionAttributeNames['#sk'] = 'SK';
+      expressionAttributeNames['#sk'] = sortKeyName;
       keyConditions.push('begins_with(#sk, :sk_prefix)');
       expressionAttributeValues[':sk_prefix'] = query.dbSpecific!.sort_key_prefix;
     }
@@ -662,14 +666,15 @@ export class QueryTranslator {
     return this.addDynamoProjectionAndLimits(query, dynamoQuery);
   }
   
-  private static buildDynamoQueryOperation(query: QueryLanguage, dynamoQuery: any, primaryKeyCondition: any): object {
+  private static buildDynamoQueryOperation(query: QueryLanguage, dynamoQuery: any, primaryKeyCondition: any, schemaConfig?: { partitionKey?: string; sortKey?: string; globalSecondaryIndexes?: Array<{ name: string; partitionKey: string; sortKey?: string; }>; }): object {
     // Use Query operation for efficient primary key lookups
     const expressionAttributeNames: any = {};
     const expressionAttributeValues: any = {};
 
-    // Set up primary key condition
+    // Set up primary key condition using actual key name from schema
     const keyFieldName = primaryKeyCondition.field;
-    expressionAttributeNames[`#${keyFieldName}`] = keyFieldName;
+    const actualKeyName = schemaConfig?.partitionKey || keyFieldName;
+    expressionAttributeNames[`#${keyFieldName}`] = actualKeyName;
     expressionAttributeValues[`:${keyFieldName}`] = primaryKeyCondition.value;
     dynamoQuery.KeyConditionExpression = `#${keyFieldName} = :${keyFieldName}`;
 

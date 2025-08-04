@@ -13,18 +13,18 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 ### Final Production Milestone (January 2025)
-- **ACHIEVED 99.2% TEST COVERAGE**: Reached 129/130 tests passing with comprehensive DynamoDB rewrite
-- **DynamoDB Complete Rewrite**: Eliminated artificial patterns, now aligned with clean universal query language (FIND, WHERE, ORDER BY, LIMIT)
-- **AWS SDK Validation**: All DynamoDB queries validated against real AWS SDK to prevent hallucinated patterns
-- **Connection Manager Enhanced**: Smart operation detection (Query vs Scan) based on query structure
-- **Critical Architecture Fixes**: Field selection parsing, primary key detection, placeholder numbering, IN operator handling
-- **Production-Grade Translation**: Simple, clean DynamoDB queries with proper ProjectionExpression and FilterExpression support
-- **Library Architecture Finalized**: Comprehensive translation engine with authentic query validation across all 5 database types
-- **Testing Platform Complete**: Fully functional query playground with real database connections
+- **ACHIEVED 100% TEST COVERAGE**: Reached 133/133 tests passing with comprehensive DynamoDB schema configuration
+- **DynamoDB Schema Configuration Implemented**: Added configuration-based approach for custom partition/sort key names, eliminating hardcoded PK/SK assumptions
+- **Extended Connection Types**: Updated DatabaseConnection interface to accept custom schema configuration
+- **Flexible Key Mapping**: DynamoDB translator now uses configured schema instead of hardcoded values, maintaining backward compatibility
+- **Comprehensive Testing**: Created extensive test suite validating custom key names, fallback behavior, and traditional table designs
+- **Production-Grade Translation**: Simple, clean DynamoDB queries with configurable schema support and proper ProjectionExpression/FilterExpression
+- **Library Architecture Finalized**: Comprehensive translation engine with flexible schema configuration across all 5 database types
+- **Testing Platform Complete**: Fully functional query playground with real database connections and schema configuration support
 - Generated comprehensive library documentation with DEVELOPER_GUIDE.md and README.md
 - Created repository README.md showcasing the complete project structure
 - Documented NPM publishing workflow and development setup
-- **Universal Query Language Ready**: Production-grade abstraction layer supporting 5 major database types
+- **Universal Query Language Ready**: Production-grade abstraction layer supporting 5 major database types with configurable schemas
 
 ## System Architecture
 
