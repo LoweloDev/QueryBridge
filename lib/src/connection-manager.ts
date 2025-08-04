@@ -228,22 +228,11 @@ export class ConnectionManager {
           
           switch (operation) {
             case 'query':
-              if (client.query) {
-                dynamoResult = await client.query(dynamoQuery);
-              } else {
-                // Mock client simulation
-                dynamoResult = { Items: [] };
-              }
+              dynamoResult = await client.query(dynamoQuery);
               break;
               
             case 'scan':
-              if (client.scan) {
-                dynamoResult = await client.scan(dynamoQuery);  
-              } else {
-                // Mock client simulation with promise support
-                dynamoResult = client.scan && client.scan(dynamoQuery).promise ? 
-                  await client.scan(dynamoQuery).promise() : { Items: [] };
-              }
+              dynamoResult = await client.scan(dynamoQuery);
               break;
               
             default:
