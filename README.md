@@ -200,8 +200,9 @@ If you encounter port conflicts or database startup issues:
 **Common Issues:**
 - **MongoDB WiredTiger corruption**: Automatically repaired or fresh database created. No manual intervention required.
 - **MongoDB fork error**: Port conflicts or permission issues. Cleanup script resolves this.
+- **Redis Stack configuration errors**: Automatic fallback to basic Redis if Redis Stack fails. Creates proper data directories.
+- **Redis "No such file or directory"**: Fixed by using absolute paths and creating data directories before startup.
 - **DynamoDB "Address already in use"**: Port 8000 conflict. Cleanup script kills existing processes.
-- **Redis connection spam**: Previous failed connections. Improved error handling prevents this.
 - **Elasticsearch not starting**: Requires significant memory. May not work in constrained environments.
 
 **MongoDB Repair Process:**
