@@ -942,7 +942,29 @@ export class QueryTranslator {
       }
     }
     
-    // Default to SCAN operation
+    // Check if query has complex features that require Redis Search
+    const hasComplexFeatures = (
+      (query.where && query.where.length > 1) ||  // Multiple conditions
+      (query.where && query.where.some(w => w.operator !== '=' && w.operator !== 'IN')) ||  // Non-equality operators
+      (query.where && query.where.some(w => w.operator === 'IN')) ||  // IN operations
+      query.orderBy ||  // Sorting
+      query.aggregate   // Aggregations
+    );
+
+    if (hasComplexFeatures) {
+      // Auto-enable Redis Search for complex queries
+      return {
+        operation: 'FT.SEARCH',
+        index: `${query.table}_idx`,
+        query: this.buildRedisSearchQuery(query),
+        limit: { offset: query.offset || 0, num: query.limit || 10 },
+        sortBy: query.orderBy ? { field: query.orderBy[0].field, direction: query.orderBy[0].direction } : undefined,
+        aggregations: query.aggregate ? this.buildRedisAggregations(query.aggregate) : undefined,
+        note: 'This query requires RediSearch module. Ensure index exists: FT.CREATE ' + query.table + '_idx'
+      };
+    }
+
+    // Default to SCAN operation for simple queries
     return {
       operation: 'SCAN',
       pattern: `${query.table}:*`,
@@ -1056,6 +1078,152 @@ export class QueryTranslator {
     }
     
     return searchQuery;
+  }
+
+  private static buildRedisSearchQuery(query: QueryLanguage): string {
+    if (!query.where || query.where.length === 0) {
+      return '*';
+    }
+
+    const queryParts = [];
+    
+    // Handle range queries specially - combine >= and <= for same field
+    const conditions = [...query.where];
+    const rangeMap = new Map<string, { min?: any, max?: any }>();
+    const nonRangeConditions = [];
+
+    for (const condition of conditions) {
+      if ((condition.operator === '>=' || condition.operator === '>') && 
+          conditions.some(c => c.field === condition.field && (c.operator === '<=' || c.operator === '<'))) {
+        // This is part of a range query
+        if (!rangeMap.has(condition.field)) {
+          rangeMap.set(condition.field, {});
+        }
+        const range = rangeMap.get(condition.field)!;
+        range.min = condition.value;
+      } else if ((condition.operator === '<=' || condition.operator === '<') &&
+                 conditions.some(c => c.field === condition.field && (c.operator === '>=' || c.operator === '>'))) {
+        // This is part of a range query
+        if (!rangeMap.has(condition.field)) {
+          rangeMap.set(condition.field, {});
+        }
+        const range = rangeMap.get(condition.field)!;
+        range.max = condition.value;
+      } else {
+        nonRangeConditions.push(condition);
+      }
+    }
+
+    // Handle range queries
+    for (const [field, range] of rangeMap.entries()) {
+      if (range.min !== undefined && range.max !== undefined) {
+        queryParts.push(`@${field}:[${range.min} ${range.max}]`);
+      } else if (range.min !== undefined) {
+        queryParts.push(`@${field}:[${range.min} +inf]`);
+      } else if (range.max !== undefined) {
+        queryParts.push(`@${field}:[-inf ${range.max}]`);
+      }
+    }
+
+    // Handle non-range conditions
+    for (const condition of nonRangeConditions) {
+      if (rangeMap.has(condition.field)) continue; // Skip - already handled as range
+      
+      switch (condition.operator) {
+        case '=':
+          queryParts.push(`@${condition.field}:{${condition.value}}`);
+          break;
+        case '!=':
+          queryParts.push(`-@${condition.field}:{${condition.value}}`);
+          break;
+        case '>':
+          queryParts.push(`@${condition.field}:[${condition.value} +inf]`);
+          break;
+        case '<':
+          queryParts.push(`@${condition.field}:[-inf ${condition.value}]`);
+          break;
+        case '>=':
+          queryParts.push(`@${condition.field}:[${condition.value} +inf]`);
+          break;
+        case '<=':
+          queryParts.push(`@${condition.field}:[-inf ${condition.value}]`);
+          break;
+        case 'IN':
+          let values = condition.value;
+          if (typeof values === 'string') {
+            const cleanValue = values.replace(/[\[\]]/g, '').trim();
+            if (cleanValue) {
+              values = cleanValue.split(',').map(v => v.trim().replace(/['"]/g, ''));
+            } else {
+              values = [];
+            }
+          }
+          if (Array.isArray(values)) {
+            const inQuery = values.map(v => `@${condition.field}:{${v}}`).join('|');
+            queryParts.push(`(${inQuery})`);
+          }
+          break;
+        case 'LIKE':
+          const likePattern = condition.value.replace(/%/g, '*');
+          queryParts.push(`@${condition.field}:${likePattern}`);
+          break;
+        case 'ILIKE':
+          const ilikePattern = condition.value.replace(/%/g, '*');
+          queryParts.push(`@${condition.field}:${ilikePattern}`);
+          break;
+      }
+    }
+
+    return queryParts.join(' ');
+  }
+
+  private static buildRedisAggregations(aggregations: any[]): any[] {
+    return aggregations.map(agg => {
+      switch (agg.function) {
+        case 'COUNT':
+          return {
+            operation: 'REDUCE',
+            function: 'COUNT',
+            field: agg.field,
+            alias: agg.alias || 'count'
+          };
+        case 'SUM':
+          return {
+            operation: 'REDUCE',
+            function: 'SUM',
+            field: agg.field,
+            alias: agg.alias || 'sum'
+          };
+        case 'AVG':
+          return {
+            operation: 'REDUCE',
+            function: 'AVG',
+            field: agg.field,
+            alias: agg.alias || 'avg'
+          };
+        case 'MIN':
+          return {
+            operation: 'REDUCE',
+            function: 'MIN',
+            field: agg.field,
+            alias: agg.alias || 'min'
+          };
+        case 'MAX':
+          return {
+            operation: 'REDUCE',
+            function: 'MAX',
+            field: agg.field,
+            alias: agg.alias || 'max'
+          };
+        default:
+          return {
+            operation: 'REDUCE',
+            function: 'COUNT',
+            field: agg.field,
+            alias: agg.alias || 'count'
+          };
+      }
+    });
   }
   
   private static toRedisGraph(query: QueryLanguage, graphName?: string): object {
