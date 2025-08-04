@@ -316,6 +316,96 @@ ORDER BY created_at DESC`,
   "ScanIndexForward": false
 }`
         },
+        singleTableDefault: {
+          universal: `// Single Table Design - Default PK/SK (fallback)
+FIND users
+DB_SPECIFIC {
+  partition_key: "USER#123",
+  sort_key: "PROFILE"
+}`,
+          native: `// DynamoDB Translation (Default Keys)
+{
+  "TableName": "users",
+  "KeyConditionExpression": "#pk = :pk AND #sk = :sk",
+  "ExpressionAttributeNames": {
+    "#pk": "PK",
+    "#sk": "SK"
+  },
+  "ExpressionAttributeValues": {
+    ":pk": "USER#123",
+    ":sk": "PROFILE"
+  }
+}`
+        },
+        singleTableConfigured: {
+          universal: `// Single Table Design - Custom Key Names
+// Connection Configuration:
+// { partitionKey: "partition_key", sortKey: "sort_key" }
+
+FIND orders
+DB_SPECIFIC {
+  partition_key: "CUSTOMER#456",
+  sort_key: "ORDER#789"
+}`,
+          native: `// DynamoDB Translation (Custom Key Names)
+{
+  "TableName": "orders",
+  "KeyConditionExpression": "#pk = :pk AND #sk = :sk",
+  "ExpressionAttributeNames": {
+    "#pk": "partition_key",
+    "#sk": "sort_key"
+  },
+  "ExpressionAttributeValues": {
+    ":pk": "CUSTOMER#456",
+    ":sk": "ORDER#789"
+  }
+}`
+        },
+        singleTablePrefix: {
+          universal: `// Single Table Design - Sort Key Prefix
+FIND items
+DB_SPECIFIC {
+  partition_key: "STORE#789",
+  sort_key_prefix: "PRODUCT#"
+}`,
+          native: `// DynamoDB Translation (Sort Key Prefix)
+{
+  "TableName": "items",
+  "KeyConditionExpression": "#pk = :pk AND begins_with(#sk, :sk_prefix)",
+  "ExpressionAttributeNames": {
+    "#pk": "PK",
+    "#sk": "SK"
+  },
+  "ExpressionAttributeValues": {
+    ":pk": "STORE#789",
+    ":sk_prefix": "PRODUCT#"
+  }
+}`
+        },
+        connectionConfig: {
+          universal: `// Connection Registration Example
+import { QueryTranslator } from 'universal-query-translator';
+
+// Register DynamoDB with custom schema
+QueryTranslator.registerConnection('my-dynamodb', dynamoClient, {
+  partitionKey: 'entity_id',
+  sortKey: 'entity_type',
+  globalSecondaryIndexes: [
+    { 
+      name: 'StatusIndex', 
+      partitionKey: 'status', 
+      sortKey: 'created_at' 
+    }
+  ]
+});`,
+          native: `// Usage with Registered Configuration
+const result = QueryTranslator.translate(
+  'FIND entities DB_SPECIFIC { partition_key: "USER#123" }',
+  'my-dynamodb'
+);
+
+// Produces query using 'entity_id' instead of 'PK'`
+        },
         limitations: {
           universal: `// ❌ THESE WILL THROW ERRORS:
 
