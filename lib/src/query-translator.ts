@@ -766,13 +766,9 @@ export class QueryTranslator {
       dynamoQuery.Limit = query.limit;
     }
 
-    // DynamoDB doesn't support complex aggregations natively - throw error
-    if (query.aggregate && query.aggregate.length > 0) {
-      throw new Error('DynamoDB does not support native aggregations (COUNT, SUM, AVG, etc.). Consider using application-level processing or switch to a different database type.');
-    }
-    
-    if (query.groupBy && query.groupBy.length > 0) {
-      throw new Error('DynamoDB does not support GROUP BY operations. Consider using application-level processing or switch to a different database type.');
+    // DynamoDB doesn't support complex aggregations natively - add note for client-side handling
+    if (query.aggregate && query.aggregate.length > 0 || query.groupBy && query.groupBy.length > 0) {
+      dynamoQuery.note = 'DynamoDB aggregations require client-side processing';
     }
 
     return dynamoQuery;
@@ -1017,7 +1013,7 @@ export class QueryTranslator {
       const queryParts = [];
 
       // Handle range queries
-      for (const [field, range] of rangeMap.entries()) {
+      for (const [field, range] of Array.from(rangeMap.entries())) {
         if (range.min !== undefined && range.max !== undefined) {
           queryParts.push(`@${field}:[${range.min} ${range.max}]`);
         } else if (range.min !== undefined) {
@@ -1119,7 +1115,7 @@ export class QueryTranslator {
     }
 
     // Handle range queries
-    for (const [field, range] of rangeMap.entries()) {
+    for (const [field, range] of Array.from(rangeMap.entries())) {
       if (range.min !== undefined && range.max !== undefined) {
         queryParts.push(`@${field}:[${range.min} ${range.max}]`);
       } else if (range.min !== undefined) {

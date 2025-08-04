@@ -106,33 +106,85 @@ echo "🧪 Testing Elasticsearch installation..."
 ELASTICSEARCH_VERSION=$(server/elasticsearch/bin/elasticsearch --version 2>/dev/null | head -1 || echo "Version check failed")
 echo "✅ $ELASTICSEARCH_VERSION"
 
+# Setup MongoDB (MongoDB Community Server)
+echo ""
+echo "🔍 Setting up MongoDB..."
+
+if command -v mongod &> /dev/null; then
+    echo "✅ MongoDB already installed: $(mongod --version | head -1)"
+else
+    if [ "$(uname)" == "Darwin" ]; then
+        echo "📦 Installing MongoDB via Homebrew (macOS)..."
+        if command -v brew &> /dev/null; then
+            brew tap mongodb/brew
+            brew install mongodb-community
+            echo "✅ MongoDB Community Server installed"
+        else
+            echo "⚠️  Homebrew not found. Please install MongoDB manually from: https://docs.mongodb.com/manual/installation/"
+        fi
+    elif [ -f /etc/debian_version ]; then
+        echo "📦 Installing MongoDB (Debian/Ubuntu)..."
+        curl -fsSL https://pgp.mongodb.com/server-6.0.asc | sudo gpg -o /usr/share/keyrings/mongodb-server-6.0.gpg --dearmor
+        echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-6.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
+        sudo apt-get update
+        sudo apt-get install -y mongodb-org
+        echo "✅ MongoDB Community Server installed"
+    elif [ -f /etc/redhat-release ]; then
+        echo "📦 Installing MongoDB (Red Hat/CentOS)..."
+        sudo tee /etc/yum.repos.d/mongodb-org-6.0.repo <<EOF
+[mongodb-org-6.0]
+name=MongoDB Repository
+baseurl=https://repo.mongodb.org/yum/redhat/8/mongodb-org/6.0/x86_64/
+gpgcheck=1
+enabled=1
+gpgkey=https://pgp.mongodb.com/server-6.0.asc
+EOF
+        sudo yum install -y mongodb-org
+        echo "✅ MongoDB Community Server installed"
+    else
+        echo "⚠️  Automated MongoDB installation not supported for this OS."
+        echo "   Please install MongoDB manually from: https://docs.mongodb.com/manual/installation/"
+    fi
+fi
+
 # Setup Redis Stack (includes RediSearch, RedisJSON, RedisGraph)
 echo ""
 echo "🔍 Setting up Redis Stack..."
 
-# Check if running in supported environment for Redis Stack
-if [ "$(uname)" == "Darwin" ]; then
-    echo "📦 Installing Redis Stack via Homebrew (macOS)..."
-    if command -v brew &> /dev/null; then
-        if ! brew list redis-stack &> /dev/null; then
-            brew tap redis-stack/redis-stack
-            brew install redis-stack
-        else
-            echo "✅ Redis Stack already installed"
-        fi
+if command -v redis-server &> /dev/null; then
+    echo "✅ Redis already installed: $(redis-server --version | head -1)"
+    # Check if it's Redis Stack with modules
+    if redis-server --help 2>&1 | grep -q "RediSearch\|RedisJSON\|RedisGraph"; then
+        echo "✅ Redis Stack modules detected"
     else
-        echo "⚠️  Homebrew not found. Please install Redis Stack manually from: https://redis.io/download"
+        echo "⚠️  Redis found but may not include Stack modules (RediSearch, RedisJSON, RedisGraph)"
+        echo "   Consider upgrading to Redis Stack for full functionality"
     fi
-elif [ -f /etc/debian_version ]; then
-    echo "📦 Adding Redis Stack repository (Debian/Ubuntu)..."
-    curl -fsSL https://packages.redis.io/gpg | sudo gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
-    echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/redis.list
-    sudo apt-get update
-    sudo apt-get install -y redis-stack-server
 else
-    echo "⚠️  Automated Redis Stack installation not supported for this OS."
-    echo "   Please install Redis Stack manually from: https://redis.io/download"
-    echo "   This provides RediSearch, RedisJSON, and RedisGraph modules."
+    # Check if running in supported environment for Redis Stack
+    if [ "$(uname)" == "Darwin" ]; then
+        echo "📦 Installing Redis Stack via Homebrew (macOS)..."
+        if command -v brew &> /dev/null; then
+            if ! brew list redis-stack &> /dev/null; then
+                brew tap redis-stack/redis-stack
+                brew install redis-stack
+            else
+                echo "✅ Redis Stack already installed"
+            fi
+        else
+            echo "⚠️  Homebrew not found. Please install Redis Stack manually from: https://redis.io/download"
+        fi
+    elif [ -f /etc/debian_version ]; then
+        echo "📦 Adding Redis Stack repository (Debian/Ubuntu)..."
+        curl -fsSL https://packages.redis.io/gpg | sudo gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
+        echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/redis.list
+        sudo apt-get update
+        sudo apt-get install -y redis-stack-server
+    else
+        echo "⚠️  Automated Redis Stack installation not supported for this OS."
+        echo "   Please install Redis Stack manually from: https://redis.io/download"
+        echo "   This provides RediSearch, RedisJSON, and RedisGraph modules."
+    fi
 fi
 
 # Show final status
@@ -141,10 +193,12 @@ echo "🎉 Installation Complete!"
 echo "========================="
 echo ""
 echo "📊 Setup Summary:"
-echo "  ✅ Node.js $(node --version) installed via nvm"
-echo "  ✅ Java $(java -version 2>&1 | head -1) installed via brew"
+echo "  ✅ Node.js $(node --version) installed"
+echo "  ✅ Java $(java -version 2>&1 | head -1 | awk -F'"' '{print $2}') installed"
+echo "  ✅ MongoDB installation checked/attempted"
+echo "  ✅ Redis Stack installation checked/attempted"
 echo "  ✅ Elasticsearch 8.15.0 installed"
-echo "  ✅ Redis Stack installation attempted"
+echo "  ✅ DynamoDB Local available via npm package"
 echo "  ✅ Database data directories created"
 echo "  ✅ Startup scripts configured"
 echo ""

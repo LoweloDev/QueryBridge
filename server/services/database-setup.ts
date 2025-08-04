@@ -154,7 +154,6 @@ export class DatabaseSetup {
       const client = new Redis({
         host: config.host,
         port: config.port,
-        retryDelayOnFailover: 100,
         maxRetriesPerRequest: 1,
       });
 
