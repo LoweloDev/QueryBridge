@@ -156,16 +156,98 @@ export class ConnectionManager {
           };
 
         case 'mongodb':
-          // MongoDB execution logic would go here
-          throw new Error('MongoDB execution not implemented');
+          // Execute MongoDB query
+          const mongoQuery = query as any;
+          let mongoResult: any;
+          
+          if (mongoQuery.operation === 'find') {
+            const cursor = client.collection(mongoQuery.collection).find(mongoQuery.filter || {});
+            if (mongoQuery.sort) cursor.sort(mongoQuery.sort);
+            if (mongoQuery.limit) cursor.limit(mongoQuery.limit);
+            if (mongoQuery.skip) cursor.skip(mongoQuery.skip);
+            if (mongoQuery.projection) cursor.project(mongoQuery.projection);
+            
+            mongoResult = await cursor.toArray();
+          } else if (mongoQuery.operation === 'aggregate') {
+            mongoResult = await client.collection(mongoQuery.collection).aggregate(mongoQuery.pipeline).toArray();
+          } else if (mongoQuery.operation === 'findOne') {
+            mongoResult = await client.collection(mongoQuery.collection).findOne(mongoQuery.filter || {}, { projection: mongoQuery.projection });
+            mongoResult = mongoResult ? [mongoResult] : [];
+          } else {
+            throw new Error(`Unsupported MongoDB operation: ${mongoQuery.operation}`);
+          }
+          
+          return {
+            rows: mongoResult,
+            count: mongoResult.length,
+            data: mongoResult
+          };
 
         case 'elasticsearch':
-          // Elasticsearch execution logic would go here
-          throw new Error('Elasticsearch execution not implemented');
+          // Execute Elasticsearch query
+          const esQuery = query as any;
+          let esResult: any;
+          
+          if (esQuery.body) {
+            // Standard search query
+            esResult = await client.search({
+              index: esQuery.index,
+              body: esQuery.body
+            });
+            
+            return {
+              rows: esResult.hits?.hits?.map((hit: any) => ({ _id: hit._id, ...hit._source })) || [],
+              count: esResult.hits?.total?.value || 0,
+              data: esResult.hits?.hits?.map((hit: any) => ({ _id: hit._id, ...hit._source })) || []
+            };
+          } else {
+            throw new Error('Invalid Elasticsearch query format');
+          };
 
         case 'dynamodb':
-          // DynamoDB execution logic would go here
-          throw new Error('DynamoDB execution not implemented');
+          // Execute DynamoDB query based on operation type
+          const dynamoQuery = query as any;
+          const operation = dynamoQuery.operation;
+          
+          // Remove operation field before passing to DynamoDB client
+          const { operation: _, ...dynamoParams } = dynamoQuery;
+          
+          let dynamoResult: any;
+          
+          switch (operation) {
+            case 'query':
+              dynamoResult = await client.query(dynamoParams);
+              break;
+              
+            case 'scan':
+              dynamoResult = await client.scan(dynamoParams);
+              break;
+              
+            case 'getItem':
+              dynamoResult = await client.getItem(dynamoParams);
+              break;
+              
+            case 'putItem':
+              dynamoResult = await client.putItem(dynamoParams);
+              break;
+              
+            case 'updateItem':
+              dynamoResult = await client.updateItem(dynamoParams);
+              break;
+              
+            case 'deleteItem':
+              dynamoResult = await client.deleteItem(dynamoParams);
+              break;
+              
+            default:
+              throw new Error(`Unsupported DynamoDB operation: ${operation}`);
+          }
+          
+          return {
+            rows: dynamoResult.Items || (dynamoResult.Item ? [dynamoResult.Item] : []),
+            count: dynamoResult.Count || (dynamoResult.Item ? 1 : 0),
+            data: dynamoResult.Items || (dynamoResult.Item ? [dynamoResult.Item] : [])
+          };
 
         case 'redis':
           // Execute Redis query based on operation type

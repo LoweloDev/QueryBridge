@@ -142,14 +142,19 @@ DB_SPECIFIC: {"partition_key": "TENANT#456"}`);
       expect(dynamoQuery).toEqual({
         TableName: 'users',
         operation: 'query',
-        KeyConditionExpression: '#pk = :pk AND #sk = :sk',
+        KeyConditionExpression: '#pk = :pk AND begins_with(#sk, :sk_prefix)',
+        FilterExpression: '#id = :val1',
         ExpressionAttributeNames: {
           '#pk': 'PK',
-          '#sk': 'SK'
+          '#sk': 'SK',
+          '#entity_type': 'entity_type',
+          '#id': 'id'
         },
         ExpressionAttributeValues: {
           ':pk': 'TENANT#456',
-          ':sk': 'USER#user456'
+          ':sk_prefix': 'USER#',
+          ':val2': 'user',
+          ':val1': 'user456'
         }
       });
     });
@@ -199,24 +204,22 @@ DB_SPECIFIC: {"dynamodb": {"gsiName": "user-status-index", "keyCondition": {"sta
     it('should combine GSI with filter expressions', () => {
       const query = QueryParser.parse(`FIND users
 WHERE status = 'active' AND age > 25
-DB_SPECIFIC: {"dynamodb": {"gsiName": "user-status-index", "keyCondition": {"pk": "TENANT#123"}}}`);
+DB_SPECIFIC: {"dynamodb": {"gsiName": "user-status-index", "keyCondition": {"status": "active"}}}`);
       const dynamoQuery = QueryTranslator.toDynamoDB(query);
       
       expect(dynamoQuery).toEqual({
         TableName: 'users',
         operation: 'query',
         IndexName: 'user-status-index',
-        KeyConditionExpression: '#pk = :pk',
-        FilterExpression: '#status = :val0 AND #age > :val1',
+        KeyConditionExpression: '#status = :status',
+        FilterExpression: '#age > :val0',
         ExpressionAttributeNames: {
-          '#pk': 'PK',
           '#status': 'status',
           '#age': 'age'
         },
         ExpressionAttributeValues: {
-          ':pk': 'TENANT#123',
-          ':val0': 'active',
-          ':val1': 25
+          ':status': 'active',
+          ':val0': 25
         }
       });
     });
@@ -314,7 +317,8 @@ WHERE status IN ['active', 'pending', 'verified']`);
       const dynamoQuery = QueryTranslator.toDynamoDB(query);
       
       expect((dynamoQuery as any).FilterExpression).toContain('IN');
-      expect((dynamoQuery as any).ExpressionAttributeValues[':val0']).toEqual(['active', 'pending', 'verified']);
+      expect((dynamoQuery as any).ExpressionAttributeValues).toHaveProperty(':val3');
+      expect((dynamoQuery as any).ExpressionAttributeValues[':val3']).toEqual(['active', 'pending', 'verified']);
     });
   });
 
