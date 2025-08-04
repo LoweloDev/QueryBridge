@@ -407,7 +407,13 @@ export class QueryParser {
         const cleanValue = value.replace(/^["']|["']$/g, ''); // Remove quotes
         
         // Handle DynamoDB patterns
-        if (cleanKey.includes('partition_key') || cleanKey.includes('pk')) {
+        if (cleanKey === 'partition_key_attribute') {
+          // Inline attribute name override
+          dbSpecific.partition_key_attribute = cleanValue;
+        } else if (cleanKey === 'sort_key_attribute') {
+          // Inline attribute name override
+          dbSpecific.sort_key_attribute = cleanValue;
+        } else if (cleanKey.includes('partition_key') || cleanKey.includes('pk')) {
           // Support both legacy format and new structured format
           dbSpecific.partition_key = cleanValue; // Legacy format
           if (!dbSpecific.dynamodb) dbSpecific.dynamodb = {};

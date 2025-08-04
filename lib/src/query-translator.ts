@@ -607,7 +607,8 @@ export class QueryTranslator {
     };
 
     // Handle DB_SPECIFIC for advanced DynamoDB features
-    if (query.dbSpecific?.partition_key || query.dbSpecific?.sort_key) {
+    if (query.dbSpecific?.partition_key || query.dbSpecific?.sort_key || 
+        query.dbSpecific?.partition_key_attribute || query.dbSpecific?.sort_key_attribute) {
       return this.buildDBSpecificDynamoQuery(query, dynamoQuery, schemaConfig);
     }
 
@@ -631,9 +632,9 @@ export class QueryTranslator {
     const expressionAttributeValues: any = {};
     const keyConditions: string[] = [];
 
-    // Get actual key names from schema config or default to 'PK'/'SK'  
-    const partitionKeyName = schemaConfig?.partitionKey || 'PK';
-    const sortKeyName = schemaConfig?.sortKey || 'SK';
+    // Get actual key names - inline attributes override schema config, fall back to defaults
+    const partitionKeyName = query.dbSpecific!.partition_key_attribute || schemaConfig?.partitionKey || 'PK';
+    const sortKeyName = query.dbSpecific!.sort_key_attribute || schemaConfig?.sortKey || 'SK';
 
     // Handle partition key
     if (query.dbSpecific!.partition_key) {

@@ -355,6 +355,26 @@ DB_SPECIFIC: partition_key="CUSTOMER#456", sort_key="ORDER#789"`,
   }
 }`
         },
+        inlineAttributes: {
+          universal: `// Single Table Design - Inline Attribute Override
+// Overrides connection config with inline attribute names
+
+FIND entities
+DB_SPECIFIC: partition_key="ENTITY#123", sort_key="META#456", partition_key_attribute="entity_id", sort_key_attribute="entity_type"`,
+          native: `// DynamoDB Translation (Inline Attributes)
+{
+  "TableName": "entities",
+  "KeyConditionExpression": "#pk = :pk AND #sk = :sk",
+  "ExpressionAttributeNames": {
+    "#pk": "entity_id",
+    "#sk": "entity_type"
+  },
+  "ExpressionAttributeValues": {
+    ":pk": "ENTITY#123",
+    ":sk": "META#456"
+  }
+}`
+        },
         singleTablePrefix: {
           universal: `// Single Table Design - Sort Key Prefix
 FIND items
