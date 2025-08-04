@@ -362,9 +362,7 @@ export class QueryTranslator {
   static toElasticsearch(query: QueryLanguage): object {
     const esQuery: any = {
       index: query.table,
-      body: {
-        query: { bool: { must: [] } }
-      }
+      body: {}
     };
     
     if (query.operation === 'FIND') {
@@ -429,11 +427,34 @@ export class QueryTranslator {
       }
       // Standard WHERE conditions (no joins)
       else if (query.where && query.where.length > 0) {
+        const mustConditions: any[] = [];
+        const mustNotConditions: any[] = [];
+        
         for (const condition of query.where) {
           const esCondition = this.sqlToESCondition(condition);
           if (esCondition) {
-            esQuery.body.query.bool.must.push(esCondition);
+            // Handle NOT conditions separately
+            if (condition.operator === '!=' || condition.operator === 'NOT IN') {
+              mustNotConditions.push(esCondition);
+            } else {
+              mustConditions.push(esCondition);
+            }
           }
+        }
+        
+        // Build query structure based on what conditions we have
+        if (mustConditions.length > 0 || mustNotConditions.length > 0) {
+          const boolQuery: any = { bool: {} };
+          
+          if (mustConditions.length > 0) {
+            boolQuery.bool.must = mustConditions;
+          }
+          
+          if (mustNotConditions.length > 0) {
+            boolQuery.bool.must_not = mustNotConditions;
+          }
+          
+          esQuery.body.query = boolQuery;
         }
       } else {
         // Default to match_all if no conditions
@@ -444,13 +465,14 @@ export class QueryTranslator {
       if (query.aggregate && query.aggregate.length > 0) {
         esQuery.body.aggs = {};
         
-        if (query.groupBy) {
+        if (query.groupBy && query.groupBy.length > 0) {
           const groupField = query.groupBy[0];
+          const groupName = `${groupField}_group`;
           
           // Check if grouping on nested field
           if (groupField.includes('.')) {
             const [nestedPath, nestedField] = groupField.split('.', 2);
-            esQuery.aggs.nested_group = {
+            esQuery.body.aggs[groupName] = {
               nested: { path: nestedPath },
               aggs: {
                 group_by: {
@@ -462,30 +484,40 @@ export class QueryTranslator {
             
             for (const agg of query.aggregate) {
               const esAggFunc = this.sqlToESAggregateFunction(agg.function);
-              esQuery.aggs.nested_group.aggs.group_by.aggs[agg.alias || agg.field] = {
+              const aggName = agg.alias || `${agg.function.toLowerCase()}_${agg.field}`;
+              esQuery.body.aggs[groupName].aggs.group_by.aggs[aggName] = {
                 [esAggFunc]: { field: agg.field }
               };
             }
           } else {
-            esQuery.body.aggs.group_by = {
+            esQuery.body.aggs[groupName] = {
               terms: { field: groupField },
               aggs: {},
             };
             
             for (const agg of query.aggregate) {
               const esAggFunc = this.sqlToESAggregateFunction(agg.function);
-              esQuery.body.aggs.group_by.aggs[agg.alias || agg.field] = {
+              const aggName = agg.alias || `${agg.function.toLowerCase()}_${agg.field}`;
+              esQuery.body.aggs[groupName].aggs[aggName] = {
                 [esAggFunc]: { field: agg.field },
               };
             }
           }
+          
+          // Set size to 0 for aggregation-only queries
+          esQuery.body.size = 0;
         } else {
+          // Global aggregations without grouping
           for (const agg of query.aggregate) {
             const esAggFunc = this.sqlToESAggregateFunction(agg.function);
-            esQuery.body.aggs[agg.alias || agg.field] = {
+            const aggName = agg.alias || `${agg.function.toLowerCase()}_${agg.field}`;
+            esQuery.body.aggs[aggName] = {
               [esAggFunc]: { field: agg.field },
             };
           }
+          
+          // Set size to 0 for aggregation-only queries
+          esQuery.body.size = 0;
         }
       }
       
@@ -508,6 +540,57 @@ export class QueryTranslator {
       // Add source filtering for field selection
       if (query.fields && query.fields.length > 0) {
         esQuery.body._source = query.fields;
+      }
+      
+      // Add Elasticsearch-specific features
+      if (esSpecific) {
+        // Add boost scoring
+        if (esSpecific.boost && esQuery.body.query.bool?.must) {
+          for (const mustCondition of esQuery.body.query.bool.must) {
+            if (mustCondition.match) {
+              const fieldName = Object.keys(mustCondition.match)[0];
+              if (esSpecific.boost[fieldName]) {
+                if (typeof mustCondition.match[fieldName] === 'string') {
+                  mustCondition.match[fieldName] = {
+                    query: mustCondition.match[fieldName],
+                    boost: esSpecific.boost[fieldName]
+                  };
+                } else {
+                  mustCondition.match[fieldName].boost = esSpecific.boost[fieldName];
+                }
+              }
+            }
+          }
+        }
+        
+        // Add fuzzy matching
+        if (esSpecific.fuzzy && esQuery.body.query.bool?.must) {
+          for (let i = 0; i < esQuery.body.query.bool.must.length; i++) {
+            const mustCondition = esQuery.body.query.bool.must[i];
+            if (mustCondition.match) {
+              const fieldName = Object.keys(mustCondition.match)[0];
+              if (esSpecific.fuzzy[fieldName]) {
+                const value = typeof mustCondition.match[fieldName] === 'string' 
+                  ? mustCondition.match[fieldName] 
+                  : mustCondition.match[fieldName].query;
+                
+                esQuery.body.query.bool.must[i] = {
+                  fuzzy: {
+                    [fieldName]: {
+                      value: value,
+                      ...esSpecific.fuzzy[fieldName]
+                    }
+                  }
+                };
+              }
+            }
+          }
+        }
+        
+        // Add highlighting
+        if (esSpecific.highlight) {
+          esQuery.body.highlight = esSpecific.highlight;
+        }
       }
     }
     
@@ -850,17 +933,26 @@ export class QueryTranslator {
   
   private static sqlToESCondition(condition: any): object | null {
     const field = condition.field;
-    const value = condition.value;
+    let value = condition.value;
+    
+    // Process array values for IN operations
+    if (condition.operator === 'IN' || condition.operator === 'NOT IN') {
+      if (typeof value === 'string') {
+        value = this.processInValues(value);
+      } else if (!Array.isArray(value)) {
+        value = [value];
+      }
+    }
     
     switch (condition.operator) {
       case '=':
         return { term: { [field]: value } };
       case '!=':
-        return { bool: { must_not: [{ term: { [field]: value } }] } };
+        return { term: { [field]: value } }; // Will be handled by must_not in parent
       case 'IN':
-        return { terms: { [field]: Array.isArray(value) ? value : [value] } };
+        return { terms: { [field]: value } };
       case 'NOT IN':
-        return { bool: { must_not: [{ terms: { [field]: Array.isArray(value) ? value : [value] } }] } };
+        return { terms: { [field]: value } }; // Will be handled by must_not in parent
       case '>':
         return { range: { [field]: { gt: value } } };
       case '<':
@@ -870,24 +962,31 @@ export class QueryTranslator {
       case '<=':
         return { range: { [field]: { lte: value } } };
       case 'LIKE':
-        return { match: { [field]: value.replace('%', '*') } };
+        // Convert SQL LIKE patterns to Elasticsearch patterns
+        const likePattern = value.replace(/%/g, '*');
+        return { match: { [field]: likePattern } };
       case 'ILIKE':
-        return { match: { [field]: { query: value.replace('%', '*'), case_insensitive: true } } };
+        // Case-insensitive LIKE
+        const ilikePattern = value.replace(/%/g, '*');
+        return { match: { [field]: { query: ilikePattern, case_insensitive: true } } };
       default:
         return null;
     }
   }
-  
-  private static sqlToESAggregateFunction(sqlFunc: string): string {
+
+  private static sqlToESAggregateFunction(sqlFunction: string): string {
     const mapping: Record<string, string> = {
       'COUNT': 'value_count',
       'SUM': 'sum',
       'AVG': 'avg',
       'MIN': 'min',
-      'MAX': 'max',
+      'MAX': 'max'
     };
-    return mapping[sqlFunc] || 'value_count';
+    
+    return mapping[sqlFunction] || 'value_count';
   }
+  
+
   
   private static sqlToDynamoOperator(sqlOp: string): string {
     const mapping: Record<string, string> = {
