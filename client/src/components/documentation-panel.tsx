@@ -318,11 +318,9 @@ ORDER BY created_at DESC`,
         },
         singleTableDefault: {
           universal: `// Single Table Design - Default PK/SK (fallback)
+// No configuration needed - uses default PK/SK when schema not configured
 FIND users
-DB_SPECIFIC {
-  partition_key: "USER#123",
-  sort_key: "PROFILE"
-}`,
+DB_SPECIFIC: partition_key="USER#123", sort_key="PROFILE"`,
           native: `// DynamoDB Translation (Default Keys)
 {
   "TableName": "users",
@@ -339,21 +337,17 @@ DB_SPECIFIC {
         },
         singleTableConfigured: {
           universal: `// Single Table Design - Custom Key Names
-// Connection Configuration:
-// { partitionKey: "partition_key", sortKey: "sort_key" }
+// Connection registered with: { partitionKey: "userId", sortKey: "timestamp" }
 
 FIND orders
-DB_SPECIFIC {
-  partition_key: "CUSTOMER#456",
-  sort_key: "ORDER#789"
-}`,
+DB_SPECIFIC: partition_key="CUSTOMER#456", sort_key="ORDER#789"`,
           native: `// DynamoDB Translation (Custom Key Names)
 {
   "TableName": "orders",
   "KeyConditionExpression": "#pk = :pk AND #sk = :sk",
   "ExpressionAttributeNames": {
-    "#pk": "partition_key",
-    "#sk": "sort_key"
+    "#pk": "userId",
+    "#sk": "timestamp"
   },
   "ExpressionAttributeValues": {
     ":pk": "CUSTOMER#456",
@@ -364,10 +358,7 @@ DB_SPECIFIC {
         singleTablePrefix: {
           universal: `// Single Table Design - Sort Key Prefix
 FIND items
-DB_SPECIFIC {
-  partition_key: "STORE#789",
-  sort_key_prefix: "PRODUCT#"
-}`,
+DB_SPECIFIC: partition_key="STORE#789", sort_key_prefix="PRODUCT#"`,
           native: `// DynamoDB Translation (Sort Key Prefix)
 {
   "TableName": "items",
@@ -400,7 +391,7 @@ QueryTranslator.registerConnection('my-dynamodb', dynamoClient, {
 });`,
           native: `// Usage with Registered Configuration
 const result = QueryTranslator.translate(
-  'FIND entities DB_SPECIFIC { partition_key: "USER#123" }',
+  'FIND entities DB_SPECIFIC: partition_key="USER#123"',
   'my-dynamodb'
 );
 
