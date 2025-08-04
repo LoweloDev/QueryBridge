@@ -10,7 +10,7 @@ import { MongoClient } from 'mongodb';
 import { Client as ElasticsearchClient } from '@elastic/elasticsearch';
 import { DynamoDBClient, ListTablesCommand } from '@aws-sdk/client-dynamodb';
 import Redis from 'ioredis';
-import type { DatabaseConnection, ActiveConnection } from "../../lib/src/types";
+import type { DatabaseConnection, ActiveConnection } from "universal-query-translator";
 
 import ws from 'ws';
 neonConfig.webSocketConstructor = ws;

@@ -4,7 +4,7 @@ import { setupVite, serveStatic, log } from "./vite";
 // Storage removed - using library directly
 // Note: RealDatabaseManager and localDatabaseConfig removed - using simplified ConnectionManager
 // Import from the published npm package
-import { ConnectionManager, QueryParser, QueryTranslator } from '../lib/src/index.js';
+import { ConnectionManager, QueryParser, QueryTranslator } from 'universal-query-translator';
 import { DatabaseSetup } from "./services/database-setup";
 
 const app = express();

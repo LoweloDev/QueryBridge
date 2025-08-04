@@ -2,7 +2,7 @@ import type { Request, Response } from "express";
 import type { Express } from "express";
 // Storage removed - using library directly
 // Import from the local lib directory to use our latest improvements
-import { ConnectionManager, QueryTranslator } from '../lib/src/index.js';
+import { ConnectionManager, QueryTranslator } from 'universal-query-translator';
 
 /**
  * Clean API routes that use the library as intended:
