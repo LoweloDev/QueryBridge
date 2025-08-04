@@ -49,12 +49,52 @@ export class DatabaseSetup {
       },
       {
         id: 'dynamodb-users',
-        name: 'DynamoDB - Users',
+        name: 'DynamoDB - Users (Traditional Schema)',
         type: 'dynamodb',
         host: 'localhost',
         port: 8000,
         database: 'users',
-        region: 'us-east-1'
+        region: 'us-east-1',
+        // Traditional table schema configuration
+        dynamodb: {
+          partitionKey: 'userId',
+          sortKey: 'createdAt'
+        }
+      },
+      {
+        id: 'dynamodb-single-table',
+        name: 'DynamoDB - Single Table Design',
+        type: 'dynamodb',
+        host: 'localhost',
+        port: 8000,
+        database: 'app_data',
+        region: 'us-east-1',
+        // Single-table design schema configuration
+        dynamodb: {
+          partitionKey: 'PK',
+          sortKey: 'SK',
+          globalSecondaryIndexes: [
+            {
+              name: 'GSI1',
+              partitionKey: 'GSI1PK',
+              sortKey: 'GSI1SK'
+            }
+          ]
+        }
+      },
+      {
+        id: 'dynamodb-custom-schema',
+        name: 'DynamoDB - Custom Schema',
+        type: 'dynamodb',
+        host: 'localhost',
+        port: 8000,
+        database: 'orders',
+        region: 'us-east-1',
+        // Custom schema configuration
+        dynamodb: {
+          partitionKey: 'customPartitionKey',
+          sortKey: 'customSortKey'
+        }
       },
       {
         id: 'elasticsearch-postgresql',
@@ -154,7 +194,6 @@ export class DatabaseSetup {
       const client = new Redis({
         host: config.host,
         port: config.port,
-        retryDelayOnFailover: 100,
         maxRetriesPerRequest: 1,
       });
 
