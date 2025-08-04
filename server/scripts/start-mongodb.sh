@@ -15,29 +15,25 @@ mkdir -p server/data/mongodb
 
 echo "Starting MongoDB..."
 
-# Check if MongoDB is already running using multiple detection methods
-# Note: lsof may not be available in all environments
-if pgrep mongod >/dev/null 2>&1 ||
-   ps aux 2>/dev/null | grep -q "[m]ongod"; then
-    echo "✅ MongoDB is already running"
-    exit 0
-fi
-
-# Secondary check using port if lsof is available
-if command -v lsof >/dev/null 2>&1; then
-    if lsof -Pi :27017 -sTCP:LISTEN -t >/dev/null 2>&1; then
-        echo "✅ MongoDB is already running (port 27017 in use)"
+# Check if MongoDB is actually running and accessible
+if pgrep mongod >/dev/null 2>&1; then
+    # Process exists, but verify it's actually accessible
+    if mongosh --eval "db.adminCommand('ping')" --quiet >/dev/null 2>&1; then
+        echo "✅ MongoDB is already running and accessible"
         exit 0
+    else
+        echo "⚠️  MongoDB process found but not responding, restarting..."
+        pkill mongod 2>/dev/null || true
+        sleep 3
     fi
 fi
 
-# Check if port 27017 is in use (only if lsof is available)
+# Kill any lingering processes on port 27017
 if command -v lsof >/dev/null 2>&1; then
     if lsof -Pi :27017 -sTCP:LISTEN -t >/dev/null 2>&1; then
-        echo "⚠️  Port 27017 is already in use"
+        echo "Cleaning up port 27017..."
         pid=$(lsof -ti:27017 2>/dev/null)
         if [ -n "$pid" ]; then
-            echo "   Killing process $pid on port 27017..."
             kill -TERM $pid 2>/dev/null
             sleep 2
         fi
@@ -109,14 +105,26 @@ else
 fi
 
 # Verify MongoDB is running and accessible
+echo "Verifying MongoDB startup..."
 sleep 3
-if pgrep mongod >/dev/null 2>&1; then
-    echo "✅ MongoDB process confirmed running"
-    echo "   Data directory: ./server/data/mongodb"
-    echo "   Log file: ./server/data/mongodb/mongod.log"
-    echo "   Port: 27017"
-    exit 0
-else
-    echo "❌ MongoDB process failed to start properly"
-    exit 1
+
+for i in {1..10}; do
+    if pgrep mongod >/dev/null 2>&1; then
+        # Process exists, test connectivity
+        if mongosh --eval "db.adminCommand('ping')" --quiet >/dev/null 2>&1; then
+            echo "✅ MongoDB is running and accessible"
+            echo "   Data directory: ./server/data/mongodb"
+            echo "   Port: 27017"
+            exit 0
+        fi
+    fi
+    echo "Waiting for MongoDB... ($i/10)"
+    sleep 2
+done
+
+echo "❌ MongoDB failed to start or become accessible"
+if [ -f "./server/data/mongodb/mongod.log" ]; then
+    echo "Last few lines from log:"
+    tail -5 ./server/data/mongodb/mongod.log | sed 's/^/   /'
 fi
+exit 1
