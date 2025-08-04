@@ -124,13 +124,39 @@ echo "✅ Node.js dependencies installed"
 
 # Check and install PostgreSQL
 print_step "5" "Checking PostgreSQL"
-if command_exists psql; then
+if command_exists psql && command_exists pg_ctl; then
     PSQL_VERSION=$(psql --version | head -1)
     echo "✅ PostgreSQL found: $PSQL_VERSION"
 else
-    echo "⚠️  PostgreSQL not found locally (using Neon for production)"
-    echo "Local PostgreSQL not required but recommended for development"
+    echo "📦 Installing PostgreSQL..."
+    if [ "$OS" = "macOS" ]; then
+        if command_exists brew; then
+            brew install postgresql@15
+            # Add PostgreSQL to PATH
+            echo 'export PATH="/opt/homebrew/opt/postgresql@15/bin:$PATH"' >> ~/.zshrc
+            echo 'export PATH="/opt/homebrew/opt/postgresql@15/bin:$PATH"' >> ~/.bash_profile
+            # Initialize database if not exists
+            if [ ! -d "/opt/homebrew/var/postgresql@15" ]; then
+                initdb -D /opt/homebrew/var/postgresql@15
+            fi
+            echo "✅ PostgreSQL installed via Homebrew"
+        else
+            echo "❌ Homebrew not found. Please install Homebrew first."
+            exit 1
+        fi
+    elif [ "$OS" = "Linux" ]; then
+        sudo apt-get update
+        sudo apt-get install -y postgresql postgresql-contrib
+        sudo systemctl enable postgresql
+        sudo systemctl start postgresql
+        echo "✅ PostgreSQL installed via package manager"
+    fi
 fi
+
+# Create PostgreSQL data directory
+PG_DATA_DIR="$(pwd)/server/data/postgresql"
+mkdir -p "$PG_DATA_DIR"
+echo "✅ PostgreSQL data directory created: $PG_DATA_DIR"
 
 # Check and install MongoDB
 print_step "6" "Installing MongoDB"

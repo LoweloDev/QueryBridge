@@ -122,6 +122,7 @@ start_database_service() {
 }
 
 # Start each database service
+start_database_service "PostgreSQL" "./server/scripts/start-postgresql.sh" "postgres"
 start_database_service "MongoDB" "./server/scripts/start-mongodb.sh" "mongod"
 start_database_service "Redis" "./server/scripts/start-redis.sh" "redis-server" 
 start_database_service "DynamoDB Local" "./server/scripts/start-dynamodb.sh" "-f DynamoDBLocal"
@@ -173,6 +174,7 @@ echo ""
 echo "⏳ Verifying Database Connectivity..."
 echo "====================================="
 
+check_service "PostgreSQL" 5432
 check_service "MongoDB" 27017
 check_service "Redis" 6379  
 check_service "DynamoDB Local" 8000
@@ -183,7 +185,7 @@ check_service "Elasticsearch DynamoDB" 9201
 echo ""
 echo "📊 Database Status Summary:"
 echo "============================"
-echo "PostgreSQL: ✅ (Using Neon serverless)"
+echo "PostgreSQL: $(pgrep postgres >/dev/null 2>&1 && echo "✅ Running locally" || echo "⚠️  Using Neon (remote)")"
 echo "MongoDB: $(pgrep mongod >/dev/null 2>&1 && echo "✅ Running" || echo "❌ Not running")"
 echo "Redis: $(pgrep redis-server >/dev/null 2>&1 && echo "✅ Running" || echo "❌ Not running")"
 echo "DynamoDB: $(pgrep -f DynamoDBLocal >/dev/null 2>&1 && echo "✅ Running" || echo "❌ Not running")"
@@ -197,7 +199,7 @@ echo "================================================="
 echo "Starting development server on http://localhost:5000"
 echo ""
 echo "Available database connections:"
-echo "  - PostgreSQL: Production (Neon)"
+echo "  - PostgreSQL: localhost:5432 (local) or DATABASE_URL (remote)"
 echo "  - MongoDB: localhost:27017 (analytics)"
 echo "  - Redis: localhost:6379 (cache)"  
 echo "  - DynamoDB: localhost:8000 (users)"

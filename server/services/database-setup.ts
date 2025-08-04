@@ -108,29 +108,40 @@ export class DatabaseSetup {
 
   private async setupPostgreSQL(config: DatabaseConnection): Promise<void> {
     try {
+      let pool: Pool;
+      
       // Check if DATABASE_URL is provided (production/Replit environment)
       if (process.env.DATABASE_URL) {
-        const pool = new Pool({
+        pool = new Pool({
           connectionString: process.env.DATABASE_URL,
         });
-
-        // Test the connection
-        const client = await pool.connect();
-        await client.query('SELECT 1');
-        client.release();
-
-        this.connections.set(config.id, {
-          client: pool,
-          config,
-          isConnected: true,
-          lastUsed: new Date()
-        });
-
-        console.log(`Successfully connected to PostgreSQL: ${config.name}`);
       } else {
-        // Local development without DATABASE_URL
-        throw new Error(`No database host or connection string was set, and key parameters have default values (host: ${config.host || 'localhost'}, user: ${process.env.USER || 'unknown'}, db: ${config.database || process.env.USER || 'unknown'}, password: null). Is an environment variable missing? Alternatively, if you intended to connect with these parameters, please set the host to 'localhost' explicitly.`);
+        // Local development setup
+        const connectionConfig = {
+          host: config.host || 'localhost',
+          port: config.port || 5432,
+          user: config.username || process.env.USER || 'postgres',
+          database: config.database || 'querybridge_dev',
+          // For local development, we often don't need a password
+          ...(config.password && { password: config.password })
+        };
+        
+        pool = new Pool(connectionConfig);
       }
+
+      // Test the connection
+      const client = await pool.connect();
+      await client.query('SELECT 1');
+      client.release();
+
+      this.connections.set(config.id, {
+        client: pool,
+        config,
+        isConnected: true,
+        lastUsed: new Date()
+      });
+
+      console.log(`Successfully connected to PostgreSQL: ${config.name}`);
     } catch (error: any) {
       throw new Error(`PostgreSQL connection failed: ${error.message}`);
     }
