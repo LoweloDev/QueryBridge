@@ -159,7 +159,9 @@ npm install universal-query-translator
 For testing and validating query translations:
 
 ```bash
-# With automatic database setup
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your database credentials (especially DATABASE_URL for PostgreSQL)
 
 # Install dependencies
 ./install.sh
@@ -168,7 +170,10 @@ For testing and validating query translations:
 ./start-dev.sh
 ```
 
-> **Note**: The `start-dev.sh` script automatically builds and installs the local npm package so the testing platform can import from `universal-query-translator`. This ensures the platform always uses the latest library code.
+> **Note**: The `start-dev.sh` script automatically:
+> - Builds and installs the local npm package so the testing platform imports from `universal-query-translator`
+> - Checks if databases are already running to avoid conflicts
+> - Uses proper host bindings for different operating systems (localhost on macOS, 0.0.0.0 on Linux)
 
 ---------------------------------------------------------------------------
 

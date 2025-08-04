@@ -59,6 +59,14 @@ fi
 
 echo "✅ System requirements met"
 
+# Check for environment file
+if [ ! -f .env ]; then
+    echo ""
+    echo "⚠️  No .env file found. For full functionality, copy .env.example to .env and configure your database connections."
+    echo "   PostgreSQL via DATABASE_URL is recommended for production features."
+    echo ""
+fi
+
 # Build and install the local npm package
 echo ""
 echo "📦 Building and Installing Local NPM Package..."
@@ -87,7 +95,9 @@ echo "=================================="
 
 # 1. Start MongoDB
 echo "Starting MongoDB..."
-if ./server/scripts/start-mongodb.sh; then
+if pgrep mongod >/dev/null 2>&1; then
+    echo "✅ MongoDB already running"
+elif ./server/scripts/start-mongodb.sh; then
     echo "✅ MongoDB startup initiated"
 else
     echo "⚠️  MongoDB startup failed (will use fallback in app)"
@@ -96,7 +106,9 @@ fi
 # 2. Start Redis
 echo ""
 echo "Starting Redis..."
-if ./server/scripts/start-redis.sh; then
+if pgrep redis-server >/dev/null 2>&1; then
+    echo "✅ Redis already running"
+elif ./server/scripts/start-redis.sh; then
     echo "✅ Redis startup initiated"
 else
     echo "⚠️  Redis startup failed (will use fallback in app)"
@@ -105,7 +117,9 @@ fi
 # 3. Start DynamoDB
 echo ""
 echo "Starting DynamoDB Local..."
-if ./server/scripts/start-dynamodb.sh; then
+if pgrep -f DynamoDBLocal >/dev/null 2>&1; then
+    echo "✅ DynamoDB already running"
+elif ./server/scripts/start-dynamodb.sh; then
     echo "✅ DynamoDB startup initiated"
 else
     echo "⚠️  DynamoDB startup failed (will use fallback in app)"
@@ -114,7 +128,15 @@ fi
 # 4. Start Elasticsearch
 echo ""
 echo "Starting Elasticsearch (dual configuration)..."
-if ./server/scripts/start-elasticsearch.sh; then
+if curl -s http://localhost:9200/_cluster/health >/dev/null 2>&1; then
+    echo "✅ Elasticsearch already running on port 9200"
+    if curl -s http://localhost:9201/_cluster/health >/dev/null 2>&1; then
+        echo "✅ Elasticsearch already running on port 9201"
+    else
+        echo "⚠️  Starting Elasticsearch on port 9201..."
+        ./server/scripts/start-elasticsearch.sh
+    fi
+elif ./server/scripts/start-elasticsearch.sh; then
     echo "✅ Elasticsearch startup initiated"
 else
     echo "⚠️  Elasticsearch startup failed (will use fallback in app)"

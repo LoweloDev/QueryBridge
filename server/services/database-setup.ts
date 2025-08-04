@@ -108,23 +108,29 @@ export class DatabaseSetup {
 
   private async setupPostgreSQL(config: DatabaseConnection): Promise<void> {
     try {
-      const pool = new Pool({
-        connectionString: process.env.DATABASE_URL,
-      });
+      // Check if DATABASE_URL is provided (production/Replit environment)
+      if (process.env.DATABASE_URL) {
+        const pool = new Pool({
+          connectionString: process.env.DATABASE_URL,
+        });
 
-      // Test the connection
-      const client = await pool.connect();
-      await client.query('SELECT 1');
-      client.release();
+        // Test the connection
+        const client = await pool.connect();
+        await client.query('SELECT 1');
+        client.release();
 
-      this.connections.set(config.id, {
-        client: pool,
-        config,
-        isConnected: true,
-        lastUsed: new Date()
-      });
+        this.connections.set(config.id, {
+          client: pool,
+          config,
+          isConnected: true,
+          lastUsed: new Date()
+        });
 
-      console.log(`Successfully connected to PostgreSQL: ${config.name}`);
+        console.log(`Successfully connected to PostgreSQL: ${config.name}`);
+      } else {
+        // Local development without DATABASE_URL
+        throw new Error(`No database host or connection string was set, and key parameters have default values (host: ${config.host || 'localhost'}, user: ${process.env.USER || 'unknown'}, db: ${config.database || process.env.USER || 'unknown'}, password: null). Is an environment variable missing? Alternatively, if you intended to connect with these parameters, please set the host to 'localhost' explicitly.`);
+      }
     } catch (error: any) {
       throw new Error(`PostgreSQL connection failed: ${error.message}`);
     }
@@ -155,8 +161,17 @@ export class DatabaseSetup {
         host: config.host,
         port: config.port,
         maxRetriesPerRequest: 1,
+        enableReadyCheck: false,
+        lazyConnect: true,
       });
 
+      // Add error handler to prevent unhandled errors
+      client.on('error', (err) => {
+        console.warn(`Redis client error: ${err.message}`);
+      });
+
+      // Connect and test
+      await client.connect();
       await client.ping();
 
       this.connections.set(config.id, {
@@ -168,6 +183,7 @@ export class DatabaseSetup {
 
       console.log(`Successfully connected to Redis: ${config.name}`);
     } catch (error: any) {
+      // Don't create client if connection fails to avoid continuous error events
       throw new Error(`Redis connection failed: ${error.message}`);
     }
   }
