@@ -34,17 +34,33 @@ fi
 
 echo "Redis version: $(redis-server --version | head -1)"
 
-# Start Redis server in daemon mode with absolute paths for configuration
-echo "Starting Redis with data directory: $REDIS_DATA_DIR"
-$REDIS_CMD --daemonize yes \
-    --port 6379 \
-    --bind 127.0.0.1 \
-    --dir "$REDIS_DATA_DIR" \
-    --save 60 1000 \
-    --appendonly yes \
-    --appendfilename "appendonly.aof" \
-    --maxmemory 100mb \
-    --maxmemory-policy allkeys-lru
+# Handle paths with spaces by creating a proper configuration file
+REDIS_CONF="$REDIS_DATA_DIR/redis.conf"
+echo "Creating Redis configuration: $REDIS_CONF"
+
+cat > "$REDIS_CONF" << EOF
+port 6379
+bind 127.0.0.1
+daemonize yes
+dir "$REDIS_DATA_DIR"
+save 60 1000
+appendonly yes
+appendfilename appendonly.aof
+maxmemory 100mb
+maxmemory-policy allkeys-lru
+logfile "$REDIS_DATA_DIR/redis.log"
+EOF
+
+# Start Redis server using configuration file to handle paths with spaces
+echo "Starting Redis with configuration file to handle paths with spaces"
+if [ "$REDIS_CMD" = "redis-stack-server" ]; then
+    echo "Using Redis Stack configuration approach..."
+    # Redis Stack needs special handling for modules
+    redis-stack-server "$REDIS_CONF"
+else
+    echo "Using standard Redis configuration..."
+    redis-server "$REDIS_CONF"
+fi
 
 if [ $? -eq 0 ]; then
     echo "✅ Redis server startup initiated on port 6379"
@@ -55,33 +71,19 @@ else
     echo "Attempting alternative startup method..."
     
     if [ "$REDIS_CMD" = "redis-stack-server" ]; then
-        # Create a temporary Redis configuration file to avoid path issues
-        TEMP_CONF="$REDIS_DATA_DIR/redis-temp.conf"
-        echo "Creating temporary Redis configuration: $TEMP_CONF"
+        echo "Redis Stack failed with command line args, trying basic redis-server..."
+        # Try to start redis-server and then manually load modules if available
+        redis-server "$REDIS_CONF"
         
-        cat > "$TEMP_CONF" << EOF
-port 6379
-bind 127.0.0.1
-daemonize yes
-dir $REDIS_DATA_DIR
-save 60 1000
-appendonly yes
-appendfilename appendonly.aof
-maxmemory 100mb
-maxmemory-policy allkeys-lru
-EOF
-        
-        echo "Trying Redis Stack with configuration file..."
-        redis-stack-server "$TEMP_CONF"
-        
-        if [ $? -ne 0 ]; then
-            echo "Redis Stack with config failed, trying basic redis-server..."
-            redis-server --daemonize yes --port 6379 --bind 127.0.0.1 --dir "$REDIS_DATA_DIR"
+        if [ $? -eq 0 ]; then
+            echo "✅ Redis started successfully (basic mode due to path spaces issue)"
+            echo "   Note: RediSearch, RedisJSON, RedisGraph modules unavailable due to path containing spaces"
+            echo "   Recommendation: Move project to path without spaces for full Redis Stack support"
         fi
     else
         # Try basic configuration for regular Redis
         echo "Trying basic Redis configuration..."
-        redis-server --daemonize yes --port 6379 --bind 127.0.0.1 --dir "$REDIS_DATA_DIR"
+        redis-server "$REDIS_CONF"
     fi
     
     if [ $? -ne 0 ]; then
@@ -115,21 +117,47 @@ if redis-cli ping > /dev/null 2>&1; then
     MODULES=$(redis-cli module list 2>/dev/null)
     if [ $? -eq 0 ]; then
         echo "ℹ️  Redis module system available"
-        # Check for specific modules
+        
+        # Check for specific modules and provide helpful information
+        MODULE_COUNT=0
         if echo "$MODULES" | grep -q "search"; then
             echo "✅ RediSearch module detected"
+            MODULE_COUNT=$((MODULE_COUNT + 1))
         else
             echo "⚠️  RediSearch module not detected"
         fi
+        
+        if echo "$MODULES" | grep -q "json"; then
+            echo "✅ RedisJSON module detected"
+            MODULE_COUNT=$((MODULE_COUNT + 1))
+        else
+            echo "⚠️  RedisJSON module not detected"
+        fi
+        
         if echo "$MODULES" | grep -q "graph"; then
             echo "✅ RedisGraph module detected"
+            MODULE_COUNT=$((MODULE_COUNT + 1))
         else
             echo "⚠️  RedisGraph module not detected"
         fi
-        if echo "$MODULES" | grep -q "json"; then
-            echo "✅ RedisJSON module detected"
+        
+        # Provide guidance based on module availability
+        if [ $MODULE_COUNT -eq 0 ]; then
+            echo ""
+            echo "ℹ️  Redis Stack modules not available"
+            if [[ "$(pwd)" == *" "* ]]; then
+                echo "   This is likely due to spaces in the project path"
+                echo "   Run './install-redis-stack-modules.sh' for solutions"
+            else
+                echo "   Redis Stack may not be properly installed"
+                echo "   Install Redis Stack for advanced query features"
+            fi
+        elif [ $MODULE_COUNT -lt 3 ]; then
+            echo ""
+            echo "ℹ️  Partial Redis Stack module support ($MODULE_COUNT/3 modules)"
         else
-            echo "⚠️  RedisJSON module not detected"
+            echo ""
+            echo "✅ Full Redis Stack support available (all modules loaded)"
         fi
     fi
     

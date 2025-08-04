@@ -205,12 +205,19 @@ If you encounter port conflicts or database startup issues:
 - **DynamoDB "Address already in use"**: Port 8000 conflict. Cleanup script kills existing processes.
 - **Elasticsearch not starting**: Requires significant memory. May not work in constrained environments.
 
-**MongoDB Repair Process:**
-The MongoDB startup script automatically handles database corruption by:
-1. Attempting normal startup first
-2. Running `--repair` if WiredTiger corruption is detected
-3. Creating a fresh database if repair fails
-4. This ensures out-of-the-box functionality on macOS/Linux systems
+**Database Repair and Configuration:**
+
+*MongoDB:*
+1. Automatically detects WiredTiger corruption
+2. Runs `--repair` if corruption found
+3. Creates fresh database if repair fails
+4. Ensures out-of-the-box functionality
+
+*Redis Stack:*
+1. Handles paths with spaces using configuration files
+2. Falls back to basic Redis if Stack modules fail
+3. Provides guidance for enabling advanced modules
+4. Run `./install-redis-stack-modules.sh` for module troubleshooting
 
 ---------------------------------------------------------------------------
 
