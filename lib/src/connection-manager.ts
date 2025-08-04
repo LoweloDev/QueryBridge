@@ -156,52 +156,16 @@ export class ConnectionManager {
           };
 
         case 'mongodb':
-          // MongoDB execution logic would go here
-          throw new Error('MongoDB execution not implemented');
+          return await this.executeMongoDB(client, query as any);
 
         case 'elasticsearch':
-          // Elasticsearch execution logic would go here
-          throw new Error('Elasticsearch execution not implemented');
+          return await this.executeElasticsearch(client, query as any);
 
         case 'dynamodb':
-          // DynamoDB execution logic would go here
-          throw new Error('DynamoDB execution not implemented');
+          return await this.executeDynamoDB(client, query as any);
 
         case 'redis':
-          // Execute Redis query based on operation type
-          const redisQuery = query as any;
-          let redisResult: any;
-          
-          switch (redisQuery.operation) {
-            case 'SCAN':
-              redisResult = await client.scan(0, 'MATCH', redisQuery.pattern, 'COUNT', redisQuery.count || 1000);
-              return { rows: redisResult[1], count: redisResult[1].length, data: redisResult[1] };
-              
-            case 'GET':
-              redisResult = await client.get(redisQuery.key);
-              return { rows: redisResult ? [redisResult] : [], count: redisResult ? 1 : 0, data: redisResult ? [redisResult] : [] };
-              
-            case 'MGET':
-              redisResult = await client.mget(...redisQuery.keys);
-              const filteredResults = redisResult.filter((r: any) => r !== null);
-              return { rows: filteredResults, count: filteredResults.length, data: filteredResults };
-              
-            case 'HGETALL':
-              redisResult = await client.hgetall(redisQuery.key);
-              return { rows: [redisResult], count: 1, data: [redisResult] };
-              
-            case 'FT.SEARCH':
-              // Note: This requires RediSearch module
-              try {
-                redisResult = await client.call('FT.SEARCH', redisQuery.index, redisQuery.query, 'LIMIT', redisQuery.limit?.offset || 0, redisQuery.limit?.num || 10);
-                return { rows: redisResult.slice(1), count: redisResult[0], data: redisResult.slice(1) };
-              } catch (error: any) {
-                throw new Error(`RediSearch not available: ${error.message}`);
-              }
-              
-            default:
-              return { rows: [], count: 0, data: [] };
-          }
+          return await this.executeRedis(client, query as any);
 
         default:
           throw new Error(`Unsupported database type: ${config.type}`);
@@ -209,6 +173,298 @@ export class ConnectionManager {
     } catch (error: any) {
       throw new Error(`Query execution failed: ${error.message}`);
     }
+  }
+
+  /**
+   * Execute MongoDB query using the native MongoDB driver
+   */
+  private async executeMongoDB(client: any, mongoQuery: any): Promise<QueryResult> {
+    const { collection, operation, ...queryParams } = mongoQuery;
+    const db = client.db();
+    const coll = db.collection(collection);
+
+    let result: any;
+    let resultArray: any[] = [];
+
+    switch (operation) {
+      case 'find':
+        result = await coll.find(queryParams.filter || {}, queryParams.options || {}).toArray();
+        resultArray = result;
+        break;
+
+      case 'findOne':
+        result = await coll.findOne(queryParams.filter || {}, queryParams.options || {});
+        resultArray = result ? [result] : [];
+        break;
+
+      case 'aggregate':
+        result = await coll.aggregate(queryParams.pipeline || []).toArray();
+        resultArray = result;
+        break;
+
+      case 'countDocuments':
+        result = await coll.countDocuments(queryParams.filter || {});
+        resultArray = [{ count: result }];
+        break;
+
+      case 'distinct':
+        result = await coll.distinct(queryParams.field, queryParams.filter || {});
+        resultArray = result.map((value: any) => ({ [queryParams.field]: value }));
+        break;
+
+      default:
+        throw new Error(`Unsupported MongoDB operation: ${operation}`);
+    }
+
+    return {
+      rows: resultArray,
+      count: resultArray.length,
+      data: resultArray
+    };
+  }
+
+  /**
+   * Execute Elasticsearch query using the official Elasticsearch client
+   */
+  private async executeElasticsearch(client: any, esQuery: any): Promise<QueryResult> {
+    const { index, operation = 'search', ...queryParams } = esQuery;
+
+    let result: any;
+    let resultArray: any[] = [];
+
+    switch (operation) {
+      case 'search':
+        result = await client.search({
+          index,
+          body: queryParams
+        });
+        
+        resultArray = result.body?.hits?.hits?.map((hit: any) => ({
+          _id: hit._id,
+          _source: hit._source,
+          _score: hit._score
+        })) || [];
+        break;
+
+      case 'get':
+        result = await client.get({
+          index,
+          id: queryParams.id
+        });
+        
+        resultArray = result.body?.found ? [{
+          _id: result.body._id,
+          _source: result.body._source
+        }] : [];
+        break;
+
+      case 'count':
+        result = await client.count({
+          index,
+          body: queryParams
+        });
+        
+        resultArray = [{ count: result.body.count }];
+        break;
+
+      case 'mget':
+        result = await client.mget({
+          index,
+          body: queryParams
+        });
+        
+        resultArray = result.body?.docs?.filter((doc: any) => doc.found)
+          .map((doc: any) => ({
+            _id: doc._id,
+            _source: doc._source
+          })) || [];
+        break;
+
+      default:
+        throw new Error(`Unsupported Elasticsearch operation: ${operation}`);
+    }
+
+    return {
+      rows: resultArray,
+      count: resultArray.length,
+      data: resultArray
+    };
+  }
+
+  /**
+   * Execute DynamoDB query using AWS SDK v3
+   * The "operation" key determines which DynamoDB operation to use
+   */
+  private async executeDynamoDB(client: any, dynamoQuery: any): Promise<QueryResult> {
+    // Extract operation and remove it from query parameters
+    const { operation, ...queryParams } = dynamoQuery;
+    
+    let result: any;
+    let resultArray: any[] = [];
+
+    switch (operation) {
+      case 'query':
+        // Use DynamoDB Query operation for efficient partition key lookups
+        result = await client.query(queryParams);
+        resultArray = result.Items || [];
+        break;
+
+      case 'scan':
+        // Use DynamoDB Scan operation for full table scans with filters
+        result = await client.scan(queryParams);
+        resultArray = result.Items || [];
+        break;
+
+      case 'getItem':
+        // Use DynamoDB GetItem for single item lookups by primary key
+        result = await client.getItem(queryParams);
+        resultArray = result.Item ? [result.Item] : [];
+        break;
+
+      case 'batchGetItem':
+        // Use BatchGetItem for multiple item lookups
+        result = await client.batchGetItem(queryParams);
+        resultArray = Object.values(result.Responses || {}).flat() as any[];
+        break;
+
+      case 'putItem':
+        // Use PutItem for creating/updating items
+        result = await client.putItem(queryParams);
+        resultArray = [{ success: true, ...result }];
+        break;
+
+      case 'updateItem':
+        // Use UpdateItem for modifying existing items
+        result = await client.updateItem(queryParams);
+        resultArray = [{ success: true, attributes: result.Attributes }];
+        break;
+
+      case 'deleteItem':
+        // Use DeleteItem for removing items
+        result = await client.deleteItem(queryParams);
+        resultArray = [{ success: true, attributes: result.Attributes }];
+        break;
+
+      default:
+        throw new Error(`Unsupported DynamoDB operation: ${operation}`);
+    }
+
+    return {
+      rows: resultArray,
+      count: resultArray.length,
+      data: resultArray
+    };
+  }
+
+  /**
+   * Execute Redis query using ioredis client
+   */
+  private async executeRedis(client: any, redisQuery: any): Promise<QueryResult> {
+    const { operation, ...queryParams } = redisQuery;
+    let result: any;
+    let resultArray: any[] = [];
+
+    switch (operation) {
+      case 'GET':
+        result = await client.get(queryParams.key);
+        resultArray = result ? [{ key: queryParams.key, value: result }] : [];
+        break;
+
+      case 'MGET':
+        result = await client.mget(...queryParams.keys);
+        resultArray = result
+          .map((value: any, index: number) => value !== null ? { key: queryParams.keys[index], value } : null)
+          .filter((item: any) => item !== null);
+        break;
+
+      case 'HGETALL':
+        result = await client.hgetall(queryParams.key);
+        resultArray = Object.keys(result).length > 0 ? [{ key: queryParams.key, fields: result }] : [];
+        break;
+
+      case 'SCAN':
+        result = await client.scan(
+          queryParams.cursor || 0,
+          'MATCH', queryParams.pattern || '*',
+          'COUNT', queryParams.count || 1000
+        );
+        resultArray = result[1].map((key: string) => ({ key }));
+        break;
+
+      case 'FT.SEARCH':
+        // RediSearch module operations
+        try {
+          result = await client.call(
+            'FT.SEARCH',
+            queryParams.index,
+            queryParams.query,
+            'LIMIT', queryParams.offset || 0, queryParams.limit || 10
+          );
+          
+          const count = result[0];
+          const docs = [];
+          for (let i = 1; i < result.length; i += 2) {
+            const docId = result[i];
+            const fields = result[i + 1];
+            const fieldObj: any = { _id: docId };
+            
+            for (let j = 0; j < fields.length; j += 2) {
+              fieldObj[fields[j]] = fields[j + 1];
+            }
+            docs.push(fieldObj);
+          }
+          
+          resultArray = docs;
+        } catch (error: any) {
+          throw new Error(`RediSearch not available: ${error.message}`);
+        }
+        break;
+
+      case 'GRAPH.QUERY':
+        // RedisGraph module operations
+        try {
+          result = await client.call('GRAPH.QUERY', queryParams.graph, queryParams.query);
+          resultArray = result[1] || [];
+        } catch (error: any) {
+          throw new Error(`RedisGraph not available: ${error.message}`);
+        }
+        break;
+
+      case 'JSON.GET':
+        // RedisJSON module operations
+        try {
+          result = await client.call('JSON.GET', queryParams.key, queryParams.path || '$');
+          resultArray = result ? [{ key: queryParams.key, value: result }] : [];
+        } catch (error: any) {
+          throw new Error(`RedisJSON not available: ${error.message}`);
+        }
+        break;
+
+      case 'TS.RANGE':
+        // RedisTimeSeries operations
+        try {
+          result = await client.call(
+            'TS.RANGE',
+            queryParams.key,
+            queryParams.fromTimestamp || '-',
+            queryParams.toTimestamp || '+',
+            'COUNT', queryParams.count || 100
+          );
+          resultArray = result.map(([timestamp, value]: [number, string]) => ({ timestamp, value }));
+        } catch (error: any) {
+          throw new Error(`RedisTimeSeries not available: ${error.message}`);
+        }
+        break;
+
+      default:
+        throw new Error(`Unsupported Redis operation: ${operation}`);
+    }
+
+    return {
+      rows: resultArray,
+      count: resultArray.length,
+      data: resultArray
+    };
   }
 
   /**

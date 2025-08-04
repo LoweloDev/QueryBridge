@@ -795,7 +795,7 @@ export class QueryTranslator {
       keyConditions.push('begins_with(#sk, :sk_prefix)');
       expressionAttributeValues[':sk_prefix'] = query.dbSpecific.sort_key_prefix;
     } else if (entityIdCondition && entityMapping.sortKeyPrefix) {
-      // Intelligent entity ID mapping
+      // Intelligent entity ID mapping - works for both explicit and default partition keys
       expressionAttributeNames['#sk'] = 'SK';
       keyConditions.push('#sk = :sk');
       
@@ -807,7 +807,7 @@ export class QueryTranslator {
       
       // Remove the ID condition from WHERE since it's now part of the key condition
       query.where = query.where?.filter(condition => condition !== entityIdCondition);
-    } else if (entityMapping.sortKeyPrefix && !query.dbSpecific?.partition_key) {
+    } else if (entityMapping.sortKeyPrefix && !query.dbSpecific?.partition_key && !entityIdCondition) {
       // Query all entities of this type with prefix
       expressionAttributeNames['#sk'] = 'SK';
       keyConditions.push('begins_with(#sk, :sk_prefix)');
