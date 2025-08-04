@@ -164,9 +164,11 @@ For testing and validating query translations:
 # Install dependencies
 ./install.sh
 
-# Start the development server
+# Start the development server (builds and installs local npm package)
 ./start-dev.sh
 ```
+
+> **Note**: The `start-dev.sh` script automatically builds and installs the local npm package so the testing platform can import from `universal-query-translator`. This ensures the platform always uses the latest library code.
 
 ---------------------------------------------------------------------------
 

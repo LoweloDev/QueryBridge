@@ -59,6 +59,27 @@ fi
 
 echo "✅ System requirements met"
 
+# Build and install the local npm package
+echo ""
+echo "📦 Building and Installing Local NPM Package..."
+echo "==============================================="
+echo "Building universal-query-translator library..."
+cd lib
+npm run build
+echo "✅ Library built successfully"
+
+echo "Packaging library for local installation..."
+npm pack
+echo "✅ Library packaged"
+
+echo "Installing library locally..."
+cd ..
+mkdir -p node_modules/universal-query-translator
+cd node_modules/universal-query-translator
+tar -xzf ../../lib/universal-query-translator-1.0.0.tgz --strip-components=1
+cd ../..
+echo "✅ Library installed locally as npm package"
+
 # Start databases in sequence
 echo ""
 echo "🗄️  Starting Database Services..."
