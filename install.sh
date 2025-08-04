@@ -7,38 +7,57 @@ set -e
 echo "🚀 Universal Query Library - Installation Setup"
 echo "==============================================="
 
-# Check system requirements
-echo "🔍 Checking system requirements..."
-
-# Check Node.js
-if ! command -v node &> /dev/null; then
-    echo "❌ Node.js not found. Please install Node.js 18+ first"
-    echo "   Visit: https://nodejs.org/"
+# Ensure nvm is available
+export NVM_DIR="$HOME/.nvm"
+if [ -s "$NVM_DIR/nvm.sh" ]; then
+    source "$NVM_DIR/nvm.sh"
+elif [ -x "$(command -v brew)" ]; then
+    echo "📦 Installing NVM via Homebrew..."
+    brew install nvm
+    mkdir -p ~/.nvm
+    echo 'export NVM_DIR="$HOME/.nvm"' >> ~/.bash_profile
+    echo '[ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && \. "/opt/homebrew/opt/nvm/nvm.sh"' >> ~/.bash_profile
+    source ~/.bash_profile
+else
+    echo "❌ nvm not found and Homebrew not available. Please install Node.js 18+ manually."
     exit 1
 fi
 
-# Check Java (required for DynamoDB and Elasticsearch)
-if ! command -v java &> /dev/null; then
-    echo "❌ Java not found. Please install Java 17+ first"
-    echo "   For Ubuntu/Debian: sudo apt install openjdk-17-jdk"
-    echo "   For macOS: brew install openjdk@17"
-    exit 1
+# Install or upgrade Node.js
+REQUIRED_NODE_VERSION=18
+NODE_CURRENT_VERSION=$(node --version 2>/dev/null | cut -d'v' -f2 | cut -d'.' -f1 || echo 0)
+
+if [ "$NODE_CURRENT_VERSION" -lt "$REQUIRED_NODE_VERSION" ]; then
+    echo "📦 Installing Node.js $REQUIRED_NODE_VERSION via nvm..."
+    nvm install $REQUIRED_NODE_VERSION
+    nvm use $REQUIRED_NODE_VERSION
+    nvm alias default $REQUIRED_NODE_VERSION
+else
+    echo "✅ Node.js $(node --version) found"
 fi
 
-NODE_VERSION=$(node --version | cut -d'v' -f2 | cut -d'.' -f1)
-if [ "$NODE_VERSION" -lt 18 ]; then
-    echo "❌ Node.js version $NODE_VERSION found. Please upgrade to Node.js 18+"
-    exit 1
-fi
+# Check and install Java 17+
+echo ""
+echo "🔍 Checking Java..."
 
-JAVA_VERSION=$(java -version 2>&1 | head -1 | cut -d'"' -f2 | cut -d'.' -f1)
+JAVA_VERSION=$(java -version 2>&1 | head -1 | awk -F '"' '{print $2}' | cut -d'.' -f1 || echo 0)
+
 if [ "$JAVA_VERSION" -lt 17 ]; then
-    echo "❌ Java version $JAVA_VERSION found. Please upgrade to Java 17+"
-    exit 1
+    if [ "$(uname)" == "Darwin" ]; then
+        echo "📦 Installing Java 17 via Homebrew..."
+        brew install openjdk@17
+        sudo ln -sfn /opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk /Library/Java/JavaVirtualMachines/openjdk-17.jdk
+        echo 'export JAVA_HOME="/opt/homebrew/opt/openjdk@17"' >> ~/.bash_profile
+        echo 'export PATH="$JAVA_HOME/bin:$PATH"' >> ~/.bash_profile
+        source ~/.bash_profile
+    else
+        echo "❌ Java 17 not found. Please install manually:"
+        echo "   Ubuntu/Debian: sudo apt install openjdk-17-jdk"
+        exit 1
+    fi
+else
+    echo "✅ Java $(java -version 2>&1 | head -1) found"
 fi
-
-echo "✅ Node.js $(node --version) found"
-echo "✅ Java $(java -version 2>&1 | head -1) found"
 
 # Install Node.js dependencies
 echo ""
@@ -56,13 +75,11 @@ echo "🔍 Setting up Elasticsearch 8.15.0..."
 
 if [ ! -f "server/elasticsearch/bin/elasticsearch" ]; then
     echo "⬇️  Downloading Elasticsearch 8.15.0..."
-    
-    # Create elasticsearch directory
+
     mkdir -p server/elasticsearch
-    
-    # Download Elasticsearch
+
     curl -L https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-8.15.0-linux-x86_64.tar.gz -o /tmp/elasticsearch.tar.gz
-    
+
     if [ $? -eq 0 ]; then
         echo "✅ Downloaded Elasticsearch"
         echo "📦 Extracting Elasticsearch..."
@@ -71,7 +88,6 @@ if [ ! -f "server/elasticsearch/bin/elasticsearch" ]; then
         echo "✅ Elasticsearch extraction complete"
     else
         echo "❌ Failed to download Elasticsearch"
-        echo "   Please check your internet connection and try again"
         exit 1
     fi
 else
@@ -96,7 +112,8 @@ echo "🎉 Installation Complete!"
 echo "========================="
 echo ""
 echo "📊 Setup Summary:"
-echo "  ✅ Node.js dependencies installed"
+echo "  ✅ Node.js $(node --version) installed via nvm"
+echo "  ✅ Java $(java -version 2>&1 | head -1) installed via brew"
 echo "  ✅ Elasticsearch 8.15.0 installed"
 echo "  ✅ Database data directories created"
 echo "  ✅ Startup scripts configured"
