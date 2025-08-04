@@ -1,62 +1,73 @@
 #!/bin/bash
 # Start DynamoDB Local for testing
 
-# Create data directory if it doesn't exist
+set -e
+
+# Create data directory
 mkdir -p server/data/dynamodb
 
-# Check if port 8000 is already in use
+echo "Starting DynamoDB Local..."
+
+# Check if already running
 if lsof -Pi :8000 -sTCP:LISTEN -t >/dev/null 2>&1; then
-    echo "⚠️  Port 8000 is already in use. Attempting to clear it..."
-    # Try to kill the process using port 8000
-    local pid=$(lsof -ti:8000 2>/dev/null)
+    echo "✅ DynamoDB Local is already running on port 8000"
+    exit 0
+fi
+
+# Clear any lingering processes
+if command -v lsof >/dev/null 2>&1; then
+    pid=$(lsof -ti:8000 2>/dev/null || echo "")
     if [ -n "$pid" ]; then
-        kill -TERM $pid 2>/dev/null
-        sleep 3
-        # Force kill if still running
-        if kill -0 $pid 2>/dev/null; then
-            kill -KILL $pid 2>/dev/null
-        fi
-        echo "✅ Port 8000 cleared"
+        echo "Cleaning up port 8000..."
+        kill -TERM $pid 2>/dev/null || true
+        sleep 2
     fi
 fi
 
-echo "Starting DynamoDB Local using Node.js package..."
-
-# Use Node.js to start DynamoDB Local programmatically
-node -e "
+# Create startup script to run in background
+cat > server/data/dynamodb/start.js << 'EOF'
 const DynamoDbLocal = require('dynamodb-local');
+
 console.log('Launching DynamoDB Local on port 8000...');
 
 DynamoDbLocal.launch(8000, null, ['-inMemory', '-sharedDb'], false, false)
   .then((child) => {
-    console.log('✅ DynamoDB Local process started (PID: ' + child.pid + ')');
+    console.log('✅ DynamoDB Local started (PID: ' + child.pid + ')');
     console.log('Port: 8000');
     console.log('Mode: In-memory with shared database');
     
-    // Test connection after a delay
-    setTimeout(() => {
-      const http = require('http');
-      const req = http.request({
-        hostname: 'localhost',
-        port: 8000,
-        path: '/',
-        method: 'GET'
-      }, (res) => {
-        console.log('✅ DynamoDB Local is responding and ready');
-      });
-      req.on('error', (err) => {
-        console.log('⚠️  DynamoDB Local process started but may need more time to initialize');
-      });
-      req.timeout = 2000;
-      req.end();
-    }, 3000);
+    // Keep process alive
+    process.on('SIGTERM', () => {
+      console.log('Shutting down DynamoDB Local...');
+      child.kill();
+      process.exit(0);
+    });
   })
   .catch(err => {
     console.error('❌ Failed to start DynamoDB Local:', err.message);
     process.exit(1);
   });
-" &
+EOF
 
-echo "DynamoDB Local startup initiated..."
-echo "Note: In containerized environments like Replit, the process may not persist"
-echo "but will work correctly when running locally on your machine."
+# Start DynamoDB Local in background with proper detachment
+nohup node server/data/dynamodb/start.js > server/data/dynamodb/dynamodb.log 2>&1 &
+
+# Wait and verify startup
+echo "Waiting for DynamoDB Local to start..."
+sleep 5
+
+for i in {1..10}; do
+    if lsof -Pi :8000 -sTCP:LISTEN -t >/dev/null 2>&1; then
+        # Test with simple HTTP request
+        if curl -s http://localhost:8000/ >/dev/null 2>&1; then
+            echo "✅ DynamoDB Local is running and accessible on port 8000"
+            exit 0
+        fi
+    fi
+    echo "Waiting for DynamoDB Local... ($i/10)"
+    sleep 2
+done
+
+echo "❌ DynamoDB Local failed to start after 30 seconds"
+echo "Check log: server/data/dynamodb/dynamodb.log"
+exit 1
