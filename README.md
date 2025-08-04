@@ -172,8 +172,24 @@ cp .env.example .env
 
 > **Note**: The `start-dev.sh` script automatically:
 > - Builds and installs the local npm package so the testing platform imports from `universal-query-translator`
-> - Checks if databases are already running to avoid conflicts
+> - Cleans up any existing database processes to avoid port conflicts
+> - Checks if databases are already running to avoid duplicate startups
 > - Uses proper host bindings for different operating systems (localhost on macOS, 0.0.0.0 on Linux)
+
+#### Troubleshooting Database Issues
+
+If you encounter port conflicts or database startup issues:
+
+```bash
+# Stop all database services and clean ports
+./server/scripts/stop-all-databases.sh
+
+# Clean up ports manually if needed
+./server/scripts/cleanup-ports.sh
+
+# Restart the development server
+./start-dev.sh
+```
 
 ---------------------------------------------------------------------------
 

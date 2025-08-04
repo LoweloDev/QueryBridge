@@ -88,6 +88,11 @@ tar -xzf ../../lib/universal-query-translator-1.0.0.tgz --strip-components=1
 cd ../..
 echo "✅ Library installed locally as npm package"
 
+# Clean up any existing database processes first
+echo ""
+echo "🧹 Cleaning up existing database processes..."
+./server/scripts/cleanup-ports.sh
+
 # Start databases in sequence
 echo ""
 echo "🗄️  Starting Database Services..."

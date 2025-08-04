@@ -95,10 +95,25 @@ async function setupDatabaseConnections() {
   // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || '5000', 10);
   
-  // Use localhost on macOS to avoid ENOTSUP error, 0.0.0.0 on other systems
+  // Use localhost on macOS to avoid ENOTSUP error, 0.0.0.0 on other systems  
   const host = process.platform === 'darwin' ? 'localhost' : '0.0.0.0';
   
+  // Handle server startup errors gracefully
   server.listen(port, host, () => {
     log(`serving on port ${port}`);
+  }).on('error', (err: any) => {
+    if (err.code === 'ENOTSUP' && process.platform === 'darwin') {
+      // Fallback to default listening on macOS
+      log(`Retrying with default host binding...`);
+      server.listen(port, 'localhost', () => {
+        log(`serving on port ${port} (localhost)`);
+      });
+    } else if (err.code === 'EADDRINUSE') {
+      log(`Port ${port} is already in use. Please kill the process using this port or choose a different port.`);
+      process.exit(1);
+    } else {
+      log(`Server error: ${err.message}`);
+      throw err;
+    }
   });
 })();

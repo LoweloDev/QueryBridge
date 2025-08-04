@@ -156,23 +156,33 @@ export class DatabaseSetup {
   }
 
   private async setupRedis(config: DatabaseConnection): Promise<void> {
+    let client: any = null;
     try {
-      const client = new Redis({
+      client = new Redis({
         host: config.host,
         port: config.port,
         maxRetriesPerRequest: 1,
         enableReadyCheck: false,
         lazyConnect: true,
+        connectTimeout: 1000,
       });
 
       // Add error handler to prevent unhandled errors
-      client.on('error', (err) => {
-        console.warn(`Redis client error: ${err.message}`);
+      client.on('error', (err: any) => {
+        // Suppress repetitive connection errors
+        if (!err.message.includes('ECONNREFUSED')) {
+          console.warn(`Redis client error: ${err.message}`);
+        }
       });
 
-      // Connect and test
-      await client.connect();
-      await client.ping();
+      // Connect and test with timeout
+      await Promise.race([
+        (async () => {
+          await client.connect();
+          await client.ping();
+        })(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Connection timeout')), 3000))
+      ]);
 
       this.connections.set(config.id, {
         client,
@@ -183,7 +193,14 @@ export class DatabaseSetup {
 
       console.log(`Successfully connected to Redis: ${config.name}`);
     } catch (error: any) {
-      // Don't create client if connection fails to avoid continuous error events
+      // Clean up client if connection failed
+      if (client) {
+        try {
+          client.disconnect();
+        } catch (e) {
+          // Ignore cleanup errors
+        }
+      }
       throw new Error(`Redis connection failed: ${error.message}`);
     }
   }
