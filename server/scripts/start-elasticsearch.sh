@@ -8,32 +8,58 @@ mkdir -p server/data/elasticsearch/logs
 
 echo "Starting Elasticsearch instances..."
 
-# Check if Elasticsearch is available
-if [ ! -f "server/elasticsearch/bin/elasticsearch" ]; then
-    echo "❌ Elasticsearch not found. Downloading and setting up..."
+# Check for Elasticsearch installation
+ELASTICSEARCH_BIN=""
+
+# Check for Homebrew installation (macOS)
+if [ -f "/opt/homebrew/bin/elasticsearch" ]; then
+    ELASTICSEARCH_BIN="/opt/homebrew/bin/elasticsearch"
+elif [ -f "/usr/local/bin/elasticsearch" ]; then
+    ELASTICSEARCH_BIN="/usr/local/bin/elasticsearch"
+elif command -v elasticsearch >/dev/null 2>&1; then
+    ELASTICSEARCH_BIN="elasticsearch"
+elif [ -f "server/elasticsearch/bin/elasticsearch" ]; then
+    ELASTICSEARCH_BIN="server/elasticsearch/bin/elasticsearch"
+else
+    echo "❌ Elasticsearch not found. Setting up local installation..."
     
-    # Download Elasticsearch 8.15.0
-    curl -s -L https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-8.15.0-linux-x86_64.tar.gz -o /tmp/elasticsearch.tar.gz
+    # Detect OS and download appropriate version
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS
+        ELASTICSEARCH_URL="https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-8.15.0-darwin-x86_64.tar.gz"
+        if [[ $(uname -m) == "arm64" ]]; then
+            ELASTICSEARCH_URL="https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-8.15.0-darwin-aarch64.tar.gz"
+        fi
+    else
+        # Linux
+        ELASTICSEARCH_URL="https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-8.15.0-linux-x86_64.tar.gz"
+    fi
+    
+    curl -s -L "$ELASTICSEARCH_URL" -o /tmp/elasticsearch.tar.gz
     
     if [ $? -eq 0 ]; then
         echo "✅ Downloaded Elasticsearch"
         mkdir -p server/elasticsearch
         tar -xzf /tmp/elasticsearch.tar.gz -C server/elasticsearch --strip-components=1
         rm /tmp/elasticsearch.tar.gz
+        ELASTICSEARCH_BIN="server/elasticsearch/bin/elasticsearch"
     else
         echo "❌ Failed to download Elasticsearch"
         exit 1
     fi
 fi
 
-echo "Elasticsearch version: $(server/elasticsearch/bin/elasticsearch --version | head -1)"
+echo "✅ Using Elasticsearch: $ELASTICSEARCH_BIN"
+if [ -x "$ELASTICSEARCH_BIN" ]; then
+    echo "Elasticsearch version: $($ELASTICSEARCH_BIN --version 2>/dev/null | head -1 || echo 'Version check failed')"
+fi
 
 # Configure Java heap size for containerized environment
 export ES_JAVA_OPTS="-Xms512m -Xmx512m"
 
 # Start Elasticsearch instance 1: PostgreSQL Layer (port 9200)
 echo "Starting Elasticsearch PostgreSQL Layer on port 9200..."
-server/elasticsearch/bin/elasticsearch \
+"$ELASTICSEARCH_BIN" \
     -d \
     -E cluster.name=universal-query-postgresql \
     -E node.name=postgresql-layer \
@@ -51,7 +77,7 @@ server/elasticsearch/bin/elasticsearch \
 
 # Start Elasticsearch instance 2: DynamoDB Layer (port 9201)
 echo "Starting Elasticsearch DynamoDB Layer on port 9201..."
-server/elasticsearch/bin/elasticsearch \
+"$ELASTICSEARCH_BIN" \
     -d \
     -E cluster.name=universal-query-dynamodb \
     -E node.name=dynamodb-layer \

@@ -295,31 +295,41 @@ fi
 # Check and install Elasticsearch
 print_step "9" "Installing Elasticsearch"
 if command_exists elasticsearch; then
-    echo "✅ Elasticsearch found"
+    ELASTICSEARCH_VERSION=$(elasticsearch --version 2>/dev/null | head -1 || echo "Version unknown")
+    echo "✅ Elasticsearch found: $ELASTICSEARCH_VERSION"
 else
     echo "📦 Installing Elasticsearch..."
     if [ "$OS" = "macOS" ]; then
-        # Use official Elasticsearch instead of the problematic tap
-        if brew install elasticsearch >/dev/null 2>&1; then
+        # Use official Elasticsearch with better error handling
+        if brew install elasticsearch 2>/dev/null; then
             echo "✅ Elasticsearch installed via Homebrew"
+            # Add Elasticsearch to PATH for current session
+            export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+            # Add to shell profiles
+            for profile in ~/.zshrc ~/.bash_profile; do
+                if [ -f "$profile" ] && ! grep -q "elasticsearch" "$profile"; then
+                    echo 'export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"' >> "$profile"
+                fi
+            done
         else
             echo "⚠️  Elasticsearch installation failed via Homebrew"
-            echo "   You can install manually or skip Elasticsearch for now"
-            echo "   The application will work with other databases"
+            echo "   The startup script will download a local copy automatically"
+            echo "   The application will work with other databases in the meantime"
         fi
     elif [ "$OS" = "Linux" ]; then
-        # Install Elasticsearch on Linux with error handling
-        if wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add - >/dev/null 2>&1; then
+        # Install Elasticsearch on Linux with improved error handling
+        if wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch 2>/dev/null | sudo apt-key add - >/dev/null 2>&1; then
             echo "deb https://artifacts.elastic.co/packages/8.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-8.x.list >/dev/null
             if sudo apt-get update >/dev/null 2>&1 && sudo apt-get install -y elasticsearch >/dev/null 2>&1; then
                 echo "✅ Elasticsearch installed via package manager"
+                sudo systemctl enable elasticsearch >/dev/null 2>&1 || true
             else
                 echo "⚠️  Elasticsearch installation failed"
-                echo "   Continuing without Elasticsearch"
+                echo "   The startup script will download a local copy automatically"
             fi
         else
             echo "⚠️  Could not add Elasticsearch repository"
-            echo "   Continuing without Elasticsearch"
+            echo "   The startup script will download a local copy automatically"
         fi
     fi
 fi
