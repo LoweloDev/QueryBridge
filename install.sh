@@ -168,6 +168,17 @@ mkdir -p "$PG_DATA_DIR"
 chmod 700 "$PG_DATA_DIR"
 echo "✅ PostgreSQL data directory created with secure permissions (700): $PG_DATA_DIR"
 
+# Set locale environment for PostgreSQL compatibility
+if ! grep -q "export LC_ALL=en_US.UTF-8" ~/.zshrc 2>/dev/null; then
+    echo "export LC_ALL=en_US.UTF-8" >> ~/.zshrc
+    echo "export LANG=en_US.UTF-8" >> ~/.zshrc
+fi
+if ! grep -q "export LC_ALL=en_US.UTF-8" ~/.bash_profile 2>/dev/null; then
+    echo "export LC_ALL=en_US.UTF-8" >> ~/.bash_profile
+    echo "export LANG=en_US.UTF-8" >> ~/.bash_profile
+fi
+echo "✅ Locale environment configured for PostgreSQL compatibility"
+
 # Check and install MongoDB
 print_step "6" "Installing MongoDB"
 if command_exists mongod; then

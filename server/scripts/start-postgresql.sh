@@ -137,7 +137,10 @@ fi
 # Initialize data directory if it doesn't exist
 if [ ! -f "$PG_DATA_DIR/postgresql.conf" ]; then
     echo "Initializing PostgreSQL data directory..."
-    initdb -D "$PG_DATA_DIR" --auth-local=trust --auth-host=trust
+    # Set proper locale to prevent multithreading issues
+    export LC_ALL=en_US.UTF-8
+    export LANG=en_US.UTF-8
+    initdb -D "$PG_DATA_DIR" --auth-local=trust --auth-host=trust --locale=en_US.UTF-8
     echo "✅ PostgreSQL data directory initialized"
     
     # Configure PostgreSQL for local development with unique port to avoid conflicts
@@ -168,6 +171,9 @@ fi
 
 # Start PostgreSQL
 echo "Starting PostgreSQL server..."
+# Set proper locale environment for PostgreSQL startup
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
 if ! pg_ctl start -D "$PG_DATA_DIR" -l "$PG_DATA_DIR/postgresql.log" -o "-p 5432 -k $PG_DATA_DIR" -w; then
     echo "❌ PostgreSQL failed to start. Checking logs..."
     
