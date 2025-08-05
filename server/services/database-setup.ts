@@ -5,7 +5,8 @@
  * The test backend handles database setup, not the library.
  */
 
-import { Pool, neonConfig } from '@neondatabase/serverless';
+import { Pool as NeonPool, neonConfig } from '@neondatabase/serverless';
+import { Pool as PgPool } from 'pg';
 import { MongoClient } from 'mongodb';
 import { Client as OpenSearchClient } from '@opensearch-project/opensearch';
 import { DynamoDBClient, ListTablesCommand } from '@aws-sdk/client-dynamodb';
@@ -109,13 +110,21 @@ export class DatabaseSetup {
 
   private async setupPostgreSQL(config: DatabaseConnection): Promise<void> {
     try {
-      let pool: Pool;
+      let pool: NeonPool | PgPool;
       
       // Check if DATABASE_URL is provided (production/Replit environment)
-      if (process.env.DATABASE_URL) {
-        pool = new Pool({
+      if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('neon.tech')) {
+        // Use Neon client for Replit/serverless environment
+        pool = new NeonPool({
           connectionString: process.env.DATABASE_URL,
         });
+        console.log('Using Neon PostgreSQL client for serverless environment');
+      } else if (process.env.DATABASE_URL && process.env.DATABASE_URL !== 'postgresql://user:password@host:port/database') {
+        // Use regular pg client for local DATABASE_URL
+        pool = new PgPool({
+          connectionString: process.env.DATABASE_URL,
+        });
+        console.log('Using standard PostgreSQL client with DATABASE_URL');
       } else {
         // Local development setup - try multiple common configurations
         const possibleConfigs = [
@@ -169,7 +178,9 @@ export class DatabaseSetup {
         ];
         
         let connectionError: Error | null = null;
-        let poolToUse: Pool | null = null;
+        let poolToUse: PgPool | null = null;
+        
+        console.log('Using standard PostgreSQL client for local development');
         
         for (const pgConfig of possibleConfigs) {
           try {
@@ -177,7 +188,7 @@ export class DatabaseSetup {
               ...pgConfig, 
               password: 'password' in pgConfig && pgConfig.password ? '[HIDDEN]' : 'none' 
             });
-            const testPool = new Pool(pgConfig);
+            const testPool = new PgPool(pgConfig);
             // Test this configuration
             const testClient = await testPool.connect();
             await testClient.query('SELECT 1');
