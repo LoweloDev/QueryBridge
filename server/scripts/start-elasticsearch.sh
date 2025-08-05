@@ -11,50 +11,38 @@ echo "Starting Elasticsearch instances..."
 # Check for Elasticsearch installation
 ELASTICSEARCH_BIN=""
 
-# Check for Homebrew installation (macOS) - prioritize system installation
+# Check for Homebrew installation (macOS)
 if [ -f "/opt/homebrew/bin/elasticsearch" ]; then
     ELASTICSEARCH_BIN="/opt/homebrew/bin/elasticsearch"
-    echo "✅ Found Homebrew Elasticsearch (Apple Silicon)"
 elif [ -f "/usr/local/bin/elasticsearch" ]; then
     ELASTICSEARCH_BIN="/usr/local/bin/elasticsearch"
-    echo "✅ Found Homebrew Elasticsearch (Intel)"
 elif command -v elasticsearch >/dev/null 2>&1; then
     ELASTICSEARCH_BIN="elasticsearch"
-    echo "✅ Found Elasticsearch in PATH"
+elif [ -f "server/elasticsearch/bin/elasticsearch" ]; then
+    ELASTICSEARCH_BIN="server/elasticsearch/bin/elasticsearch"
 else
-    echo "❌ Elasticsearch not found. Downloading and setting up..."
+    echo "❌ Elasticsearch not found. Setting up local installation..."
     
-    # Remove any corrupted installation first
-    rm -rf server/elasticsearch
-    
-    # Detect OS and architecture for correct download
+    # Detect OS and download appropriate version
     if [[ "$OSTYPE" == "darwin"* ]]; then
         # macOS
+        ELASTICSEARCH_URL="https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-8.15.0-darwin-x86_64.tar.gz"
         if [[ $(uname -m) == "arm64" ]]; then
             ELASTICSEARCH_URL="https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-8.15.0-darwin-aarch64.tar.gz"
-            echo "Downloading Elasticsearch for macOS (Apple Silicon)..."
-        else
-            ELASTICSEARCH_URL="https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-8.15.0-darwin-x86_64.tar.gz"
-            echo "Downloading Elasticsearch for macOS (Intel)..."
         fi
     else
-        # Linux (Replit)
+        # Linux
         ELASTICSEARCH_URL="https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-8.15.0-linux-x86_64.tar.gz"
-        echo "Downloading Elasticsearch for Linux..."
     fi
     
-    # Download and extract
-    if curl -s -L "$ELASTICSEARCH_URL" -o /tmp/elasticsearch.tar.gz; then
+    curl -s -L "$ELASTICSEARCH_URL" -o /tmp/elasticsearch.tar.gz
+    
+    if [ $? -eq 0 ]; then
         echo "✅ Downloaded Elasticsearch"
         mkdir -p server/elasticsearch
-        if tar -xzf /tmp/elasticsearch.tar.gz -C server/elasticsearch --strip-components=1; then
-            rm /tmp/elasticsearch.tar.gz
-            ELASTICSEARCH_BIN="server/elasticsearch/bin/elasticsearch"
-            echo "✅ Elasticsearch extracted successfully"
-        else
-            echo "❌ Failed to extract Elasticsearch"
-            exit 1
-        fi
+        tar -xzf /tmp/elasticsearch.tar.gz -C server/elasticsearch --strip-components=1
+        rm /tmp/elasticsearch.tar.gz
+        ELASTICSEARCH_BIN="server/elasticsearch/bin/elasticsearch"
     else
         echo "❌ Failed to download Elasticsearch"
         exit 1
