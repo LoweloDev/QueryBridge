@@ -90,8 +90,36 @@ if [ ! -d "$PG_DATA_DIR" ]; then
     mkdir -p "$PG_DATA_DIR"
 fi
 
+# Check for PostgreSQL version compatibility
+if [ -f "$PG_DATA_DIR/PG_VERSION" ]; then
+    DATA_PG_VERSION=$(cat "$PG_DATA_DIR/PG_VERSION")
+    CURRENT_PG_VERSION=$(pg_ctl --version | grep -oE '[0-9]+\.[0-9]+' | head -1)
+    
+    if [ "$DATA_PG_VERSION" != "$CURRENT_PG_VERSION" ]; then
+        echo "⚠️  PostgreSQL version mismatch detected:"
+        echo "   Data directory: PostgreSQL $DATA_PG_VERSION"
+        echo "   Current binary: PostgreSQL $CURRENT_PG_VERSION"
+        echo ""
+        echo "The existing data directory is incompatible with your PostgreSQL version."
+        echo "This will remove the old data directory and create a fresh one."
+        echo "Any existing development data will be lost."
+        echo ""
+        read -p "Continue? (y/N): " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            echo "Removing incompatible data directory..."
+            rm -rf "$PG_DATA_DIR"
+            echo "✅ Incompatible data directory removed"
+        else
+            echo "❌ Cancelled. Please resolve the version mismatch manually."
+            exit 1
+        fi
+    fi
+fi
+
 # Fix directory permissions for PostgreSQL (required: 0700 or 0750)
 echo "Setting correct permissions for PostgreSQL data directory..."
+mkdir -p "$PG_DATA_DIR"
 chmod 700 "$PG_DATA_DIR"
 if [ $? -eq 0 ]; then
     echo "✅ Directory permissions set to 700 (owner read/write/execute only)"
