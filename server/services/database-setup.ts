@@ -113,10 +113,17 @@ export class DatabaseSetup {
       
       // Check if DATABASE_URL is provided (production/Replit environment)
       if (process.env.DATABASE_URL) {
+        console.log('Using DATABASE_URL for PostgreSQL connection');
         pool = new Pool({
           connectionString: process.env.DATABASE_URL,
         });
+        
+        // Test the connection quickly
+        const testClient = await pool.connect();
+        await testClient.query('SELECT 1');
+        testClient.release();
       } else {
+        console.log('DATABASE_URL not found, trying local PostgreSQL configurations...');
         // Local development setup - try multiple common configurations
         const possibleConfigs = [
           // First try the database that the startup script creates
