@@ -216,6 +216,9 @@ export class ConnectionManager {
           // Execute DynamoDB query - determine operation type based on query structure
           const dynamoQuery = query as any;
           
+          // Import the required commands dynamically to avoid bundling issues
+          const { QueryCommand, ScanCommand } = await import('@aws-sdk/lib-dynamodb');
+          
           // Determine operation type based on query structure
           let operation: string;
           if (dynamoQuery.KeyConditionExpression) {
@@ -228,11 +231,13 @@ export class ConnectionManager {
           
           switch (operation) {
             case 'query':
-              dynamoResult = await client.query(dynamoQuery);
+              const queryCommand = new QueryCommand(dynamoQuery);
+              dynamoResult = await client.send(queryCommand);
               break;
               
             case 'scan':
-              dynamoResult = await client.scan(dynamoQuery);
+              const scanCommand = new ScanCommand(dynamoQuery);
+              dynamoResult = await client.send(scanCommand);
               break;
               
             default:
