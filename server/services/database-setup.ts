@@ -113,16 +113,9 @@ export class DatabaseSetup {
       
       // Check if DATABASE_URL is provided (production/Replit environment)
       if (process.env.DATABASE_URL) {
-        console.log(`Using DATABASE_URL for PostgreSQL connection`);
         pool = new Pool({
           connectionString: process.env.DATABASE_URL,
         });
-        
-        // Test the connection
-        const testClient = await pool.connect();
-        await testClient.query('SELECT 1');
-        testClient.release();
-        console.log(`✅ DATABASE_URL connection successful`);
       } else {
         // Local development setup - try multiple common configurations
         const possibleConfigs = [
@@ -162,17 +155,14 @@ export class DatabaseSetup {
         
         for (const pgConfig of possibleConfigs) {
           try {
-            console.log(`Trying PostgreSQL config: ${JSON.stringify(pgConfig, null, 2)}`);
             const testPool = new Pool(pgConfig);
             // Test this configuration
             const testClient = await testPool.connect();
             await testClient.query('SELECT 1');
             testClient.release();
             poolToUse = testPool;
-            console.log(`✅ PostgreSQL connection successful with config: ${JSON.stringify(pgConfig, null, 2)}`);
             break; // Success, use this config
           } catch (err: any) {
-            console.log(`❌ PostgreSQL config failed: ${err.message}`);
             connectionError = err;
             continue; // Try next config
           }
