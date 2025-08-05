@@ -117,9 +117,12 @@ fi
 echo "Starting Elasticsearch PostgreSQL Layer on port 9200..."
 
 if [ "$USING_OPENSEARCH" = "1" ]; then
-    # Create OpenSearch configuration without security
+    # Create OpenSearch configuration directory and file
     mkdir -p ./server/data/opensearch-config
-    cat > ./server/data/opensearch-config/opensearch-pg.yml << 'EOF'
+    
+    # Create opensearch.yml with security disabled
+    cat > ./server/data/opensearch-config/opensearch.yml << 'EOF'
+# OpenSearch Configuration - Security Disabled
 cluster.name: universal-query-postgresql
 node.name: postgresql-layer
 network.host: 127.0.0.1
@@ -129,13 +132,13 @@ path.data: ./server/data/elasticsearch/postgresql-layer
 path.logs: ./server/data/elasticsearch/logs
 action.auto_create_index: true
 cluster.routing.allocation.disk.threshold_enabled: false
+
+# Disable security plugin
+plugins.security.disabled: true
 EOF
     
-    # OpenSearch-compatible configuration using config file
-    "$ELASTICSEARCH_BIN" \
-        -d \
-        -Epath.conf=./server/data/opensearch-config \
-        -Econfig=./server/data/opensearch-config/opensearch-pg.yml
+    # Start OpenSearch with custom configuration
+    OPENSEARCH_PATH_CONF=./server/data/opensearch-config "$ELASTICSEARCH_BIN" -d
 else
     # Elasticsearch configuration
     "$ELASTICSEARCH_BIN" \
@@ -159,9 +162,10 @@ fi
 echo "Starting Elasticsearch DynamoDB Layer on port 9201..."
 
 if [ "$USING_OPENSEARCH" = "1" ]; then
-    # Create OpenSearch configuration without security
+    # Create opensearch.yml for DynamoDB layer
     cat > ./server/data/opensearch-config/opensearch-dynamo.yml << 'EOF'
-cluster.name: universal-query-dynamodb
+# OpenSearch Configuration - Security Disabled
+cluster.name: universal-query-dynamodb  
 node.name: dynamodb-layer
 network.host: 127.0.0.1
 http.port: 9201
@@ -170,13 +174,13 @@ path.data: ./server/data/elasticsearch/dynamodb-layer
 path.logs: ./server/data/elasticsearch/logs
 action.auto_create_index: true
 cluster.routing.allocation.disk.threshold_enabled: false
+
+# Disable security plugin
+plugins.security.disabled: true
 EOF
     
-    # OpenSearch-compatible configuration using config file
-    "$ELASTICSEARCH_BIN" \
-        -d \
-        -Epath.conf=./server/data/opensearch-config \
-        -Econfig=./server/data/opensearch-config/opensearch-dynamo.yml
+    # Start OpenSearch with custom configuration for DynamoDB layer
+    OPENSEARCH_PATH_CONF=./server/data/opensearch-config "$ELASTICSEARCH_BIN" -d -Econfig=./server/data/opensearch-config/opensearch-dynamo.yml
 else
     # Elasticsearch configuration
     "$ELASTICSEARCH_BIN" \
