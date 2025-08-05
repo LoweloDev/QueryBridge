@@ -117,19 +117,25 @@ fi
 echo "Starting Elasticsearch PostgreSQL Layer on port 9200..."
 
 if [ "$USING_OPENSEARCH" = "1" ]; then
-    # OpenSearch-compatible configuration
+    # Create OpenSearch configuration without security
+    mkdir -p ./server/data/opensearch-config
+    cat > ./server/data/opensearch-config/opensearch-pg.yml << 'EOF'
+cluster.name: universal-query-postgresql
+node.name: postgresql-layer
+network.host: 127.0.0.1
+http.port: 9200
+discovery.type: single-node
+path.data: ./server/data/elasticsearch/postgresql-layer
+path.logs: ./server/data/elasticsearch/logs
+action.auto_create_index: true
+cluster.routing.allocation.disk.threshold_enabled: false
+EOF
+    
+    # OpenSearch-compatible configuration using config file
     "$ELASTICSEARCH_BIN" \
         -d \
-        -E cluster.name=universal-query-postgresql \
-        -E node.name=postgresql-layer \
-        -E network.host=127.0.0.1 \
-        -E http.port=9200 \
-        -E discovery.type=single-node \
-        -E path.data=./server/data/elasticsearch/postgresql-layer \
-        -E path.logs=./server/data/elasticsearch/logs \
-        -E plugins.security.disabled=true \
-        -E action.auto_create_index=true \
-        -E cluster.routing.allocation.disk.threshold_enabled=false
+        -Epath.conf=./server/data/opensearch-config \
+        -Econfig=./server/data/opensearch-config/opensearch-pg.yml
 else
     # Elasticsearch configuration
     "$ELASTICSEARCH_BIN" \
@@ -153,19 +159,24 @@ fi
 echo "Starting Elasticsearch DynamoDB Layer on port 9201..."
 
 if [ "$USING_OPENSEARCH" = "1" ]; then
-    # OpenSearch-compatible configuration
+    # Create OpenSearch configuration without security
+    cat > ./server/data/opensearch-config/opensearch-dynamo.yml << 'EOF'
+cluster.name: universal-query-dynamodb
+node.name: dynamodb-layer
+network.host: 127.0.0.1
+http.port: 9201
+discovery.type: single-node
+path.data: ./server/data/elasticsearch/dynamodb-layer
+path.logs: ./server/data/elasticsearch/logs
+action.auto_create_index: true
+cluster.routing.allocation.disk.threshold_enabled: false
+EOF
+    
+    # OpenSearch-compatible configuration using config file
     "$ELASTICSEARCH_BIN" \
         -d \
-        -E cluster.name=universal-query-dynamodb \
-        -E node.name=dynamodb-layer \
-        -E network.host=127.0.0.1 \
-        -E http.port=9201 \
-        -E discovery.type=single-node \
-        -E path.data=./server/data/elasticsearch/dynamodb-layer \
-        -E path.logs=./server/data/elasticsearch/logs \
-        -E plugins.security.disabled=true \
-        -E action.auto_create_index=true \
-        -E cluster.routing.allocation.disk.threshold_enabled=false
+        -Epath.conf=./server/data/opensearch-config \
+        -Econfig=./server/data/opensearch-config/opensearch-dynamo.yml
 else
     # Elasticsearch configuration
     "$ELASTICSEARCH_BIN" \
