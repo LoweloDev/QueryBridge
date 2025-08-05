@@ -14,6 +14,10 @@ if [ -d "/opt/homebrew/opt/postgresql@15/bin" ]; then
     export PATH="/opt/homebrew/opt/postgresql@15/bin:$PATH"
 elif [ -d "/usr/local/opt/postgresql@15/bin" ]; then
     export PATH="/usr/local/opt/postgresql@15/bin:$PATH"
+elif [ -d "/opt/homebrew/opt/postgresql/bin" ]; then
+    export PATH="/opt/homebrew/opt/postgresql/bin:$PATH"
+elif [ -d "/usr/local/opt/postgresql/bin" ]; then
+    export PATH="/usr/local/opt/postgresql/bin:$PATH"
 fi
 
 # Check if PostgreSQL is installed
@@ -46,7 +50,7 @@ fi
 if command -v brew >/dev/null 2>&1; then
     if brew services list | grep postgresql | grep started >/dev/null 2>&1; then
         echo "Found Homebrew PostgreSQL service running. Stopping it..."
-        brew services stop postgresql@15 2>/dev/null || brew services stop postgresql 2>/dev/null || true
+        brew services stop postgresql@15 2>/dev/null || brew services stop postgresql@14 2>/dev/null || brew services stop postgresql 2>/dev/null || true
         sleep 3
     fi
 fi
