@@ -119,6 +119,13 @@ export class DatabaseSetup {
       } else {
         // Local development setup - try multiple common configurations
         const possibleConfigs = [
+          // First try the database that the startup script creates
+          {
+            host: 'localhost',
+            port: 5432,
+            user: process.env.USER || 'postgres',
+            database: 'querybridge_dev'
+          },
           {
             host: config.host || 'localhost',
             port: config.port || 5432,
