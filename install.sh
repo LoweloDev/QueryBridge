@@ -295,31 +295,79 @@ fi
 # Check and install Elasticsearch
 print_step "9" "Installing Elasticsearch"
 if command_exists elasticsearch; then
-    echo "✅ Elasticsearch found"
+    ELASTICSEARCH_VERSION=$(elasticsearch --version 2>/dev/null | head -1 || echo "Version unknown")
+    echo "✅ Elasticsearch found: $ELASTICSEARCH_VERSION"
+elif command_exists opensearch; then
+    OPENSEARCH_VERSION=$(opensearch --version 2>/dev/null | head -1 || echo "Version unknown")
+    echo "✅ OpenSearch found (Elasticsearch alternative): $OPENSEARCH_VERSION"
 else
     echo "📦 Installing Elasticsearch..."
     if [ "$OS" = "macOS" ]; then
-        # Use official Elasticsearch instead of the problematic tap
-        if brew install elasticsearch >/dev/null 2>&1; then
-            echo "✅ Elasticsearch installed via Homebrew"
+        echo "   Note: Homebrew Elasticsearch packages have known issues in 2025"
+        echo "   Trying installation methods in order of reliability..."
+        
+        # Method 1: Try OpenSearch (more reliable alternative)
+        echo "   Installing OpenSearch (Elasticsearch-compatible alternative)..."
+        if brew install opensearch 2>/dev/null; then
+            echo "✅ OpenSearch installed successfully"
+            echo "   OpenSearch is fully compatible with Elasticsearch queries"
+            export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+            ELASTICSEARCH_INSTALLED=1
         else
-            echo "⚠️  Elasticsearch installation failed via Homebrew"
-            echo "   You can install manually or skip Elasticsearch for now"
-            echo "   The application will work with other databases"
+            echo "   OpenSearch installation failed, trying Elasticsearch..."
+            
+            # Method 2: Try Elasticsearch (known to be problematic)
+            echo "   Attempting Elasticsearch via Homebrew (may fail)..."
+            if brew tap elastic/tap >/dev/null 2>&1 && brew install elastic/tap/elasticsearch-full >/dev/null 2>&1; then
+                echo "✅ Elasticsearch installed via elastic/tap/elasticsearch-full"
+                export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+                ELASTICSEARCH_INSTALLED=1
+            else
+                echo "   ⚠️  Homebrew installation methods failed (expected)"
+                echo ""
+                echo "   Alternative installation options:"
+                echo "   1. Manual Homebrew: brew tap elastic/tap && brew install elastic/tap/elasticsearch-full"
+                echo "   2. Docker: docker run -p 9200:9200 -e discovery.type=single-node docker.elastic.co/elasticsearch/elasticsearch:8.15.0"
+                echo "   3. Direct download: The startup script will handle this automatically"
+                echo ""
+                echo "   ✅ The startup script will download Elasticsearch automatically when needed"
+                ELASTICSEARCH_MANUAL=1
+            fi
+        fi
+        
+        # Add to shell profiles for persistent PATH (only if installation succeeded)
+        if [ "$ELASTICSEARCH_INSTALLED" = "1" ]; then
+            for profile in ~/.zshrc ~/.bash_profile ~/.profile; do
+                if [ -f "$profile" ] && ! grep -q "/opt/homebrew/bin" "$profile"; then
+                    echo 'export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"' >> "$profile" 2>/dev/null || true
+                fi
+            done
+            
+            # Test the installation
+            if command -v elasticsearch >/dev/null 2>&1; then
+                echo "   ✅ Elasticsearch binary found in PATH"
+            elif command -v opensearch >/dev/null 2>&1; then
+                echo "   ✅ OpenSearch binary found in PATH"
+            else
+                echo "   ⚠️  Binary not in PATH, startup script will handle this"
+            fi
+        elif [ "$ELASTICSEARCH_MANUAL" = "1" ]; then
+            echo "   The application will work with other databases while Elasticsearch downloads automatically"
         fi
     elif [ "$OS" = "Linux" ]; then
-        # Install Elasticsearch on Linux with error handling
-        if wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add - >/dev/null 2>&1; then
+        # Install Elasticsearch on Linux with improved error handling
+        if wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch 2>/dev/null | sudo apt-key add - >/dev/null 2>&1; then
             echo "deb https://artifacts.elastic.co/packages/8.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-8.x.list >/dev/null
             if sudo apt-get update >/dev/null 2>&1 && sudo apt-get install -y elasticsearch >/dev/null 2>&1; then
                 echo "✅ Elasticsearch installed via package manager"
+                sudo systemctl enable elasticsearch >/dev/null 2>&1 || true
             else
                 echo "⚠️  Elasticsearch installation failed"
-                echo "   Continuing without Elasticsearch"
+                echo "   The startup script will download a local copy automatically"
             fi
         else
             echo "⚠️  Could not add Elasticsearch repository"
-            echo "   Continuing without Elasticsearch"
+            echo "   The startup script will download a local copy automatically"
         fi
     fi
 fi

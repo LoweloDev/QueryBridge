@@ -1,13 +1,14 @@
 /**
  * Real Database Setup and Connection Establishment
- * 
+ *
  * This establishes real database connections and provides them to the library.
  * The test backend handles database setup, not the library.
  */
 
-import { Pool, neonConfig } from '@neondatabase/serverless';
+import { Pool as NeonPool, neonConfig } from '@neondatabase/serverless';
+import { Pool as PgPool } from 'pg';
 import { MongoClient } from 'mongodb';
-import { Client as ElasticsearchClient } from '@elastic/elasticsearch';
+import { Client as OpenSearchClient } from '@opensearch-project/opensearch';
 import { DynamoDBClient, ListTablesCommand } from '@aws-sdk/client-dynamodb';
 import Redis from 'ioredis';
 import type { DatabaseConnection, ActiveConnection } from "universal-query-translator";
@@ -29,7 +30,8 @@ export class DatabaseSetup {
         type: 'postgresql',
         host: process.env.PGHOST || 'localhost',
         port: parseInt(process.env.PGPORT || '5432'),
-        database: process.env.PGDATABASE || 'postgres'
+        database: process.env.PGDATABASE || 'postgres',
+        username: process.env.PGUSER || process.env.USER || 'postgres'
       },
       {
         id: 'mongodb-analytics',
@@ -108,31 +110,106 @@ export class DatabaseSetup {
 
   private async setupPostgreSQL(config: DatabaseConnection): Promise<void> {
     try {
-      let pool: Pool;
-      
+      let pool: NeonPool | PgPool;
+
       // Check if DATABASE_URL is provided (production/Replit environment)
-      if (process.env.DATABASE_URL) {
-        pool = new Pool({
+      if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('neon.tech')) {
+        // Use Neon client for Replit/serverless environment
+        pool = new NeonPool({
           connectionString: process.env.DATABASE_URL,
         });
+        console.log('Using Neon PostgreSQL client for serverless environment');
+      } else if (process.env.DATABASE_URL && process.env.DATABASE_URL !== 'postgresql://user:password@host:port/database') {
+        // Use regular pg client for local DATABASE_URL
+        pool = new PgPool({
+          connectionString: process.env.DATABASE_URL,
+        });
+        console.log('Using standard PostgreSQL client with DATABASE_URL');
       } else {
-        // Local development setup
-        const connectionConfig = {
-          host: config.host || 'localhost',
-          port: config.port || 5432,
-          user: config.username || process.env.USER || 'postgres',
-          database: config.database || 'querybridge_dev',
-          // For local development, we often don't need a password
-          ...(config.password && { password: config.password })
-        };
-        
-        pool = new Pool(connectionConfig);
-      }
+        // Local development setup - try multiple common configurations
+        const possibleConfigs = [
+          // Try DATABASE_URL if it's already updated by startup script
+          ...(process.env.DATABASE_URL && process.env.DATABASE_URL !== 'postgresql://user:password@host:port/database' ? [{
+            connectionString: process.env.DATABASE_URL
+          }] : []),
+          // Primary: Match the exact working CLI connection (tobiasbarthold@localhost:5432/querybridge_dev)
+          {
+            host: 'localhost',
+            port: 5432,
+            user: 'tobiasbarthold',
+            database: 'querybridge_dev'
+          },
+          // Secondary: Use actual USER environment variable
+          {
+            host: 'localhost',
+            port: 5432,
+            user: process.env.USER || 'postgres',
+            database: 'querybridge_dev'
+          },
+          // Try with current user and default postgres database
+          {
+            host: 'localhost',
+            port: 5432,
+            user: process.env.USER || 'postgres',
+            database: 'postgres'
+          },
+          // Try with environment variables from .env
+          {
+            host: process.env.PGHOST || 'localhost',
+            port: parseInt(process.env.PGPORT || '5432'),
+            user: process.env.PGUSER || process.env.USER || 'postgres',
+            database: process.env.PGDATABASE || 'querybridge_dev'
+          },
+          {
+            host: config.host || 'localhost',
+            port: config.port || 5432,
+            user: config.username || process.env.USER || 'postgres',
+            database: config.database || 'postgres',
+            // For local development, we often don't need a password
+            ...(config.password && { password: config.password })
+          },
+          // Standard postgres user setup
+          {
+            host: 'localhost',
+            port: 5432,
+            user: 'postgres',
+            database: 'postgres'
+          }
+        ];
 
-      // Test the connection
-      const client = await pool.connect();
-      await client.query('SELECT 1');
-      client.release();
+        let connectionError: Error | null = null;
+        let poolToUse: PgPool | null = null;
+
+        console.log('Using standard PostgreSQL client for local development');
+
+        for (const pgConfig of possibleConfigs) {
+          try {
+            console.log(`Trying PostgreSQL config:`, {
+              ...pgConfig,
+              password: 'password' in pgConfig && pgConfig.password ? '[HIDDEN]' : 'none'
+            });
+            const testPool = new PgPool(pgConfig);
+            // Test this configuration
+            const testClient = await testPool.connect();
+            await testClient.query('SELECT 1');
+            testClient.release();
+            poolToUse = testPool;
+            console.log(`✅ PostgreSQL connection successful with config`);
+            break; // Success, use this config
+          } catch (err: any) {
+            console.log(`❌ PostgreSQL config failed:`, err.message);
+            connectionError = err;
+            continue; // Try next config
+          }
+        }
+
+        if (!poolToUse) {
+          console.log('All PostgreSQL configurations failed. Last error:', connectionError?.message);
+          throw connectionError || new Error('No working PostgreSQL configuration found');
+        }
+
+        pool = poolToUse;
+      }
 
       this.connections.set(config.id, {
         client: pool,
@@ -246,11 +323,17 @@ export class DatabaseSetup {
 
   private async setupElasticsearch(config: DatabaseConnection): Promise<void> {
     try {
-      const client = new ElasticsearchClient({
-        node: `http://${config.host}:${config.port}`
+      // Use OpenSearch client directly - no more detection issues!
+      const client = new OpenSearchClient({
+        node: `http://${config.host}:${config.port}`,
+        requestTimeout: 5000,
+        pingTimeout: 3000,
+        sniffOnStart: false,
+        sniffOnConnectionFault: false
       });
 
-      await client.ping();
+      // Test connection with cluster health
+      await client.cluster.health({ timeout: '5s' });
 
       this.connections.set(config.id, {
         client,
@@ -259,7 +342,7 @@ export class DatabaseSetup {
         lastUsed: new Date()
       });
 
-      console.log(`Successfully connected to Elasticsearch: ${config.name}`);
+      console.log(`Successfully connected to OpenSearch: ${config.name}`);
     } catch (error: any) {
       throw new Error(`Elasticsearch connection failed: ${error.message}`);
     }

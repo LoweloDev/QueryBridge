@@ -89,20 +89,18 @@ if command -v lsof >/dev/null 2>&1; then
 fi
 
 # Create and fix permissions for data directory
-if [ ! -d "$PG_DATA_DIR" ]; then
-    echo "Creating PostgreSQL data directory: $PG_DATA_DIR"
-    mkdir -p "$PG_DATA_DIR"
-fi
+mkdir -p "$PG_DATA_DIR"
 
 # Check for PostgreSQL version compatibility
 if [ -f "$PG_DATA_DIR/PG_VERSION" ]; then
     DATA_PG_VERSION=$(cat "$PG_DATA_DIR/PG_VERSION")
-    CURRENT_PG_VERSION=$(pg_ctl --version | grep -oE '[0-9]+\.[0-9]+' | head -1)
+    CURRENT_PG_MAJOR=$(pg_ctl --version | grep -oE '[0-9]+' | head -1)
     
-    if [ "$DATA_PG_VERSION" != "$CURRENT_PG_VERSION" ]; then
-        echo "⚠️  PostgreSQL version mismatch detected:"
+    # Compare major versions only (15.13 and 15 are compatible)
+    if [ "$DATA_PG_VERSION" != "$CURRENT_PG_MAJOR" ]; then
+        echo "⚠️  PostgreSQL major version mismatch detected:"
         echo "   Data directory: PostgreSQL $DATA_PG_VERSION"
-        echo "   Current binary: PostgreSQL $CURRENT_PG_VERSION"
+        echo "   Current binary: PostgreSQL $CURRENT_PG_MAJOR"
         echo ""
         echo "The existing data directory is incompatible with your PostgreSQL version."
         echo "This will remove the old data directory and create a fresh one."
@@ -119,19 +117,22 @@ if [ -f "$PG_DATA_DIR/PG_VERSION" ]; then
             exit 1
         fi
     fi
+else
+    echo "✅ No existing PostgreSQL data found or versions compatible"
 fi
 
 # Fix directory permissions for PostgreSQL (required: 0700 or 0750)
-echo "Setting correct permissions for PostgreSQL data directory..."
-mkdir -p "$PG_DATA_DIR"
-chmod 700 "$PG_DATA_DIR"
-if [ $? -eq 0 ]; then
-    echo "✅ Directory permissions set to 700 (owner read/write/execute only)"
-else
-    echo "❌ Failed to set directory permissions. You may need to run:"
-    echo "   sudo chmod 700 '$PG_DATA_DIR'"
-    echo "   sudo chown $(whoami) '$PG_DATA_DIR'"
-    exit 1
+if [ ! -f "$PG_DATA_DIR/postgresql.conf" ]; then
+    echo "Setting correct permissions for PostgreSQL data directory..."
+    chmod 700 "$PG_DATA_DIR"
+    if [ $? -eq 0 ]; then
+        echo "✅ Directory permissions set to 700 (owner read/write/execute only)"
+    else
+        echo "❌ Failed to set directory permissions. You may need to run:"
+        echo "   sudo chmod 700 '$PG_DATA_DIR'"
+        echo "   sudo chown $(whoami) '$PG_DATA_DIR'"
+        exit 1
+    fi
 fi
 
 # Initialize data directory if it doesn't exist
@@ -221,9 +222,32 @@ for i in {1..10}; do
         echo "- Database: querybridge_dev"
         echo "- User: $USER"
         echo "- Data directory: $PG_DATA_DIR"
-        echo ""
-        echo "Add to your .env file:"
-        echo "DATABASE_URL=postgresql://$USER@localhost:5432/querybridge_dev"
+        
+        # Update .env file automatically
+        LOCAL_DATABASE_URL="postgresql://$USER@localhost:5432/querybridge_dev"
+        PROJECT_ROOT=$(cd "$(dirname "$0")/../.." && pwd)
+        ENV_FILE="$PROJECT_ROOT/.env"
+        
+        if [ -f "$ENV_FILE" ]; then
+            # Update existing DATABASE_URL or add if not present
+            if grep -q "^DATABASE_URL=" "$ENV_FILE"; then
+                # Update existing line
+                if [[ "$OSTYPE" == "darwin"* ]]; then
+                    sed -i '' "s|^DATABASE_URL=.*|DATABASE_URL=$LOCAL_DATABASE_URL|" "$ENV_FILE"
+                else
+                    sed -i "s|^DATABASE_URL=.*|DATABASE_URL=$LOCAL_DATABASE_URL|" "$ENV_FILE"
+                fi
+                echo "✅ Updated DATABASE_URL in .env file"
+            else
+                # Add new line
+                echo "DATABASE_URL=$LOCAL_DATABASE_URL" >> "$ENV_FILE"
+                echo "✅ Added DATABASE_URL to .env file"
+            fi
+        else
+            # Create new .env file
+            echo "DATABASE_URL=$LOCAL_DATABASE_URL" > "$ENV_FILE"
+            echo "✅ Created .env file with DATABASE_URL"
+        fi
         
         exit 0
     fi
