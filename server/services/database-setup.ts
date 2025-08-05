@@ -7,7 +7,7 @@
 
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import { MongoClient } from 'mongodb';
-import { Client as ElasticsearchClient } from '@elastic/elasticsearch';
+import { Client as OpenSearchClient } from '@opensearch-project/opensearch';
 import { DynamoDBClient, ListTablesCommand } from '@aws-sdk/client-dynamodb';
 import Redis from 'ioredis';
 import type { DatabaseConnection, ActiveConnection } from "universal-query-translator";
@@ -280,37 +280,17 @@ export class DatabaseSetup {
 
   private async setupElasticsearch(config: DatabaseConnection): Promise<void> {
     try {
-      // Create client with aggressive settings to bypass OpenSearch detection
-      const client = new ElasticsearchClient({
+      // Use OpenSearch client directly - no more detection issues!
+      const client = new OpenSearchClient({
         node: `http://${config.host}:${config.port}`,
-        // Disable all product checking mechanisms
-        enableMetaHeader: false,
-        // Override default headers that trigger detection
-        headers: {
-          'User-Agent': 'elasticsearch-js/8.0.0'
-        },
-        // Disable sniffing which can trigger product checks
-        sniffOnStart: false,
-        sniffOnConnectionFault: false,
-        // Set maxRetries to 0 to avoid multiple detection attempts
-        maxRetries: 0,
-        // Use basic transport without advanced features
         requestTimeout: 5000,
-        pingTimeout: 3000
+        pingTimeout: 3000,
+        sniffOnStart: false,
+        sniffOnConnectionFault: false
       });
 
-      // Test connection with a basic health check that doesn't trigger product detection
-      try {
-        // First try a simple cluster health check
-        await client.cluster.health({ timeout: '5s' });
-      } catch (healthError: any) {
-        // If health check fails due to product detection, try direct transport
-        await client.transport.request({
-          method: 'GET',
-          path: '/_cluster/health',
-          querystring: { timeout: '5s' }
-        });
-      }
+      // Test connection with cluster health
+      await client.cluster.health({ timeout: '5s' });
 
       this.connections.set(config.id, {
         client,
@@ -319,7 +299,7 @@ export class DatabaseSetup {
         lastUsed: new Date()
       });
 
-      console.log(`Successfully connected to Elasticsearch: ${config.name}`);
+      console.log(`Successfully connected to OpenSearch: ${config.name}`);
     } catch (error: any) {
       throw new Error(`Elasticsearch connection failed: ${error.message}`);
     }
