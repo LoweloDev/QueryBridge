@@ -94,12 +94,13 @@ mkdir -p "$PG_DATA_DIR"
 # Check for PostgreSQL version compatibility
 if [ -f "$PG_DATA_DIR/PG_VERSION" ]; then
     DATA_PG_VERSION=$(cat "$PG_DATA_DIR/PG_VERSION")
-    CURRENT_PG_VERSION=$(pg_ctl --version | grep -oE '[0-9]+\.[0-9]+' | head -1)
+    CURRENT_PG_MAJOR=$(pg_ctl --version | grep -oE '[0-9]+' | head -1)
     
-    if [ "$DATA_PG_VERSION" != "$CURRENT_PG_VERSION" ]; then
-        echo "⚠️  PostgreSQL version mismatch detected:"
+    # Compare major versions only (15.13 and 15 are compatible)
+    if [ "$DATA_PG_VERSION" != "$CURRENT_PG_MAJOR" ]; then
+        echo "⚠️  PostgreSQL major version mismatch detected:"
         echo "   Data directory: PostgreSQL $DATA_PG_VERSION"
-        echo "   Current binary: PostgreSQL $CURRENT_PG_VERSION"
+        echo "   Current binary: PostgreSQL $CURRENT_PG_MAJOR"
         echo ""
         echo "The existing data directory is incompatible with your PostgreSQL version."
         echo "This will remove the old data directory and create a fresh one."
@@ -116,6 +117,8 @@ if [ -f "$PG_DATA_DIR/PG_VERSION" ]; then
             exit 1
         fi
     fi
+else
+    echo "✅ No existing PostgreSQL data found or versions compatible"
 fi
 
 # Fix directory permissions for PostgreSQL (required: 0700 or 0750)
