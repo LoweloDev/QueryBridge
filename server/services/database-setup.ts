@@ -55,7 +55,7 @@ export class DatabaseSetup {
         type: 'dynamodb',
         host: 'localhost',
         port: 8000,
-        database: 'users',
+        database: 'main',
         region: 'us-east-1'
       },
       {

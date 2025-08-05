@@ -1,6 +1,6 @@
 /**
  * Dataset Management Service
- * 
+ *
  * Handles loading example datasets into all database types
  * and provides reset functionality for testing environments.
  */
@@ -12,32 +12,32 @@ import { Client as OpenSearchClient } from '@opensearch-project/opensearch';
 import { DynamoDBClient, CreateTableCommand, DescribeTableCommand, ListTablesCommand } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand, ScanCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
 import Redis from 'ioredis';
-import { 
-  exampleDatasets, 
-  postgresqlDataset, 
-  mongodbDataset, 
-  dynamodbDataset, 
-  redisDataset, 
-  elasticsearchDataset 
+import {
+  exampleDatasets,
+  postgresqlDataset,
+  mongodbDataset,
+  dynamodbDataset,
+  redisDataset,
+  elasticsearchDataset
 } from '../data/example-datasets';
 import type { ActiveConnection } from "universal-query-translator";
 
 export class DatasetManager {
-  
+
   /**
    * Load example dataset into PostgreSQL
    */
   async loadPostgreSQLDataset(connection: ActiveConnection): Promise<void> {
     const client = connection.client as NeonPool | PgPool;
-    
+
     try {
       // Create tables
       await client.query({ text: postgresqlDataset.createTables });
-      
+
       // Insert data
       const insertSQL = postgresqlDataset.insertData(exampleDatasets);
       await client.query({ text: insertSQL });
-      
+
       console.log('PostgreSQL example dataset loaded successfully');
     } catch (error) {
       console.error('Failed to load PostgreSQL dataset:', error);
@@ -50,10 +50,10 @@ export class DatasetManager {
    */
   async resetPostgreSQLDatabase(connection: ActiveConnection): Promise<void> {
     const client = connection.client as NeonPool | PgPool;
-    
+
     try {
       // Drop tables in correct order (respecting foreign key constraints)
-      await client.query({ 
+      await client.query({
         text: `
           DROP TABLE IF EXISTS reviews CASCADE;
           DROP TABLE IF EXISTS orders CASCADE; 
@@ -62,10 +62,10 @@ export class DatasetManager {
           DROP TABLE IF EXISTS users CASCADE;
         `
       });
-      
+
       // Reload dataset
       await this.loadPostgreSQLDataset(connection);
-      
+
       console.log('PostgreSQL database reset and dataset reloaded');
     } catch (error) {
       console.error('Failed to reset PostgreSQL database:', error);
@@ -79,23 +79,23 @@ export class DatasetManager {
   async loadMongoDBDataset(connection: ActiveConnection): Promise<void> {
     const client = connection.client as MongoClient;
     const config = connection.config;
-    
+
     try {
       const db = client.db(config.database || 'analytics');
-      
+
       // Insert data into collections
       for (const [collectionName, documents] of Object.entries(mongodbDataset.collections)) {
         const collection = db.collection(collectionName);
-        
+
         // Clear existing data
         await collection.deleteMany({});
-        
+
         // Insert new data
         if (documents.length > 0) {
           await collection.insertMany(documents);
         }
       }
-      
+
       console.log('MongoDB example dataset loaded successfully');
     } catch (error) {
       console.error('Failed to load MongoDB dataset:', error);
@@ -109,19 +109,19 @@ export class DatasetManager {
   async resetMongoDBDatabase(connection: ActiveConnection): Promise<void> {
     const client = connection.client as MongoClient;
     const config = connection.config;
-    
+
     try {
       const db = client.db(config.database || 'analytics');
-      
+
       // Drop all collections
       const collections = await db.listCollections().toArray();
       for (const collection of collections) {
         await db.dropCollection(collection.name);
       }
-      
+
       // Reload dataset
       await this.loadMongoDBDataset(connection);
-      
+
       console.log('MongoDB database reset and dataset reloaded');
     } catch (error) {
       console.error('Failed to reset MongoDB database:', error);
@@ -135,11 +135,11 @@ export class DatasetManager {
   async loadDynamoDBDataset(connection: ActiveConnection): Promise<void> {
     const client = connection.client as DynamoDBClient;
     const docClient = DynamoDBDocumentClient.from(client);
-    
+
     try {
       // First, ensure required tables exist
       await this.ensureDynamoDBTables(client);
-      
+
       // Load traditional table design
       for (const [tableName, items] of Object.entries(dynamodbDataset.traditionalTables)) {
         for (const item of items) {
@@ -149,16 +149,17 @@ export class DatasetManager {
           }));
         }
       }
-      
+
       // Load single-table design data into main table
       const mainTableName = connection.config.database || 'main';
+      console.log("MAIN TABLE NAME", mainTableName);
       for (const item of dynamodbDataset.singleTable) {
         await docClient.send(new PutCommand({
           TableName: mainTableName,
           Item: item
         }));
       }
-      
+
       console.log('DynamoDB example dataset loaded successfully');
     } catch (error) {
       console.error('Failed to load DynamoDB dataset:', error);
@@ -172,23 +173,23 @@ export class DatasetManager {
   async resetDynamoDBDatabase(connection: ActiveConnection): Promise<void> {
     const client = connection.client as DynamoDBClient;
     const docClient = DynamoDBDocumentClient.from(client);
-    
+
     try {
       // First, ensure required tables exist
       await this.ensureDynamoDBTables(client);
-      
+
       // Clear traditional tables
       for (const tableName of Object.keys(dynamodbDataset.traditionalTables)) {
         await this.clearDynamoDBTable(docClient, tableName);
       }
-      
+
       // Clear main single-table
       const mainTableName = connection.config.database || 'main';
       await this.clearDynamoDBTable(docClient, mainTableName);
-      
+
       // Reload dataset
       await this.loadDynamoDBDataset(connection);
-      
+
       console.log('DynamoDB database reset and dataset reloaded');
     } catch (error) {
       console.error('Failed to reset DynamoDB database:', error);
@@ -199,30 +200,30 @@ export class DatasetManager {
   private async clearDynamoDBTable(docClient: DynamoDBDocumentClient, tableName: string): Promise<void> {
     try {
       let lastEvaluatedKey;
-      
+
       do {
         const scanResult: any = await docClient.send(new ScanCommand({
           TableName: tableName,
           ExclusiveStartKey: lastEvaluatedKey
         }));
-        
+
         if (scanResult.Items && scanResult.Items.length > 0) {
           // Delete items in batches
           for (const item of scanResult.Items) {
             // Extract key attributes (assume PK or first attribute is the key)
             const keyNames = Object.keys(item);
             const key = keyNames.length > 0 ? { [keyNames[0]]: item[keyNames[0]] } : item;
-            
+
             await docClient.send(new DeleteCommand({
               TableName: tableName,
               Key: key
             }));
           }
         }
-        
+
         lastEvaluatedKey = scanResult.LastEvaluatedKey;
       } while (lastEvaluatedKey);
-      
+
     } catch (error) {
       // Table might not exist, which is fine for reset - only log for DynamoDB
       if (tableName) {
@@ -236,7 +237,7 @@ export class DatasetManager {
    */
   async loadRedisDataset(connection: ActiveConnection): Promise<void> {
     const client = connection.client as Redis;
-    
+
     try {
       // Load hash sets (user:*, order:*, product:* keys)
       let hashCount = 0;
@@ -248,7 +249,7 @@ export class DatasetManager {
           hashCount++;
         }
       }
-      
+
       // Load sets (users:active, orders:completed, etc.)
       let setCount = 0;
       for (const [key, members] of Object.entries(redisDataset.sets)) {
@@ -260,7 +261,7 @@ export class DatasetManager {
           }
         }
       }
-      
+
       // Load sorted sets (products:by_price, etc.)
       let sortedSetCount = 0;
       for (const [key, items] of Object.entries(redisDataset.sortedSets)) {
@@ -276,7 +277,7 @@ export class DatasetManager {
           }
         }
       }
-      
+
       console.log(`Redis example dataset loaded successfully - ${hashCount} hashes, ${setCount} sets, ${sortedSetCount} sorted sets`);
     } catch (error) {
       console.error('Failed to load Redis dataset:', error);
@@ -289,14 +290,14 @@ export class DatasetManager {
    */
   async resetRedisDatabase(connection: ActiveConnection): Promise<void> {
     const client = connection.client as Redis;
-    
+
     try {
       // Clear all data
       await client.flushdb();
-      
+
       // Reload dataset
       await this.loadRedisDataset(connection);
-      
+
       console.log('Redis database reset and dataset reloaded');
     } catch (error) {
       console.error('Failed to reset Redis database:', error);
@@ -309,7 +310,7 @@ export class DatasetManager {
    */
   async loadElasticsearchDataset(connection: ActiveConnection): Promise<void> {
     const client = connection.client as OpenSearchClient;
-    
+
     try {
       // Create indices with mappings and load documents
       for (const [indexName, indexData] of Object.entries(elasticsearchDataset.indices)) {
@@ -319,7 +320,7 @@ export class DatasetManager {
         } catch (error) {
           // Index doesn't exist, which is fine
         }
-        
+
         // Create index with mappings
         await client.indices.create({
           index: indexName,
@@ -327,7 +328,7 @@ export class DatasetManager {
             mappings: indexData.mappings as any
           }
         });
-        
+
         // Index documents
         for (const doc of indexData.documents) {
           await client.index({
@@ -337,10 +338,10 @@ export class DatasetManager {
           });
         }
       }
-      
+
       // Refresh indices to make documents searchable
       await client.indices.refresh({ index: '_all' });
-      
+
       console.log('Elasticsearch example dataset loaded successfully');
     } catch (error) {
       console.error('Failed to load Elasticsearch dataset:', error);
@@ -353,7 +354,7 @@ export class DatasetManager {
    */
   async resetElasticsearchDatabase(connection: ActiveConnection): Promise<void> {
     const client = connection.client as OpenSearchClient;
-    
+
     try {
       // Delete all indices
       for (const indexName of Object.keys(elasticsearchDataset.indices)) {
@@ -363,10 +364,10 @@ export class DatasetManager {
           // Index doesn't exist, which is fine
         }
       }
-      
+
       // Reload dataset
       await this.loadElasticsearchDataset(connection);
-      
+
       console.log('Elasticsearch database reset and dataset reloaded');
     } catch (error) {
       console.error('Failed to reset Elasticsearch database:', error);
@@ -463,12 +464,12 @@ export class DatasetManager {
         {
           name: 'main',
           keySchema: [
-            { AttributeName: 'PK', KeyType: 'HASH' },
-            { AttributeName: 'SK', KeyType: 'RANGE' }
+            { AttributeName: 'tenant_id', KeyType: 'HASH' },
+            { AttributeName: 'id', KeyType: 'RANGE' }
           ],
           attributeDefinitions: [
-            { AttributeName: 'PK', AttributeType: 'S' },
-            { AttributeName: 'SK', AttributeType: 'S' }
+            { AttributeName: 'tenant_id', AttributeType: 'S' },
+            { AttributeName: 'id', AttributeType: 'S' }
           ]
         }
       ];
@@ -493,7 +494,7 @@ export class DatasetManager {
               const describeResult = await client.send(new DescribeTableCommand({
                 TableName: table.name
               }));
-              
+
               if (describeResult.Table?.TableStatus === 'ACTIVE') {
                 tableActive = true;
               } else {

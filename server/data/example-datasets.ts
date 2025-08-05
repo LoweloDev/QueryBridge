@@ -1,6 +1,6 @@
 /**
  * Comprehensive Example Datasets for All Database Types
- * 
+ *
  * These datasets support all query examples from the documentation
  * and provide realistic data for testing the universal query translator.
  */
@@ -29,7 +29,7 @@ export const exampleDatasets: ExampleDatasets = {
       city: "San Francisco"
     },
     {
-      id: "user-002", 
+      id: "user-002",
       name: "Bob Smith",
       email: "bob@example.com",
       age: 34,
@@ -44,7 +44,7 @@ export const exampleDatasets: ExampleDatasets = {
     {
       id: "user-003",
       name: "Carol Davis",
-      email: "carol@example.com", 
+      email: "carol@example.com",
       age: 31,
       status: "inactive",
       created_at: "2024-03-10T09:12:00Z",
@@ -64,7 +64,7 @@ export const exampleDatasets: ExampleDatasets = {
       last_login: "2024-12-21T09:20:00Z",
       department: "Engineering",
       salary: 92000,
-      country: "USA", 
+      country: "USA",
       city: "Seattle"
     },
     {
@@ -174,7 +174,7 @@ export const exampleDatasets: ExampleDatasets = {
       name: "Wireless Gaming Mouse",
       description: "Ergonomic wireless mouse perfect for gaming and productivity",
       price: 79.99,
-      category_id: "cat-001", 
+      category_id: "cat-001",
       category: "Electronics",
       stock: 150,
       active: true,
@@ -190,7 +190,7 @@ export const exampleDatasets: ExampleDatasets = {
       description: "Comfortable ergonomic office chair with lumbar support",
       price: 299.99,
       category_id: "cat-002",
-      category: "Furniture", 
+      category: "Furniture",
       stock: 45,
       active: true,
       brand: "ComfortPlus",
@@ -257,7 +257,7 @@ export const exampleDatasets: ExampleDatasets = {
       created_at: "2024-01-01T00:00:00Z"
     },
     {
-      id: "cat-002", 
+      id: "cat-002",
       name: "Furniture",
       description: "Office and home furniture items",
       parent_id: null,
@@ -409,10 +409,10 @@ export const postgresqlDataset = {
     CREATE INDEX IF NOT EXISTS idx_products_active ON products(active);
     CREATE INDEX IF NOT EXISTS idx_reviews_product_id ON reviews(product_id);
   `,
-  
+
   insertData: (datasets: ExampleDatasets) => {
     const insertStatements: string[] = [];
-    
+
     // Insert users
     datasets.users.forEach(user => {
       insertStatements.push(`
@@ -554,30 +554,33 @@ export const dynamodbDataset = {
   singleTable: [
     // Users with single-table design
     ...exampleDatasets.users.map(user => ({
-      PK: `USER#${user.id}`,
-      SK: `PROFILE`,
+      tenant_id: `tenant_test`,
       entityType: 'user',
-      GSI1PK: `STATUS#${user.status}`,
-      GSI1SK: user.created_at,
       ...user
     })),
     // Orders with single-table design
     ...exampleDatasets.orders.map(order => ({
-      PK: `USER#${order.user_id}`,
-      SK: `ORDER#${order.id}`,
+      tenant_id: `tenant_test`,
       entityType: 'order',
-      GSI1PK: `STATUS#${order.status}`,
-      GSI1SK: order.created_at,
       ...order
     })),
     // Products with single-table design
     ...exampleDatasets.products.map(product => ({
-      PK: `PRODUCT#${product.id}`,
-      SK: `DETAILS`,
+      tenant_id: `tenant_test`,
       entityType: 'product',
-      GSI1PK: `CATEGORY#${product.category_id}`,
-      GSI1SK: product.created_at,
       ...product
+    })),
+    // Categories with single-table design
+    ...exampleDatasets.categories.map(category => ({
+      tenant_id: `tenant_test`,
+      entityType: 'category',
+      ...category
+    })),
+    // Reviews with single-table design
+    ...exampleDatasets.reviews.map(review => ({
+      tenant_id: `tenant_test`,
+      entityType: 'review',
+      ...review
     }))
   ]
 };
@@ -586,13 +589,13 @@ export const dynamodbDataset = {
 export const redisDataset = {
   // Hash sets for entities
   hashes: {
-    ...Object.fromEntries(exampleDatasets.users.map(user => 
+    ...Object.fromEntries(exampleDatasets.users.map(user =>
       [`user:${user.id}`, user]
     )),
-    ...Object.fromEntries(exampleDatasets.orders.map(order => 
+    ...Object.fromEntries(exampleDatasets.orders.map(order =>
       [`order:${order.id}`, order]
     )),
-    ...Object.fromEntries(exampleDatasets.products.map(product => 
+    ...Object.fromEntries(exampleDatasets.products.map(product =>
       [`product:${product.id}`, product]
     ))
   },
