@@ -531,16 +531,24 @@ export const mongodbDataset = {
 export const dynamodbDataset = {
   traditionalTables: {
     users: exampleDatasets.users.map(user => ({
-      userId: user.id,
+      id: user.id,  // Keep original id field for queries
       ...user
     })),
     orders: exampleDatasets.orders.map(order => ({
-      orderId: order.id,
+      id: order.id,  // Keep original id field for queries
       ...order
     })),
     products: exampleDatasets.products.map(product => ({
-      productId: product.id,
+      id: product.id,  // Keep original id field for queries
       ...product
+    })),
+    categories: exampleDatasets.categories.map(category => ({
+      id: category.id,
+      ...category
+    })),
+    reviews: exampleDatasets.reviews.map(review => ({
+      id: review.id,
+      ...review
     }))
   },
   singleTable: [
