@@ -218,7 +218,7 @@ EOF
 -XX:HeapDumpPath=data
 
 # specify an alternative path for JVM fatal error logs
--XX:ErrorFile=logs/hs_err_pid%p.log
+-XX:ErrorFile=./server/data/elasticsearch/logs/hs_err_pid%p.log
 
 ## JDK 8 GC logging
 8:-XX:+PrintGCDetails
@@ -227,15 +227,13 @@ EOF
 8:-XX:+PrintClassHistogram
 8:-XX:+PrintTenuringDistribution
 8:-XX:+PrintGCApplicationStoppedTime
-8:-Xloggc:logs/gc.log
+8:-Xloggc:./server/data/elasticsearch/logs/gc.log
 8:-XX:+UseGCLogFileRotation
 8:-XX:NumberOfGCLogFiles=32
 8:-XX:GCLogFileSize=64m
 
 # JDK 9+ GC logging
-9-:-Xlog:gc*,gc+age=trace,safepoint:logs/gc.log:utctime,pid,tid,level
-9-:-XX:+UnlockExperimentalVMOptions
-9-:-XX:+UseEpsilonGC
+9-:-Xlog:gc*,gc+age=trace,safepoint:./server/data/elasticsearch/logs/gc.log:utctime,pid,tid,level
 EOF
 
     # Create log4j2.properties file
@@ -250,6 +248,10 @@ appender.console.layout.pattern = [%d{ISO8601}][%-5p][%-25c{1.}] [%node_name]%ma
 rootLogger.level = info
 rootLogger.appenderRef.console.ref = console
 EOF
+    
+    # Ensure log directories exist
+    mkdir -p ./server/data/elasticsearch/logs
+    mkdir -p ./server/data/elasticsearch/postgresql-layer
     
     # Start OpenSearch with custom configuration
     OPENSEARCH_PATH_CONF=./server/data/opensearch-config "$ELASTICSEARCH_BIN" -d
@@ -299,6 +301,9 @@ cluster.routing.allocation.disk.threshold_enabled: false
 # Disable security plugin
 plugins.security.disabled: true
 EOF
+    
+    # Ensure log directories exist for DynamoDB layer
+    mkdir -p ./server/data/elasticsearch/dynamodb-layer
     
     # Start OpenSearch with custom configuration for DynamoDB layer
     OPENSEARCH_PATH_CONF=./server/data/opensearch-config-dynamo "$ELASTICSEARCH_BIN" -d
