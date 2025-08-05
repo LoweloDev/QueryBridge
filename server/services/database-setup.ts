@@ -119,12 +119,30 @@ export class DatabaseSetup {
       } else {
         // Local development setup - try multiple common configurations
         const possibleConfigs = [
+          // Try DATABASE_URL if it's already updated by startup script
+          ...(process.env.DATABASE_URL && process.env.DATABASE_URL !== 'postgresql://user:password@host:port/database' ? [{
+            connectionString: process.env.DATABASE_URL
+          }] : []),
           // First try the database that the startup script creates
           {
             host: 'localhost',
             port: 5432,
             user: process.env.USER || 'postgres',
             database: 'querybridge_dev'
+          },
+          // Try with current user and default postgres database
+          {
+            host: 'localhost',
+            port: 5432,
+            user: process.env.USER || 'postgres',
+            database: 'postgres'
+          },
+          // Try with environment variables from .env
+          {
+            host: process.env.PGHOST || 'localhost',
+            port: parseInt(process.env.PGPORT || '5432'),
+            user: process.env.PGUSER || process.env.USER || 'postgres',
+            database: process.env.PGDATABASE || 'querybridge_dev'
           },
           {
             host: config.host || 'localhost',
@@ -134,14 +152,7 @@ export class DatabaseSetup {
             // For local development, we often don't need a password
             ...(config.password && { password: config.password })
           },
-          // Fallback for macOS Homebrew PostgreSQL
-          {
-            host: 'localhost',
-            port: 5432,
-            user: process.env.USER || 'postgres',
-            database: 'postgres'
-          },
-          // Another common local setup
+          // Standard postgres user setup
           {
             host: 'localhost',
             port: 5432,
@@ -155,20 +166,27 @@ export class DatabaseSetup {
         
         for (const pgConfig of possibleConfigs) {
           try {
+            console.log(`Trying PostgreSQL config:`, { 
+              ...pgConfig, 
+              password: 'password' in pgConfig && pgConfig.password ? '[HIDDEN]' : 'none' 
+            });
             const testPool = new Pool(pgConfig);
             // Test this configuration
             const testClient = await testPool.connect();
             await testClient.query('SELECT 1');
             testClient.release();
             poolToUse = testPool;
+            console.log(`✅ PostgreSQL connection successful with config`);
             break; // Success, use this config
           } catch (err: any) {
+            console.log(`❌ PostgreSQL config failed:`, err.message);
             connectionError = err;
             continue; // Try next config
           }
         }
         
         if (!poolToUse) {
+          console.log('All PostgreSQL configurations failed. Last error:', connectionError?.message);
           throw connectionError || new Error('No working PostgreSQL configuration found');
         }
         
