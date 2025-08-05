@@ -124,7 +124,9 @@ if [ "$USING_OPENSEARCH" = "1" ]; then
     mkdir -p ./server/data/elasticsearch/postgresql-layer
     
     # Use OpenSearch with minimal configuration to avoid classpath issues
-    # This bypasses the complex security agent configuration that's causing problems
+    # Set JVM options as environment variable before starting
+    export OPENSEARCH_JAVA_OPTS="-Xms256m -Xmx256m"
+    
     "$ELASTICSEARCH_BIN" \
         -d \
         -E cluster.name=universal-query-postgresql \
@@ -135,8 +137,7 @@ if [ "$USING_OPENSEARCH" = "1" ]; then
         -E path.data=./server/data/elasticsearch/postgresql-layer \
         -E path.logs=./server/data/elasticsearch/logs \
         -E action.auto_create_index=true \
-        -E cluster.routing.allocation.disk.threshold_enabled=false \
-        -E "OPENSEARCH_JAVA_OPTS=-Xms256m -Xmx256m"
+        -E cluster.routing.allocation.disk.threshold_enabled=false
 else
     # Elasticsearch configuration
     "$ELASTICSEARCH_BIN" \
@@ -166,6 +167,8 @@ if [ "$USING_OPENSEARCH" = "1" ]; then
     mkdir -p ./server/data/elasticsearch/dynamodb-layer
     
     # Use OpenSearch with minimal configuration for DynamoDB layer
+    export OPENSEARCH_JAVA_OPTS="-Xms256m -Xmx256m"
+    
     "$ELASTICSEARCH_BIN" \
         -d \
         -E cluster.name=universal-query-dynamodb \
@@ -176,8 +179,7 @@ if [ "$USING_OPENSEARCH" = "1" ]; then
         -E path.data=./server/data/elasticsearch/dynamodb-layer \
         -E path.logs=./server/data/elasticsearch/logs \
         -E action.auto_create_index=true \
-        -E cluster.routing.allocation.disk.threshold_enabled=false \
-        -E "OPENSEARCH_JAVA_OPTS=-Xms256m -Xmx256m"
+        -E cluster.routing.allocation.disk.threshold_enabled=false
 else
     # Elasticsearch configuration
     "$ELASTICSEARCH_BIN" \
