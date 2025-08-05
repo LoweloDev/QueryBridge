@@ -23,18 +23,25 @@ elif [ -f "server/elasticsearch/bin/elasticsearch" ]; then
 else
     echo "❌ Elasticsearch not found. Setting up local installation..."
     
-    # Detect OS and download appropriate version
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        # macOS
+    # Detect environment and download appropriate version
+    if [ -n "$REPLIT_DEPLOYMENT" ] || [ -n "$REPL_ID" ] || [ -f "/.replit" ]; then
+        # Replit environment - always use Linux
+        ELASTICSEARCH_URL="https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-8.15.0-linux-x86_64.tar.gz"
+        echo "🔍 Detected Replit environment - using Linux version"
+    elif [[ "$OSTYPE" == "darwin"* ]]; then
+        # Local macOS
         ELASTICSEARCH_URL="https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-8.15.0-darwin-x86_64.tar.gz"
         if [[ $(uname -m) == "arm64" ]]; then
             ELASTICSEARCH_URL="https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-8.15.0-darwin-aarch64.tar.gz"
         fi
+        echo "🔍 Detected local macOS - using Darwin version"
     else
         # Linux
         ELASTICSEARCH_URL="https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-8.15.0-linux-x86_64.tar.gz"
+        echo "🔍 Detected Linux environment"
     fi
     
+    echo "📥 Downloading Elasticsearch from: $ELASTICSEARCH_URL"
     curl -s -L "$ELASTICSEARCH_URL" -o /tmp/elasticsearch.tar.gz
     
     if [ $? -eq 0 ]; then
@@ -43,6 +50,31 @@ else
         tar -xzf /tmp/elasticsearch.tar.gz -C server/elasticsearch --strip-components=1
         rm /tmp/elasticsearch.tar.gz
         ELASTICSEARCH_BIN="server/elasticsearch/bin/elasticsearch"
+        
+        # Validate JDK bundle
+        JDK_PATH="server/elasticsearch/jdk/bin/java"
+        if [ ! -f "$JDK_PATH" ]; then
+            echo "⚠️  Bundled JDK not found at $JDK_PATH"
+            echo "🔧 Checking alternative JDK locations..."
+            
+            # Check alternative JDK paths
+            for alt_jdk in "server/elasticsearch/jdk.app/Contents/Home/bin/java" \
+                           "server/elasticsearch/jdk/Contents/Home/bin/java"; do
+                if [ -f "$alt_jdk" ]; then
+                    echo "✅ Found JDK at: $alt_jdk"
+                    break
+                fi
+            done
+            
+            # If no JDK found, use system Java
+            if ! [ -f "$alt_jdk" ]; then
+                echo "🔄 Using system Java instead of bundled JDK"
+                export ES_JAVA_HOME=""
+                export JAVA_HOME=""
+            fi
+        else
+            echo "✅ Bundled JDK validated at: $JDK_PATH"
+        fi
     else
         echo "❌ Failed to download Elasticsearch"
         exit 1
@@ -56,6 +88,18 @@ fi
 
 # Configure Java heap size for containerized environment
 export ES_JAVA_OPTS="-Xms512m -Xmx512m"
+
+# Clear problematic JAVA_HOME if it points to non-existent paths
+if [ -n "$JAVA_HOME" ] && [ ! -f "$JAVA_HOME/bin/java" ]; then
+    echo "⚠️  Clearing invalid JAVA_HOME: $JAVA_HOME"
+    unset JAVA_HOME
+fi
+
+# For Replit environment, ensure we use system Java
+if [ -n "$REPLIT_DEPLOYMENT" ] || [ -n "$REPL_ID" ] || [ -f "/.replit" ]; then
+    unset JAVA_HOME
+    export ES_JAVA_HOME=""
+fi
 
 # Start Elasticsearch instance 1: PostgreSQL Layer (port 9200)
 echo "Starting Elasticsearch PostgreSQL Layer on port 9200..."
