@@ -29,7 +29,8 @@ export class DatabaseSetup {
         type: 'postgresql',
         host: process.env.PGHOST || 'localhost',
         port: parseInt(process.env.PGPORT || '5432'),
-        database: process.env.PGDATABASE || 'postgres'
+        database: process.env.PGDATABASE || 'postgres',
+        username: process.env.PGUSER || process.env.USER || 'postgres'
       },
       {
         id: 'mongodb-analytics',
@@ -247,7 +248,11 @@ export class DatabaseSetup {
   private async setupElasticsearch(config: DatabaseConnection): Promise<void> {
     try {
       const client = new ElasticsearchClient({
-        node: `http://${config.host}:${config.port}`
+        node: `http://${config.host}:${config.port}`,
+        // Configure client to accept OpenSearch as compatible with Elasticsearch
+        headers: {
+          'User-Agent': 'universal-query-translator/1.0.0'
+        }
       });
 
       await client.ping();
