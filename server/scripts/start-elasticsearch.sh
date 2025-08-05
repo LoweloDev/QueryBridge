@@ -11,13 +11,22 @@ echo "Starting Elasticsearch instances..."
 # Check for Elasticsearch installation
 ELASTICSEARCH_BIN=""
 
-# Check for Homebrew installation (macOS)
+# Check for Elasticsearch installation in multiple locations
 if [ -f "/opt/homebrew/bin/elasticsearch" ]; then
     ELASTICSEARCH_BIN="/opt/homebrew/bin/elasticsearch"
 elif [ -f "/usr/local/bin/elasticsearch" ]; then
     ELASTICSEARCH_BIN="/usr/local/bin/elasticsearch"
+elif [ -f "/opt/homebrew/bin/opensearch" ]; then
+    ELASTICSEARCH_BIN="/opt/homebrew/bin/opensearch"
+    echo "ℹ️  Using OpenSearch as Elasticsearch alternative"
+elif [ -f "/usr/local/bin/opensearch" ]; then
+    ELASTICSEARCH_BIN="/usr/local/bin/opensearch"
+    echo "ℹ️  Using OpenSearch as Elasticsearch alternative"
 elif command -v elasticsearch >/dev/null 2>&1; then
     ELASTICSEARCH_BIN="elasticsearch"
+elif command -v opensearch >/dev/null 2>&1; then
+    ELASTICSEARCH_BIN="opensearch"
+    echo "ℹ️  Using OpenSearch as Elasticsearch alternative"
 elif [ -f "server/elasticsearch/bin/elasticsearch" ]; then
     ELASTICSEARCH_BIN="server/elasticsearch/bin/elasticsearch"
 else
