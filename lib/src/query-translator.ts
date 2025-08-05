@@ -362,9 +362,7 @@ export class QueryTranslator {
   static toElasticsearch(query: QueryLanguage): object {
     const esQuery: any = {
       index: query.table,
-      body: {
-        query: { bool: { must: [] } }
-      }
+      body: {}
     };
     
     if (query.operation === 'FIND') {
@@ -429,11 +427,34 @@ export class QueryTranslator {
       }
       // Standard WHERE conditions (no joins)
       else if (query.where && query.where.length > 0) {
+        const mustConditions: any[] = [];
+        const mustNotConditions: any[] = [];
+        
         for (const condition of query.where) {
           const esCondition = this.sqlToESCondition(condition);
           if (esCondition) {
-            esQuery.body.query.bool.must.push(esCondition);
+            // Handle NOT conditions separately
+            if (condition.operator === '!=' || condition.operator === 'NOT IN') {
+              mustNotConditions.push(esCondition);
+            } else {
+              mustConditions.push(esCondition);
+            }
           }
+        }
+        
+        // Build query structure based on what conditions we have
+        if (mustConditions.length > 0 || mustNotConditions.length > 0) {
+          const boolQuery: any = { bool: {} };
+          
+          if (mustConditions.length > 0) {
+            boolQuery.bool.must = mustConditions;
+          }
+          
+          if (mustNotConditions.length > 0) {
+            boolQuery.bool.must_not = mustNotConditions;
+          }
+          
+          esQuery.body.query = boolQuery;
         }
       } else {
         // Default to match_all if no conditions
@@ -444,13 +465,14 @@ export class QueryTranslator {
       if (query.aggregate && query.aggregate.length > 0) {
         esQuery.body.aggs = {};
         
-        if (query.groupBy) {
+        if (query.groupBy && query.groupBy.length > 0) {
           const groupField = query.groupBy[0];
+          const groupName = `${groupField}_group`;
           
           // Check if grouping on nested field
           if (groupField.includes('.')) {
             const [nestedPath, nestedField] = groupField.split('.', 2);
-            esQuery.aggs.nested_group = {
+            esQuery.body.aggs[groupName] = {
               nested: { path: nestedPath },
               aggs: {
                 group_by: {
@@ -462,30 +484,40 @@ export class QueryTranslator {
             
             for (const agg of query.aggregate) {
               const esAggFunc = this.sqlToESAggregateFunction(agg.function);
-              esQuery.aggs.nested_group.aggs.group_by.aggs[agg.alias || agg.field] = {
+              const aggName = agg.alias || `${agg.function.toLowerCase()}_${agg.field}`;
+              esQuery.body.aggs[groupName].aggs.group_by.aggs[aggName] = {
                 [esAggFunc]: { field: agg.field }
               };
             }
           } else {
-            esQuery.body.aggs.group_by = {
+            esQuery.body.aggs[groupName] = {
               terms: { field: groupField },
               aggs: {},
             };
             
             for (const agg of query.aggregate) {
               const esAggFunc = this.sqlToESAggregateFunction(agg.function);
-              esQuery.body.aggs.group_by.aggs[agg.alias || agg.field] = {
+              const aggName = agg.alias || `${agg.function.toLowerCase()}_${agg.field}`;
+              esQuery.body.aggs[groupName].aggs[aggName] = {
                 [esAggFunc]: { field: agg.field },
               };
             }
           }
+          
+          // Set size to 0 for aggregation-only queries
+          esQuery.body.size = 0;
         } else {
+          // Global aggregations without grouping
           for (const agg of query.aggregate) {
             const esAggFunc = this.sqlToESAggregateFunction(agg.function);
-            esQuery.body.aggs[agg.alias || agg.field] = {
+            const aggName = agg.alias || `${agg.function.toLowerCase()}_${agg.field}`;
+            esQuery.body.aggs[aggName] = {
               [esAggFunc]: { field: agg.field },
             };
           }
+          
+          // Set size to 0 for aggregation-only queries
+          esQuery.body.size = 0;
         }
       }
       
@@ -509,317 +541,240 @@ export class QueryTranslator {
       if (query.fields && query.fields.length > 0) {
         esQuery.body._source = query.fields;
       }
+      
+      // Add Elasticsearch-specific features
+      if (esSpecific) {
+        // Add boost scoring
+        if (esSpecific.boost && esQuery.body.query.bool?.must) {
+          for (const mustCondition of esQuery.body.query.bool.must) {
+            if (mustCondition.match) {
+              const fieldName = Object.keys(mustCondition.match)[0];
+              if (esSpecific.boost[fieldName]) {
+                if (typeof mustCondition.match[fieldName] === 'string') {
+                  mustCondition.match[fieldName] = {
+                    query: mustCondition.match[fieldName],
+                    boost: esSpecific.boost[fieldName]
+                  };
+                } else {
+                  mustCondition.match[fieldName].boost = esSpecific.boost[fieldName];
+                }
+              }
+            }
+          }
+        }
+        
+        // Add fuzzy matching
+        if (esSpecific.fuzzy && esQuery.body.query.bool?.must) {
+          for (let i = 0; i < esQuery.body.query.bool.must.length; i++) {
+            const mustCondition = esQuery.body.query.bool.must[i];
+            if (mustCondition.match) {
+              const fieldName = Object.keys(mustCondition.match)[0];
+              if (esSpecific.fuzzy[fieldName]) {
+                const value = typeof mustCondition.match[fieldName] === 'string' 
+                  ? mustCondition.match[fieldName] 
+                  : mustCondition.match[fieldName].query;
+                
+                esQuery.body.query.bool.must[i] = {
+                  fuzzy: {
+                    [fieldName]: {
+                      value: value,
+                      ...esSpecific.fuzzy[fieldName]
+                    }
+                  }
+                };
+              }
+            }
+          }
+        }
+        
+        // Add highlighting
+        if (esSpecific.highlight) {
+          esQuery.body.highlight = esSpecific.highlight;
+        }
+      }
     }
     
     return esQuery;
   }
   
-  static toDynamoDB(query: QueryLanguage): object {
+  static toDynamoDB(query: QueryLanguage, schemaConfig?: { partitionKey?: string; sortKey?: string; globalSecondaryIndexes?: Array<{ name: string; partitionKey: string; sortKey?: string; }>; }): object {
+    if (query.operation !== 'FIND') {
+      return { TableName: query.table };
+    }
+
     const dynamoQuery: any = {
       TableName: query.table,
     };
-    
-    if (query.operation === 'FIND') {
-      // Enhanced single-table design support with intelligent entity mapping
-      const entityTypeMapping = this.mapEntityTypeToSingleTable(query.table);
-      
-      // Check for explicit DB_SPECIFIC parameters first (legacy support)
-      if (query.dbSpecific && (query.dbSpecific.partition_key || query.dbSpecific.sort_key)) {
-        return this.buildExplicitDynamoQuery(query, dynamoQuery);
-      }
-      
-      // Check for new dbSpecific.dynamodb format
-      const dbSpecific = query.dbSpecific?.dynamodb;
-      if (dbSpecific?.keyCondition) {
-        return this.buildDbSpecificDynamoQuery(query, dynamoQuery, dbSpecific);
-      }
-      
-      // Intelligent single-table design mapping
-      if (entityTypeMapping) {
-        return this.buildIntelligentDynamoQuery(query, dynamoQuery, entityTypeMapping);
-      }
-      
-      // Fallback to traditional table query
-      return this.buildTraditionalDynamoQuery(query, dynamoQuery);
+
+    // Handle DB_SPECIFIC for advanced DynamoDB features
+    if (query.dbSpecific?.partition_key || query.dbSpecific?.sort_key || 
+        query.dbSpecific?.partition_key_attribute || query.dbSpecific?.sort_key_attribute) {
+      return this.buildDBSpecificDynamoQuery(query, dynamoQuery, schemaConfig);
     }
-    
-    return dynamoQuery;
+
+    // Check if this is a primary key query (efficient Query operation)
+    const primaryKeyCondition = query.where?.find(w => 
+      (w.field === 'id' || w.field.endsWith('_id')) && w.operator === '='
+    );
+
+    if (primaryKeyCondition) {
+      // Use Query operation for primary key lookups
+      return this.buildDynamoQueryOperation(query, dynamoQuery, primaryKeyCondition, schemaConfig);
+    }
+
+    // Default to Scan operation with filters
+    return this.buildDynamoScanOperation(query, dynamoQuery);
   }
   
-  private static mapEntityTypeToSingleTable(tableName: string): any {
-    // Map common entity types to single-table design patterns
-    const entityMappings: Record<string, any> = {
-      'users': { 
-        entityType: 'user',
-        sortKeyPrefix: 'USER#',
-        defaultTenant: 'TENANT#123' // Default tenant for demo
-      },
-      'orders': { 
-        entityType: 'order',
-        sortKeyPrefix: 'ORDER#',
-        defaultTenant: 'TENANT#123'
-      },
-      'products': { 
-        entityType: 'product',
-        sortKeyPrefix: 'PRODUCT#',
-        defaultTenant: 'TENANT#123'
-      },
-      'categories': { 
-        entityType: 'category',
-        sortKeyPrefix: 'CATEGORY#',
-        defaultTenant: 'TENANT#123'
-      },
-      'order_items': { 
-        entityType: 'order_item',
-        sortKeyPrefix: 'ORDER#',
-        defaultTenant: 'TENANT#123'
-      },
-      // Generic table names
-      'tenant_data': {
-        entityType: 'mixed',
-        defaultTenant: 'TENANT#123'
-      }
-    };
-    
-    return entityMappings[tableName] || null;
-  }
-  
-  private static buildExplicitDynamoQuery(query: QueryLanguage, dynamoQuery: any): object {
-    // Handle explicit DB_SPECIFIC parameters (legacy support)
-    const expressionAttributeNames: any = { '#pk': 'PK' };
+  private static buildDBSpecificDynamoQuery(query: QueryLanguage, dynamoQuery: any, schemaConfig?: { partitionKey?: string; sortKey?: string; globalSecondaryIndexes?: Array<{ name: string; partitionKey: string; sortKey?: string; }>; }): object {
+    // Handle explicit DB_SPECIFIC parameters for single-table design
+    const expressionAttributeNames: any = {};
     const expressionAttributeValues: any = {};
     const keyConditions: string[] = [];
-    
+
+    // Get actual key names - inline attributes override schema config, fall back to defaults
+    const partitionKeyName = query.dbSpecific!.partition_key_attribute || schemaConfig?.partitionKey || 'PK';
+    const sortKeyName = query.dbSpecific!.sort_key_attribute || schemaConfig?.sortKey || 'SK';
+
+    // Handle partition key
     if (query.dbSpecific!.partition_key) {
+      expressionAttributeNames['#pk'] = partitionKeyName;
       keyConditions.push('#pk = :pk');
       expressionAttributeValues[':pk'] = query.dbSpecific!.partition_key;
     }
-    
+
+    // Handle sort key
     if (query.dbSpecific!.sort_key) {
-      expressionAttributeNames['#sk'] = 'SK';
+      expressionAttributeNames['#sk'] = sortKeyName;
       keyConditions.push('#sk = :sk');
       expressionAttributeValues[':sk'] = query.dbSpecific!.sort_key;
     } else if (query.dbSpecific!.sort_key_prefix) {
-      // Support sort key prefix for efficient begins_with queries
-      expressionAttributeNames['#sk'] = 'SK';
+      expressionAttributeNames['#sk'] = sortKeyName;
       keyConditions.push('begins_with(#sk, :sk_prefix)');
       expressionAttributeValues[':sk_prefix'] = query.dbSpecific!.sort_key_prefix;
     }
-    
-    dynamoQuery.KeyConditionExpression = keyConditions.join(' AND ');
-    dynamoQuery.ExpressionAttributeNames = expressionAttributeNames;
-    dynamoQuery.ExpressionAttributeValues = expressionAttributeValues;
-    
-    // Handle WHERE conditions as FilterExpression
-    if (query.where && query.where.length > 0) {
-      const filterExpressions: string[] = [];
-      
-      for (const condition of query.where) {
-        const placeholder = `:val${Object.keys(expressionAttributeValues).length}`;
-        const namePlaceholder = `#${condition.field}`;
-        
-        expressionAttributeValues[placeholder] = condition.value;
-        expressionAttributeNames[namePlaceholder] = condition.field;
-        
-        const dynamoOperator = this.sqlToDynamoOperator(condition.operator);
-        filterExpressions.push(`${namePlaceholder} ${dynamoOperator} ${placeholder}`);
-      }
-      
-      if (filterExpressions.length > 0) {
-        dynamoQuery.FilterExpression = filterExpressions.join(' AND ');
-      }
+
+    if (keyConditions.length > 0) {
+      dynamoQuery.KeyConditionExpression = keyConditions.join(' AND ');
+      dynamoQuery.ExpressionAttributeNames = expressionAttributeNames;
+      dynamoQuery.ExpressionAttributeValues = expressionAttributeValues;
     }
-    
-    return this.addProjectionAndLimits(query, dynamoQuery);
+
+    // Add filters for WHERE conditions
+    this.addDynamoFilters(query, dynamoQuery);
+
+    // Add projection and limits
+    return this.addDynamoProjectionAndLimits(query, dynamoQuery);
   }
   
-  private static buildDbSpecificDynamoQuery(query: QueryLanguage, dynamoQuery: any, dbSpecific: any): object {
-    // Handle new dbSpecific.dynamodb format
-    const keyConditionExpression: string[] = [];
-    const expressionAttributeValues: any = {};
+  private static buildDynamoQueryOperation(query: QueryLanguage, dynamoQuery: any, primaryKeyCondition: any, schemaConfig?: { partitionKey?: string; sortKey?: string; globalSecondaryIndexes?: Array<{ name: string; partitionKey: string; sortKey?: string; }>; }): object {
+    // Use Query operation for efficient primary key lookups
     const expressionAttributeNames: any = {};
-    
-    // Partition Key condition
-    keyConditionExpression.push('#pk = :pk');
-    expressionAttributeNames['#pk'] = dbSpecific.partitionKey || 'PK';
-    expressionAttributeValues[':pk'] = dbSpecific.keyCondition.pk;
-    
-    // Sort Key condition (optional)
-    if (dbSpecific.keyCondition.sk && dbSpecific.sortKey) {
-      keyConditionExpression.push('#sk = :sk');
-      expressionAttributeNames['#sk'] = dbSpecific.sortKey;
-      expressionAttributeValues[':sk'] = dbSpecific.keyCondition.sk;
-    }
-    
-    dynamoQuery.KeyConditionExpression = keyConditionExpression.join(' AND ');
-    dynamoQuery.ExpressionAttributeNames = expressionAttributeNames;
-    dynamoQuery.ExpressionAttributeValues = expressionAttributeValues;
-    
-    // Use GSI if specified
-    if (dbSpecific.gsiName) {
-      dynamoQuery.IndexName = dbSpecific.gsiName;
-    }
-    
-    // Add filter expressions for additional WHERE conditions
-    if (query.where && query.where.length > 0) {
-      const filterExpressions: string[] = [];
-      
-      for (const condition of query.where) {
-        const placeholder = `:val${Object.keys(expressionAttributeValues).length}`;
-        const namePlaceholder = `#${condition.field}`;
-        
-        expressionAttributeValues[placeholder] = condition.value;
-        expressionAttributeNames[namePlaceholder] = condition.field;
-        
-        const dynamoOperator = this.sqlToDynamoOperator(condition.operator);
-        filterExpressions.push(`${namePlaceholder} ${dynamoOperator} ${placeholder}`);
-      }
-      
-      if (filterExpressions.length > 0) {
-        dynamoQuery.FilterExpression = filterExpressions.join(' AND ');
-      }
-    }
-    
-    dynamoQuery.operation = 'query';
-    return this.addProjectionAndLimits(query, dynamoQuery);
-  }
-  
-  private static buildIntelligentDynamoQuery(query: QueryLanguage, dynamoQuery: any, entityMapping: any): object {
-    // Build intelligent single-table design query with enhanced partition support
-    const expressionAttributeNames: any = { '#pk': 'PK' };
     const expressionAttributeValues: any = {};
-    const keyConditions: string[] = [];
-    
-    // Support explicit partition key from DB_SPECIFIC or use default tenant
-    const partitionKey = query.dbSpecific?.partition_key || entityMapping.defaultTenant;
-    keyConditions.push('#pk = :pk');
-    expressionAttributeValues[':pk'] = partitionKey;
-    
-    // Check for specific entity ID in WHERE conditions
-    const entityIdCondition = query.where?.find(condition => 
-      condition.field === 'id' || condition.field.endsWith('_id')
-    );
-    
-    // Handle sort key conditions with multiple strategies
-    if (query.dbSpecific?.sort_key) {
-      // Explicit sort key provided
-      expressionAttributeNames['#sk'] = 'SK';
-      keyConditions.push('#sk = :sk');
-      expressionAttributeValues[':sk'] = query.dbSpecific.sort_key;
-    } else if (query.dbSpecific?.sort_key_prefix) {
-      // Sort key prefix for efficient begins_with queries
-      expressionAttributeNames['#sk'] = 'SK';
-      keyConditions.push('begins_with(#sk, :sk_prefix)');
-      expressionAttributeValues[':sk_prefix'] = query.dbSpecific.sort_key_prefix;
-    } else if (entityIdCondition && entityMapping.sortKeyPrefix) {
-      // Intelligent entity ID mapping
-      expressionAttributeNames['#sk'] = 'SK';
-      keyConditions.push('#sk = :sk');
-      
-      let sortKeyValue = String(entityIdCondition.value);
-      if (!sortKeyValue.startsWith(entityMapping.sortKeyPrefix)) {
-        sortKeyValue = `${entityMapping.sortKeyPrefix}${sortKeyValue}`;
-      }
-      expressionAttributeValues[':sk'] = sortKeyValue;
-      
-      // Remove the ID condition from WHERE since it's now part of the key condition
-      query.where = query.where?.filter(condition => condition !== entityIdCondition);
-    } else if (entityMapping.sortKeyPrefix && !query.dbSpecific?.partition_key) {
-      // Query all entities of this type with prefix
-      expressionAttributeNames['#sk'] = 'SK';
-      keyConditions.push('begins_with(#sk, :sk_prefix)');
-      expressionAttributeValues[':sk_prefix'] = entityMapping.sortKeyPrefix;
-    }
-    
-    dynamoQuery.KeyConditionExpression = keyConditions.join(' AND ');
+
+    // Set up primary key condition using actual key name from schema
+    const keyFieldName = primaryKeyCondition.field;
+    const actualKeyName = schemaConfig?.partitionKey || keyFieldName;
+    expressionAttributeNames[`#${keyFieldName}`] = actualKeyName;
+    expressionAttributeValues[`:${keyFieldName}`] = primaryKeyCondition.value;
+    dynamoQuery.KeyConditionExpression = `#${keyFieldName} = :${keyFieldName}`;
+
     dynamoQuery.ExpressionAttributeNames = expressionAttributeNames;
     dynamoQuery.ExpressionAttributeValues = expressionAttributeValues;
-    
-    // Add entity type filter if we're querying all entities of a type and no explicit partition was specified
-    if (entityMapping.entityType !== 'mixed' && !entityIdCondition && !query.dbSpecific?.partition_key) {
-      if (!query.where) query.where = [];
-      query.where.push({
-        field: 'entity_type',
-        operator: '=',
-        value: entityMapping.entityType
-      });
+
+    // Filter out primary key condition from WHERE and add remaining as filters
+    const otherConditions = query.where?.filter(w => w !== primaryKeyCondition) || [];
+    if (otherConditions.length > 0) {
+      const tempQuery = { ...query, where: otherConditions };
+      this.addDynamoFilters(tempQuery, dynamoQuery);
     }
-    
-    // Handle remaining WHERE conditions as FilterExpression
-    if (query.where && query.where.length > 0) {
-      const filterExpressions: string[] = [];
+
+    return this.addDynamoProjectionAndLimits(query, dynamoQuery);
+  }
+  
+  private static buildDynamoScanOperation(query: QueryLanguage, dynamoQuery: any): object {
+    // Use Scan operation for non-primary key queries
+    this.addDynamoFilters(query, dynamoQuery);
+    return this.addDynamoProjectionAndLimits(query, dynamoQuery);
+  }
+
+  private static addDynamoFilters(query: QueryLanguage, dynamoQuery: any): void {
+    if (!query.where || query.where.length === 0) return;
+
+    const filterExpressions: string[] = [];
+    const expressionAttributeValues = dynamoQuery.ExpressionAttributeValues || {};
+    const expressionAttributeNames = dynamoQuery.ExpressionAttributeNames || {};
+
+    for (const condition of query.where) {
+      // Ensure unique placeholder numbering by counting existing placeholders  
+      let placeholderNum = 0;
+      const existingVals = Object.keys(expressionAttributeValues).filter(k => k.startsWith(':val'));
+      if (existingVals.length > 0) {
+        const nums = existingVals.map(k => parseInt(k.replace(':val', ''), 10)).filter(n => !isNaN(n));
+        placeholderNum = nums.length > 0 ? Math.max(...nums) + 1 : 0;
+      }
       
-      for (const condition of query.where) {
-        const placeholder = `:val${Object.keys(expressionAttributeValues).length}`;
-        const namePlaceholder = `#${condition.field}`;
-        
+      const placeholder = `:val${placeholderNum}`;
+      const namePlaceholder = `#${condition.field.replace(/[^a-zA-Z0-9]/g, '_')}`;
+
+      expressionAttributeNames[namePlaceholder] = condition.field;
+      
+      if (condition.operator === 'IN') {
+        // Handle IN operator with array values
+        let values = condition.value;
+        if (typeof values === 'string') {
+          // Parse array string - handle proper array format
+          values = values.replace(/[\[\]()]/g, '').split(',').map(v => v.trim().replace(/^["']|["']$/g, ''));
+        }
+        if (Array.isArray(values)) {
+          const inPlaceholders = values.map((_, i) => `${placeholder}_${i}`);
+          values.forEach((val, i) => {
+            expressionAttributeValues[`${placeholder}_${i}`] = val;
+          });
+          filterExpressions.push(`${namePlaceholder} IN (${inPlaceholders.join(', ')})`);
+        }
+      } else {
         expressionAttributeValues[placeholder] = condition.value;
-        expressionAttributeNames[namePlaceholder] = condition.field;
-        
         const dynamoOperator = this.sqlToDynamoOperator(condition.operator);
         filterExpressions.push(`${namePlaceholder} ${dynamoOperator} ${placeholder}`);
       }
-      
-      if (filterExpressions.length > 0) {
-        dynamoQuery.FilterExpression = filterExpressions.join(' AND ');
-      }
     }
-    
-    dynamoQuery.operation = 'query';
-    return this.addProjectionAndLimits(query, dynamoQuery);
-  }
-  
-  private static buildTraditionalDynamoQuery(query: QueryLanguage, dynamoQuery: any): object {
-    // Fallback to scan operation for traditional queries
-    dynamoQuery.operation = 'scan';
-    
-    if (query.where && query.where.length > 0) {
-      const filterExpressions: string[] = [];
-      const expressionAttributeValues: any = {};
-      const expressionAttributeNames: any = {};
-      
-      for (const condition of query.where) {
-        const placeholder = `:val${Object.keys(expressionAttributeValues).length}`;
-        const namePlaceholder = `#${condition.field}`;
-        
-        expressionAttributeValues[placeholder] = condition.value;
-        expressionAttributeNames[namePlaceholder] = condition.field;
-        
-        const dynamoOperator = this.sqlToDynamoOperator(condition.operator);
-        filterExpressions.push(`${namePlaceholder} ${dynamoOperator} ${placeholder}`);
-      }
-      
-      if (filterExpressions.length > 0) {
-        dynamoQuery.FilterExpression = filterExpressions.join(' AND ');
-        dynamoQuery.ExpressionAttributeValues = expressionAttributeValues;
-        dynamoQuery.ExpressionAttributeNames = expressionAttributeNames;
-      }
+
+    if (filterExpressions.length > 0) {
+      dynamoQuery.FilterExpression = filterExpressions.join(' AND ');
+      dynamoQuery.ExpressionAttributeValues = expressionAttributeValues;
+      dynamoQuery.ExpressionAttributeNames = expressionAttributeNames;
     }
-    
-    return this.addProjectionAndLimits(query, dynamoQuery);
   }
-  
-  private static addProjectionAndLimits(query: QueryLanguage, dynamoQuery: any): object {
+
+  private static addDynamoProjectionAndLimits(query: QueryLanguage, dynamoQuery: any): object {
     // Projection (select specific attributes)
     if (query.fields && query.fields.length > 0) {
+      if (!dynamoQuery.ExpressionAttributeNames) {
+        dynamoQuery.ExpressionAttributeNames = {};
+      }
+      
       dynamoQuery.ProjectionExpression = query.fields.map((field, index) => {
         const namePlaceholder = `#field${index}`;
-        dynamoQuery.ExpressionAttributeNames = dynamoQuery.ExpressionAttributeNames || {};
         dynamoQuery.ExpressionAttributeNames[namePlaceholder] = field;
         return namePlaceholder;
       }).join(', ');
     }
-    
+
     // Limit
     if (query.limit) {
       dynamoQuery.Limit = query.limit;
     }
-    
-    // Note: DynamoDB doesn't support complex aggregations natively
-    if (query.aggregate) {
-      dynamoQuery.note = 'DynamoDB aggregations require client-side processing or DynamoDB Streams + Lambda';
+
+    // DynamoDB doesn't support complex aggregations natively - throw error
+    if (query.aggregate && query.aggregate.length > 0) {
+      throw new Error('DynamoDB does not support native aggregations (COUNT, SUM, AVG, etc.). Consider using application-level processing or switch to a different database type.');
     }
     
+    if (query.groupBy && query.groupBy.length > 0) {
+      throw new Error('DynamoDB does not support GROUP BY operations. Consider using application-level processing or switch to a different database type.');
+    }
+
     return dynamoQuery;
   }
   
@@ -850,17 +805,26 @@ export class QueryTranslator {
   
   private static sqlToESCondition(condition: any): object | null {
     const field = condition.field;
-    const value = condition.value;
+    let value = condition.value;
+    
+    // Process array values for IN operations
+    if (condition.operator === 'IN' || condition.operator === 'NOT IN') {
+      if (typeof value === 'string') {
+        value = this.processInValues(value);
+      } else if (!Array.isArray(value)) {
+        value = [value];
+      }
+    }
     
     switch (condition.operator) {
       case '=':
         return { term: { [field]: value } };
       case '!=':
-        return { bool: { must_not: [{ term: { [field]: value } }] } };
+        return { term: { [field]: value } }; // Will be handled by must_not in parent
       case 'IN':
-        return { terms: { [field]: Array.isArray(value) ? value : [value] } };
+        return { terms: { [field]: value } };
       case 'NOT IN':
-        return { bool: { must_not: [{ terms: { [field]: Array.isArray(value) ? value : [value] } }] } };
+        return { terms: { [field]: value } }; // Will be handled by must_not in parent
       case '>':
         return { range: { [field]: { gt: value } } };
       case '<':
@@ -870,24 +834,31 @@ export class QueryTranslator {
       case '<=':
         return { range: { [field]: { lte: value } } };
       case 'LIKE':
-        return { match: { [field]: value.replace('%', '*') } };
+        // Convert SQL LIKE patterns to Elasticsearch patterns
+        const likePattern = value.replace(/%/g, '*');
+        return { match: { [field]: likePattern } };
       case 'ILIKE':
-        return { match: { [field]: { query: value.replace('%', '*'), case_insensitive: true } } };
+        // Case-insensitive LIKE
+        const ilikePattern = value.replace(/%/g, '*');
+        return { match: { [field]: { query: ilikePattern, case_insensitive: true } } };
       default:
         return null;
     }
   }
-  
-  private static sqlToESAggregateFunction(sqlFunc: string): string {
+
+  private static sqlToESAggregateFunction(sqlFunction: string): string {
     const mapping: Record<string, string> = {
       'COUNT': 'value_count',
       'SUM': 'sum',
       'AVG': 'avg',
       'MIN': 'min',
-      'MAX': 'max',
+      'MAX': 'max'
     };
-    return mapping[sqlFunc] || 'value_count';
+    
+    return mapping[sqlFunction] || 'value_count';
   }
+  
+
   
   private static sqlToDynamoOperator(sqlOp: string): string {
     const mapping: Record<string, string> = {
@@ -897,6 +868,8 @@ export class QueryTranslator {
       '>': '>',
       '<=': '<=',
       '>=': '>=',
+      'IN': 'IN',
+      'NOT IN': 'NOT IN'
     };
     return mapping[sqlOp] || '=';
   }
@@ -974,7 +947,28 @@ export class QueryTranslator {
       }
     }
     
-    // Default to SCAN operation
+    // Check if query has complex features that require Redis Search
+    const hasComplexFeatures = (
+      (query.where && query.where.length > 1) ||  // Multiple conditions
+      (query.where && query.where.some(w => w.operator !== '=' && w.operator !== 'IN')) ||  // Non-equality operators
+      (query.where && query.where.some(w => w.operator === 'IN')) ||  // IN operations
+      query.orderBy ||  // Sorting
+      query.aggregate   // Aggregations
+    );
+
+    if (hasComplexFeatures) {
+      // Auto-enable Redis Search for complex queries
+      return {
+        operation: 'FT.SEARCH',
+        index: `${query.table}_idx`,
+        query: this.buildRedisSearchQuery(query),
+        limit: { offset: query.offset || 0, num: query.limit || 10 },
+        sortBy: query.orderBy ? { field: query.orderBy[0].field, direction: query.orderBy[0].direction } : undefined,
+        aggregations: query.aggregate ? this.buildRedisAggregations(query.aggregate) : undefined
+      };
+    }
+
+    // Default to SCAN operation for simple queries
     return {
       operation: 'SCAN',
       pattern: `${query.table}:*`,
@@ -1023,7 +1017,7 @@ export class QueryTranslator {
       const queryParts = [];
 
       // Handle range queries
-      for (const [field, range] of rangeMap.entries()) {
+      for (const [field, range] of Array.from(rangeMap.entries())) {
         if (range.min !== undefined && range.max !== undefined) {
           queryParts.push(`@${field}:[${range.min} ${range.max}]`);
         } else if (range.min !== undefined) {
@@ -1088,6 +1082,152 @@ export class QueryTranslator {
     }
     
     return searchQuery;
+  }
+
+  private static buildRedisSearchQuery(query: QueryLanguage): string {
+    if (!query.where || query.where.length === 0) {
+      return '*';
+    }
+
+    const queryParts = [];
+    
+    // Handle range queries specially - combine >= and <= for same field
+    const conditions = [...query.where];
+    const rangeMap = new Map<string, { min?: any, max?: any }>();
+    const nonRangeConditions = [];
+
+    for (const condition of conditions) {
+      if ((condition.operator === '>=' || condition.operator === '>') && 
+          conditions.some(c => c.field === condition.field && (c.operator === '<=' || c.operator === '<'))) {
+        // This is part of a range query
+        if (!rangeMap.has(condition.field)) {
+          rangeMap.set(condition.field, {});
+        }
+        const range = rangeMap.get(condition.field)!;
+        range.min = condition.value;
+      } else if ((condition.operator === '<=' || condition.operator === '<') &&
+                 conditions.some(c => c.field === condition.field && (c.operator === '>=' || c.operator === '>'))) {
+        // This is part of a range query
+        if (!rangeMap.has(condition.field)) {
+          rangeMap.set(condition.field, {});
+        }
+        const range = rangeMap.get(condition.field)!;
+        range.max = condition.value;
+      } else {
+        nonRangeConditions.push(condition);
+      }
+    }
+
+    // Handle range queries
+    for (const [field, range] of Array.from(rangeMap.entries())) {
+      if (range.min !== undefined && range.max !== undefined) {
+        queryParts.push(`@${field}:[${range.min} ${range.max}]`);
+      } else if (range.min !== undefined) {
+        queryParts.push(`@${field}:[${range.min} +inf]`);
+      } else if (range.max !== undefined) {
+        queryParts.push(`@${field}:[-inf ${range.max}]`);
+      }
+    }
+
+    // Handle non-range conditions
+    for (const condition of nonRangeConditions) {
+      if (rangeMap.has(condition.field)) continue; // Skip - already handled as range
+      
+      switch (condition.operator) {
+        case '=':
+          queryParts.push(`@${condition.field}:{${condition.value}}`);
+          break;
+        case '!=':
+          queryParts.push(`-@${condition.field}:{${condition.value}}`);
+          break;
+        case '>':
+          queryParts.push(`@${condition.field}:[${condition.value} +inf]`);
+          break;
+        case '<':
+          queryParts.push(`@${condition.field}:[-inf ${condition.value}]`);
+          break;
+        case '>=':
+          queryParts.push(`@${condition.field}:[${condition.value} +inf]`);
+          break;
+        case '<=':
+          queryParts.push(`@${condition.field}:[-inf ${condition.value}]`);
+          break;
+        case 'IN':
+          let values = condition.value;
+          if (typeof values === 'string') {
+            const cleanValue = values.replace(/[\[\]]/g, '').trim();
+            if (cleanValue) {
+              values = cleanValue.split(',').map(v => v.trim().replace(/['"]/g, ''));
+            } else {
+              values = [];
+            }
+          }
+          if (Array.isArray(values)) {
+            const inQuery = values.map(v => `@${condition.field}:{${v}}`).join('|');
+            queryParts.push(`(${inQuery})`);
+          }
+          break;
+        case 'LIKE':
+          const likePattern = condition.value.replace(/%/g, '*');
+          queryParts.push(`@${condition.field}:${likePattern}`);
+          break;
+        case 'ILIKE':
+          const ilikePattern = condition.value.replace(/%/g, '*');
+          queryParts.push(`@${condition.field}:${ilikePattern}`);
+          break;
+      }
+    }
+
+    return queryParts.join(' ');
+  }
+
+  private static buildRedisAggregations(aggregations: any[]): any[] {
+    return aggregations.map(agg => {
+      switch (agg.function) {
+        case 'COUNT':
+          return {
+            operation: 'REDUCE',
+            function: 'COUNT',
+            field: agg.field,
+            alias: agg.alias || 'count'
+          };
+        case 'SUM':
+          return {
+            operation: 'REDUCE',
+            function: 'SUM',
+            field: agg.field,
+            alias: agg.alias || 'sum'
+          };
+        case 'AVG':
+          return {
+            operation: 'REDUCE',
+            function: 'AVG',
+            field: agg.field,
+            alias: agg.alias || 'avg'
+          };
+        case 'MIN':
+          return {
+            operation: 'REDUCE',
+            function: 'MIN',
+            field: agg.field,
+            alias: agg.alias || 'min'
+          };
+        case 'MAX':
+          return {
+            operation: 'REDUCE',
+            function: 'MAX',
+            field: agg.field,
+            alias: agg.alias || 'max'
+          };
+        default:
+          return {
+            operation: 'REDUCE',
+            function: 'COUNT',
+            field: agg.field,
+            alias: agg.alias || 'count'
+          };
+      }
+    });
   }
   
   private static toRedisGraph(query: QueryLanguage, graphName?: string): object {

@@ -159,14 +159,68 @@ npm install universal-query-translator
 For testing and validating query translations:
 
 ```bash
-# With automatic database setup
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your database credentials (especially DATABASE_URL for PostgreSQL)
 
-# Install dependencies
+# Quick setup (recommended - handles path issues automatically)
+./install-simple.sh
+
+# OR comprehensive installation (installs all database prerequisites)
 ./install.sh
 
-# Start the development server
+# Start the development server (builds and installs local npm package)
 ./start-dev.sh
 ```
+
+> **Note**: The `start-dev.sh` script automatically:
+> - Builds and installs the local npm package so the testing platform imports from `universal-query-translator`
+> - Cleans up any existing database processes to avoid port conflicts
+> - Checks if databases are already running to avoid duplicate startups
+> - Uses proper host bindings for different operating systems (localhost on macOS, 0.0.0.0 on Linux)
+
+#### Troubleshooting Database Issues
+
+If you encounter port conflicts or database startup issues:
+
+```bash
+# Stop all database services and clean ports
+./server/scripts/stop-all-databases.sh
+
+# Clean up ports manually if needed
+./server/scripts/cleanup-ports.sh
+
+# Test individual database startup
+./server/scripts/start-mongodb.sh
+./server/scripts/start-redis.sh
+./server/scripts/start-dynamodb.sh
+./server/scripts/start-elasticsearch.sh
+
+# Restart the development server
+./start-dev.sh
+```
+
+**Common Issues:**
+- **MongoDB WiredTiger corruption**: Automatically repaired or fresh database created. No manual intervention required.
+- **MongoDB fork error**: Port conflicts or permission issues. Cleanup script resolves this.
+- **Redis Stack configuration errors**: Automatic fallback to basic Redis if Redis Stack fails. Creates proper data directories.
+- **Redis "No such file or directory"**: Fixed by using absolute paths and creating data directories before startup.
+- **DynamoDB "Address already in use"**: Port 8000 conflict. Cleanup script kills existing processes.
+- **Elasticsearch not starting**: Requires significant memory. May not work in constrained environments.
+
+**Database Repair and Configuration:**
+
+*MongoDB:*
+1. Automatically detects WiredTiger corruption
+2. Runs `--repair` if corruption found
+3. Creates fresh database if repair fails
+4. Ensures out-of-the-box functionality
+
+*Redis Stack:*
+1. Detects paths with spaces and provides solutions
+2. Creates symbolic links automatically when requested
+3. Falls back to basic Redis if Stack modules fail
+4. Forces basic Redis mode if paths cannot be resolved
 
 ---------------------------------------------------------------------------
 

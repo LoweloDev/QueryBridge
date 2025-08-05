@@ -1,75 +1,91 @@
 #!/bin/bash
-# Start Redis server with advanced features for testing
+# Redis startup script - simplified and reliable
 
-# Create data directory
-mkdir -p server/data/redis
+set -e
+
+# Get the project root directory
+PROJECT_ROOT=$(cd "$(dirname "$0")/../.." && pwd)
+REDIS_DATA_DIR="$PROJECT_ROOT/server/data/redis"
 
 echo "Starting Redis server..."
 
-# Check if Redis is available
-if ! command -v redis-server &> /dev/null; then
-    echo "❌ Redis server not found. Make sure Redis is installed."
-    exit 1
+# Create data directory
+mkdir -p "$REDIS_DATA_DIR"
+
+# Stop any existing Redis processes
+if pgrep -f "redis.*6379" > /dev/null; then
+    echo "Stopping existing Redis processes..."
+    pkill -f "redis.*6379" || true
+    sleep 2
 fi
 
-echo "Redis version: $(redis-server --version | head -1)"
-
-# Start Redis server in daemon mode (basic configuration for broad compatibility)
-redis-server --daemonize yes \
-    --port 6379 \
-    --bind 127.0.0.1 \
-    --dir ./server/data/redis \
-    --save 60 1000 \
-    --appendonly yes \
-    --appendfilename "appendonly.aof" \
-    --maxmemory 100mb \
-    --maxmemory-policy allkeys-lru
-
-if [ $? -eq 0 ]; then
-    echo "✅ Redis server startup initiated on port 6379"
+# Determine which Redis to use
+if command -v redis-stack-server >/dev/null 2>&1; then
+    REDIS_CMD="redis-stack-server"
+    REDIS_HAS_MODULES=true
+    echo "✅ Using Redis Stack with modules"
+elif command -v redis-server >/dev/null 2>&1; then
+    REDIS_CMD="redis-server"
+    REDIS_HAS_MODULES=false
+    echo "⚠️  Using basic Redis only"
 else
-    echo "❌ Failed to start Redis server"
+    echo "❌ No Redis installation found"
     exit 1
 fi
 
-echo "Data directory: ./server/data/redis"
-echo "Configuration: In-memory cache with persistence"
+# Create Redis configuration
+REDIS_CONF="$REDIS_DATA_DIR/redis.conf"
+cat > "$REDIS_CONF" << EOF
+port 6379
+bind 127.0.0.1
+daemonize yes
+dir $REDIS_DATA_DIR
+logfile $REDIS_DATA_DIR/redis.log
+loglevel notice
+save 60 1000
+appendonly yes
+EOF
 
-# Wait for startup
+# Start Redis
+echo "Starting Redis..."
+if [ "$REDIS_HAS_MODULES" = "true" ]; then
+    # Use nohup to prevent hanging
+    nohup redis-stack-server "$REDIS_CONF" > "$REDIS_DATA_DIR/startup.log" 2>&1 &
+else
+    redis-server "$REDIS_CONF"
+fi
+
+# Wait for Redis to start and verify
+echo "Waiting for Redis to start..."
 sleep 3
 
-# Test connection
-echo "Testing Redis connection..."
-if redis-cli ping > /dev/null 2>&1; then
-    echo "✅ Redis server is running and accessible"
-    
-    # Test basic operations
-    redis-cli set "test:connection" "success" EX 60 > /dev/null 2>&1
-    TEST_VALUE=$(redis-cli get "test:connection" 2>/dev/null)
-    if [ "$TEST_VALUE" = "success" ]; then
-        echo "✅ Basic Redis operations working"
+for i in {1..10}; do
+    if redis-cli ping > /dev/null 2>&1; then
+        echo "✅ Redis server is running on port 6379"
+        
+        # Test basic operations
+        redis-cli set "test:startup" "success" EX 60 > /dev/null 2>&1
+        if [ "$(redis-cli get test:startup 2>/dev/null)" = "success" ]; then
+            echo "✅ Basic Redis operations working"
+        fi
+        
+        # Check modules if Redis Stack
+        if [ "$REDIS_HAS_MODULES" = "true" ]; then
+            MODULES=$(redis-cli module list 2>/dev/null || echo "")
+            if echo "$MODULES" | grep -q "search\|json"; then
+                echo "✅ Redis Stack modules loaded"
+            else
+                echo "⚠️  Redis Stack running in basic mode"
+            fi
+        fi
+        
+        echo "✅ Redis startup completed successfully"
+        exit 0
     fi
-    
-    # Check for modules (Redis Stack features)
-    echo "Checking Redis capabilities..."
-    redis-cli module list > /dev/null 2>&1
-    if [ $? -eq 0 ]; then
-        echo "ℹ️  Redis module system available"
-    fi
-    
-    # Show Redis info
-    echo "Redis info:"
-    redis-cli info server | grep -E "redis_version|process_id|tcp_port" | head -3
-else
-    echo "❌ Redis server may not be fully started yet"
-fi
+    echo "Waiting for Redis... ($i/10)"
+    sleep 2
+done
 
-echo ""
-echo "Note: In containerized environments like Replit, the daemon process may not persist"
-echo "but will work correctly when running locally on your machine."
-echo "For local development, this setup supports:"
-echo "  - Standard Redis operations (GET, SET, etc.)"
-echo "  - Advanced data structures (Lists, Sets, Hashes, etc.)"
-echo "  - Pub/Sub messaging"
-echo "  - Lua scripting"
-echo "  - Memory-efficient operations with LRU eviction"
+echo "❌ Redis failed to start after 30 seconds"
+echo "Check logs: $REDIS_DATA_DIR/redis.log"
+exit 1

@@ -28,9 +28,17 @@ export class QueryParser {
       if (upperLine.startsWith('FIND ')) {
         result.operation = 'FIND';
         const tablePart = line.substring(5).trim();
-        // Extract just the table name, not everything after FIND
-        const firstSpace = tablePart.indexOf(' ');
-        result.table = firstSpace > 0 ? tablePart.substring(0, firstSpace) : tablePart;
+        
+        // Check for field selection in parentheses: FIND users (name, email)
+        const parenMatch = tablePart.match(/^(\w+)\s*\(([^)]+)\)/);
+        if (parenMatch) {
+          result.table = parenMatch[1];
+          result.fields = parenMatch[2].split(',').map(field => field.trim());
+        } else {
+          // Extract just the table name, not everything after FIND
+          const firstSpace = tablePart.indexOf(' ');
+          result.table = firstSpace > 0 ? tablePart.substring(0, firstSpace) : tablePart;
+        }
       } else if (upperLine.includes('JOIN')) {
         // Parse JOIN clauses (handle both "JOIN" and "LEFT JOIN", "RIGHT JOIN", etc.)
         if (!result.joins) result.joins = [];
@@ -399,7 +407,13 @@ export class QueryParser {
         const cleanValue = value.replace(/^["']|["']$/g, ''); // Remove quotes
         
         // Handle DynamoDB patterns
-        if (cleanKey.includes('partition_key') || cleanKey.includes('pk')) {
+        if (cleanKey === 'partition_key_attribute') {
+          // Inline attribute name override
+          dbSpecific.partition_key_attribute = cleanValue;
+        } else if (cleanKey === 'sort_key_attribute') {
+          // Inline attribute name override
+          dbSpecific.sort_key_attribute = cleanValue;
+        } else if (cleanKey.includes('partition_key') || cleanKey.includes('pk')) {
           // Support both legacy format and new structured format
           dbSpecific.partition_key = cleanValue; // Legacy format
           if (!dbSpecific.dynamodb) dbSpecific.dynamodb = {};

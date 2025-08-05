@@ -56,7 +56,7 @@ export class ConnectionManager {
         translatedQuery = QueryTranslator.toElasticsearch(parsedQuery);
         break;
       case 'dynamodb':
-        translatedQuery = QueryTranslator.toDynamoDB(parsedQuery);
+        translatedQuery = QueryTranslator.toDynamoDB(parsedQuery, connection.config.dynamodb);
         break;
       case 'redis':
         translatedQuery = QueryTranslator.toRedis(parsedQuery);
@@ -97,8 +97,15 @@ export class ConnectionManager {
   /**
    * Translate a query without executing it
    */
-  translateQuery(queryString: string, targetType: DatabaseType): string | object {
+  translateQuery(queryString: string, targetType: DatabaseType, connectionId?: string): string | object {
     const parsedQuery = QueryParser.parse(queryString);
+    
+    // Get schema configuration for DynamoDB if connection ID is provided
+    let schemaConfig;
+    if (targetType === 'dynamodb' && connectionId) {
+      const connectionConfig = this.connectionConfigs.get(connectionId);
+      schemaConfig = connectionConfig?.dynamodb;
+    }
     
     switch (targetType) {
       case 'postgresql':
@@ -108,7 +115,7 @@ export class ConnectionManager {
       case 'elasticsearch':
         return QueryTranslator.toElasticsearch(parsedQuery);
       case 'dynamodb':
-        return QueryTranslator.toDynamoDB(parsedQuery);
+        return QueryTranslator.toDynamoDB(parsedQuery, schemaConfig);
       case 'redis':
         return QueryTranslator.toRedis(parsedQuery);
       default:
@@ -156,16 +163,87 @@ export class ConnectionManager {
           };
 
         case 'mongodb':
-          // MongoDB execution logic would go here
-          throw new Error('MongoDB execution not implemented');
+          // Execute MongoDB query
+          const mongoQuery = query as any;
+          let mongoResult: any;
+          
+          if (mongoQuery.operation === 'find') {
+            const findOptions: any = {};
+            if (mongoQuery.sort) findOptions.sort = mongoQuery.sort;
+            if (mongoQuery.limit) findOptions.limit = mongoQuery.limit;
+            if (mongoQuery.skip) findOptions.skip = mongoQuery.skip;
+            if (mongoQuery.projection) findOptions.projection = mongoQuery.projection;
+            
+            const cursor = client.collection(mongoQuery.collection).find(mongoQuery.filter || {}, findOptions);
+            mongoResult = await cursor.toArray();
+          } else if (mongoQuery.operation === 'aggregate') {
+            mongoResult = await client.collection(mongoQuery.collection).aggregate(mongoQuery.pipeline).toArray();
+          } else if (mongoQuery.operation === 'findOne') {
+            mongoResult = await client.collection(mongoQuery.collection).findOne(mongoQuery.filter || {}, { projection: mongoQuery.projection });
+            mongoResult = mongoResult ? [mongoResult] : [];
+          } else {
+            throw new Error(`Unsupported MongoDB operation: ${mongoQuery.operation}`);
+          }
+          
+          return {
+            rows: mongoResult,
+            count: mongoResult.length,
+            data: mongoResult
+          };
 
         case 'elasticsearch':
-          // Elasticsearch execution logic would go here
-          throw new Error('Elasticsearch execution not implemented');
+          // Execute Elasticsearch query
+          const esQuery = query as any;
+          let esResult: any;
+          
+          if (esQuery.body) {
+            // Standard search query
+            esResult = await client.search({
+              index: esQuery.index,
+              body: esQuery.body
+            });
+            
+            return {
+              rows: esResult.hits?.hits?.map((hit: any) => ({ _id: hit._id, ...hit._source })) || [],
+              count: esResult.hits?.total?.value || 0,
+              data: esResult.hits?.hits?.map((hit: any) => ({ _id: hit._id, ...hit._source })) || []
+            };
+          } else {
+            throw new Error('Invalid Elasticsearch query format');
+          };
 
         case 'dynamodb':
-          // DynamoDB execution logic would go here
-          throw new Error('DynamoDB execution not implemented');
+          // Execute DynamoDB query - determine operation type based on query structure
+          const dynamoQuery = query as any;
+          
+          // Determine operation type based on query structure
+          let operation: string;
+          if (dynamoQuery.KeyConditionExpression) {
+            operation = 'query';
+          } else {
+            operation = 'scan';
+          }
+          
+          let dynamoResult: any;
+          
+          switch (operation) {
+            case 'query':
+              dynamoResult = await client.query(dynamoQuery);
+              break;
+              
+            case 'scan':
+              dynamoResult = await client.scan(dynamoQuery);
+              break;
+              
+            default:
+              throw new Error(`Unsupported DynamoDB operation: ${operation}`);
+          }
+          
+          return {
+            rows: dynamoResult.Items || (dynamoResult.Item ? [dynamoResult.Item] : []),
+            count: dynamoResult.Count || (dynamoResult.Item ? 1 : 0),
+            data: dynamoResult.Items || (dynamoResult.Item ? [dynamoResult.Item] : [])
+          };
 
         case 'redis':
           // Execute Redis query based on operation type

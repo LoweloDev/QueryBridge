@@ -61,6 +61,17 @@ export interface DatabaseConnection {
   accessKeyId?: string; // For DynamoDB
   secretAccessKey?: string; // For DynamoDB
   indexName?: string; // For Elasticsearch
+  // DynamoDB schema configuration
+  dynamodb?: {
+    partitionKey?: string;  // e.g., "id", "userId", "pk"
+    sortKey?: string;       // e.g., "sk", "createdAt", "timestamp"
+    // Add GSI configuration if needed in future
+    globalSecondaryIndexes?: Array<{
+      name: string;
+      partitionKey: string;
+      sortKey?: string;
+    }>;
+  };
 }
 
 export interface ActiveConnection {

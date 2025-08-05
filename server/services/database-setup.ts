@@ -10,7 +10,7 @@ import { MongoClient } from 'mongodb';
 import { Client as ElasticsearchClient } from '@elastic/elasticsearch';
 import { DynamoDBClient, ListTablesCommand } from '@aws-sdk/client-dynamodb';
 import Redis from 'ioredis';
-import type { DatabaseConnection, ActiveConnection } from "../../lib/src/types";
+import type { DatabaseConnection, ActiveConnection } from "universal-query-translator";
 
 import ws from 'ws';
 neonConfig.webSocketConstructor = ws;
@@ -108,9 +108,26 @@ export class DatabaseSetup {
 
   private async setupPostgreSQL(config: DatabaseConnection): Promise<void> {
     try {
-      const pool = new Pool({
-        connectionString: process.env.DATABASE_URL,
-      });
+      let pool: Pool;
+      
+      // Check if DATABASE_URL is provided (production/Replit environment)
+      if (process.env.DATABASE_URL) {
+        pool = new Pool({
+          connectionString: process.env.DATABASE_URL,
+        });
+      } else {
+        // Local development setup
+        const connectionConfig = {
+          host: config.host || 'localhost',
+          port: config.port || 5432,
+          user: config.username || process.env.USER || 'postgres',
+          database: config.database || 'querybridge_dev',
+          // For local development, we often don't need a password
+          ...(config.password && { password: config.password })
+        };
+        
+        pool = new Pool(connectionConfig);
+      }
 
       // Test the connection
       const client = await pool.connect();
@@ -150,15 +167,33 @@ export class DatabaseSetup {
   }
 
   private async setupRedis(config: DatabaseConnection): Promise<void> {
+    let client: any = null;
     try {
-      const client = new Redis({
+      client = new Redis({
         host: config.host,
         port: config.port,
-        retryDelayOnFailover: 100,
         maxRetriesPerRequest: 1,
+        enableReadyCheck: false,
+        lazyConnect: true,
+        connectTimeout: 1000,
       });
 
-      await client.ping();
+      // Add error handler to prevent unhandled errors
+      client.on('error', (err: any) => {
+        // Suppress repetitive connection errors
+        if (!err.message.includes('ECONNREFUSED')) {
+          console.warn(`Redis client error: ${err.message}`);
+        }
+      });
+
+      // Connect and test with timeout
+      await Promise.race([
+        (async () => {
+          await client.connect();
+          await client.ping();
+        })(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Connection timeout')), 3000))
+      ]);
 
       this.connections.set(config.id, {
         client,
@@ -169,6 +204,14 @@ export class DatabaseSetup {
 
       console.log(`Successfully connected to Redis: ${config.name}`);
     } catch (error: any) {
+      // Clean up client if connection failed
+      if (client) {
+        try {
+          client.disconnect();
+        } catch (e) {
+          // Ignore cleanup errors
+        }
+      }
       throw new Error(`Redis connection failed: ${error.message}`);
     }
   }
