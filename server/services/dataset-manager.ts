@@ -9,7 +9,7 @@ import { Pool as NeonPool } from '@neondatabase/serverless';
 import { Pool as PgPool } from 'pg';
 import { MongoClient } from 'mongodb';
 import { Client as OpenSearchClient } from '@opensearch-project/opensearch';
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBClient, CreateTableCommand, DescribeTableCommand, ListTablesCommand } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand, ScanCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
 import Redis from 'ioredis';
 import { 
@@ -137,6 +137,9 @@ export class DatasetManager {
     const docClient = DynamoDBDocumentClient.from(client);
     
     try {
+      // First, ensure required tables exist
+      await this.ensureDynamoDBTables(client);
+      
       // Load traditional table design
       for (const [tableName, items] of Object.entries(dynamodbDataset.traditionalTables)) {
         for (const item of items) {
@@ -171,6 +174,9 @@ export class DatasetManager {
     const docClient = DynamoDBDocumentClient.from(client);
     
     try {
+      // First, ensure required tables exist
+      await this.ensureDynamoDBTables(client);
+      
       // Clear traditional tables
       for (const tableName of Object.keys(dynamodbDataset.traditionalTables)) {
         await this.clearDynamoDBTable(docClient, tableName);
@@ -397,6 +403,97 @@ export class DatasetManager {
         break;
       default:
         throw new Error(`Unsupported database type: ${connection.config.type}`);
+    }
+  }
+
+  /**
+   * Ensure DynamoDB tables exist before loading data
+   */
+  private async ensureDynamoDBTables(client: DynamoDBClient): Promise<void> {
+    try {
+      // Get list of existing tables
+      const listTablesResult = await client.send(new ListTablesCommand({}));
+      const existingTables = listTablesResult.TableNames || [];
+
+      // Define required tables with their schemas
+      const requiredTables = [
+        {
+          name: 'users',
+          keySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
+          attributeDefinitions: [{ AttributeName: 'id', AttributeType: 'S' }]
+        },
+        {
+          name: 'orders',
+          keySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
+          attributeDefinitions: [{ AttributeName: 'id', AttributeType: 'S' }]
+        },
+        {
+          name: 'products',
+          keySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
+          attributeDefinitions: [{ AttributeName: 'id', AttributeType: 'S' }]
+        },
+        {
+          name: 'categories',
+          keySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
+          attributeDefinitions: [{ AttributeName: 'id', AttributeType: 'S' }]
+        },
+        {
+          name: 'reviews',
+          keySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
+          attributeDefinitions: [{ AttributeName: 'id', AttributeType: 'S' }]
+        },
+        {
+          name: 'main',
+          keySchema: [
+            { AttributeName: 'PK', KeyType: 'HASH' },
+            { AttributeName: 'SK', KeyType: 'RANGE' }
+          ],
+          attributeDefinitions: [
+            { AttributeName: 'PK', AttributeType: 'S' },
+            { AttributeName: 'SK', AttributeType: 'S' }
+          ]
+        }
+      ];
+
+      // Create missing tables
+      for (const table of requiredTables) {
+        if (!existingTables.includes(table.name)) {
+          await client.send(new CreateTableCommand({
+            TableName: table.name,
+            KeySchema: table.keySchema,
+            AttributeDefinitions: table.attributeDefinitions,
+            BillingMode: 'PAY_PER_REQUEST'
+          }));
+
+          // Wait for table to become active
+          let tableActive = false;
+          let attempts = 0;
+          const maxAttempts = 30;
+
+          while (!tableActive && attempts < maxAttempts) {
+            try {
+              const describeResult = await client.send(new DescribeTableCommand({
+                TableName: table.name
+              }));
+              
+              if (describeResult.Table?.TableStatus === 'ACTIVE') {
+                tableActive = true;
+              } else {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                attempts++;
+              }
+            } catch (error) {
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              attempts++;
+            }
+          }
+        }
+      }
+
+      console.log('DynamoDB tables ensured and ready');
+    } catch (error) {
+      console.error('Failed to ensure DynamoDB tables:', error);
+      throw error;
     }
   }
 }
