@@ -484,3 +484,139 @@
 2931:M 05 Aug 2025 06:31:34.842 * Saving the final RDB snapshot before exiting.
 2931:M 05 Aug 2025 06:31:34.848 * DB saved on disk
 2931:M 05 Aug 2025 06:31:34.848 # Redis is now ready to exit, bye bye...
+8210:C 05 Aug 2025 07:13:46.933 * oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+8210:C 05 Aug 2025 07:13:46.933 * Redis version=7.4.5, bits=64, commit=7e0f5339, modified=0, pid=8210, just started
+8210:C 05 Aug 2025 07:13:46.933 * Configuration loaded
+8210:M 05 Aug 2025 07:13:46.934 * monotonic clock: POSIX clock_gettime
+8210:M 05 Aug 2025 07:13:46.935 * Running mode=standalone, port=6379.
+8210:M 05 Aug 2025 07:13:46.935 # WARNING: The TCP backlog setting of 511 cannot be enforced because kern.ipc.somaxconn is set to the lower value of 128.
+8210:M 05 Aug 2025 07:13:46.936 * Module 'RedisCompat' loaded from /opt/homebrew/Caskroom/redis-stack-server/7.4.0-v6/lib/rediscompat.so
+8210:M 05 Aug 2025 07:13:46.941 * <search> Redis version found by RedisSearch : 7.4.5 - oss
+8210:M 05 Aug 2025 07:13:46.942 * <search> RediSearch version 2.10.20 (Git=5c09b69)
+8210:M 05 Aug 2025 07:13:46.942 * <search> Low level api version 1 initialized successfully
+8210:M 05 Aug 2025 07:13:46.942 * <search> gc: ON, prefix min length: 2, min word length to stem: 4, prefix max expansions: 200, query timeout (ms): 500, timeout policy: return, cursor read size: 1000, cursor max idle (ms): 300000, max doctable size: 1000000, max number of search results:  10000, 
+8210:M 05 Aug 2025 07:13:46.943 * <search> Initialized thread pools!
+8210:M 05 Aug 2025 07:13:46.943 * <search> Subscribe to config changes
+8210:M 05 Aug 2025 07:13:46.943 * <search> Enabled role change notification
+8210:M 05 Aug 2025 07:13:46.943 * Module 'search' loaded from /opt/homebrew/Caskroom/redis-stack-server/7.4.0-v6/lib/redisearch.so
+8210:M 05 Aug 2025 07:13:46.945 * <timeseries> RedisTimeSeries version 11206, git_sha=cdcbe34f8e87e15ea700b737634be6bac6b6700b
+8210:M 05 Aug 2025 07:13:46.945 * <timeseries> Redis version found by RedisTimeSeries : 7.4.5 - oss
+8210:M 05 Aug 2025 07:13:46.945 * <timeseries> loaded default CHUNK_SIZE_BYTES policy: 4096
+8210:M 05 Aug 2025 07:13:46.945 * <timeseries> loaded server DUPLICATE_POLICY: block
+8210:M 05 Aug 2025 07:13:46.945 * <timeseries> loaded default IGNORE_MAX_TIME_DIFF: 0
+8210:M 05 Aug 2025 07:13:46.945 * <timeseries> loaded default IGNORE_MAX_VAL_DIFF: 0.000000
+8210:M 05 Aug 2025 07:13:46.945 * <timeseries> Setting default series ENCODING to: compressed
+8210:M 05 Aug 2025 07:13:46.946 * <timeseries> Detected redis oss
+8210:M 05 Aug 2025 07:13:46.946 * Module 'timeseries' loaded from /opt/homebrew/Caskroom/redis-stack-server/7.4.0-v6/lib/redistimeseries.so
+8210:M 05 Aug 2025 07:13:46.950 * <ReJSON> Created new data type 'ReJSON-RL'
+8210:M 05 Aug 2025 07:13:46.950 # <ReJSON> Skip register defrag callbacks as defrag callbacks is not supported on the current Redis server.
+8210:M 05 Aug 2025 07:13:46.950 * <ReJSON> version: 20809 git sha: unknown branch: unknown
+8210:M 05 Aug 2025 07:13:46.951 * <ReJSON> Exported RedisJSON_V1 API
+8210:M 05 Aug 2025 07:13:46.951 * <ReJSON> Exported RedisJSON_V2 API
+8210:M 05 Aug 2025 07:13:46.951 * <ReJSON> Exported RedisJSON_V3 API
+8210:M 05 Aug 2025 07:13:46.951 * <ReJSON> Exported RedisJSON_V4 API
+8210:M 05 Aug 2025 07:13:46.951 * <ReJSON> Exported RedisJSON_V5 API
+8210:M 05 Aug 2025 07:13:46.951 * <ReJSON> Enabled diskless replication
+8210:M 05 Aug 2025 07:13:46.951 * <ReJSON> Initialized shared string cache, thread safe: false.
+8210:M 05 Aug 2025 07:13:46.951 * Module 'ReJSON' loaded from /opt/homebrew/Caskroom/redis-stack-server/7.4.0-v6/lib/rejson.so
+8210:M 05 Aug 2025 07:13:46.951 * <search> Acquired RedisJSON_V5 API
+8210:M 05 Aug 2025 07:13:46.952 * <bf> RedisBloom version 2.8.7 (Git=unknown)
+8210:M 05 Aug 2025 07:13:46.952 * Module 'bf' loaded from /opt/homebrew/Caskroom/redis-stack-server/7.4.0-v6/lib/redisbloom.so
+8210:M 05 Aug 2025 07:13:46.956 * <redisgears_2> Created new data type 'GearsType'
+8210:M 05 Aug 2025 07:13:46.957 * <redisgears_2> Detected redis oss
+8210:M 05 Aug 2025 07:13:46.958 # <redisgears_2> could not initialize RedisAI_InitError
+
+8210:M 05 Aug 2025 07:13:46.958 * <redisgears_2> Failed loading RedisAI API.
+8210:M 05 Aug 2025 07:13:46.958 * <redisgears_2> RedisGears v2.0.20, sha='9b737886bf825fe29ddc2f8da81f73cbe0b4e858', build_type='release', built_for='Macos-mac os12.6.3.aarch64', redis_version:'7.4.5', enterprise:'false'.
+8210:M 05 Aug 2025 07:13:46.962 * <redisgears_2> Registered backend: js.
+8210:M 05 Aug 2025 07:13:46.964 * Module 'redisgears_2' loaded from /opt/homebrew/Caskroom/redis-stack-server/7.4.0-v6/lib/redisgears.so
+8210:M 05 Aug 2025 07:13:46.964 * Server initialized
+8210:M 05 Aug 2025 07:13:46.965 * <search> Loading event starts
+8210:M 05 Aug 2025 07:13:46.965 * <redisgears_2> Got a loading start event, clear the entire functions data.
+8210:M 05 Aug 2025 07:13:46.965 * Reading RDB base file on AOF loading...
+8210:M 05 Aug 2025 07:13:46.965 * Loading RDB produced by version 7.4.5
+8210:M 05 Aug 2025 07:13:46.965 * RDB age 21168 seconds
+8210:M 05 Aug 2025 07:13:46.965 * RDB memory usage when created 1.40 Mb
+8210:M 05 Aug 2025 07:13:46.965 * RDB is base AOF
+8210:M 05 Aug 2025 07:13:46.965 * Done loading RDB, keys loaded: 0, keys expired: 0.
+8210:M 05 Aug 2025 07:13:46.965 * DB loaded from base file appendonly.aof.1.base.rdb: 0.001 seconds
+8210:M 05 Aug 2025 07:13:46.966 * DB loaded from incr file appendonly.aof.1.incr.aof: 0.000 seconds
+8210:M 05 Aug 2025 07:13:46.966 * <search> Loading event ends
+8210:M 05 Aug 2025 07:13:46.966 * <redisgears_2> Loading finished, re-enable key space notificaitons.
+8210:M 05 Aug 2025 07:13:46.966 * DB loaded from append only file: 0.001 seconds
+8210:M 05 Aug 2025 07:13:46.966 * Opening AOF incr file appendonly.aof.1.incr.aof on server start
+8210:M 05 Aug 2025 07:13:46.966 * Ready to accept connections tcp
+8210:signal-handler (1754388654) Received SIGINT scheduling shutdown...
+8210:M 05 Aug 2025 12:10:54.812 * User requested shutdown...
+8210:M 05 Aug 2025 12:10:54.812 * Calling fsync() on the AOF file.
+8210:M 05 Aug 2025 12:10:54.816 * Saving the final RDB snapshot before exiting.
+8210:M 05 Aug 2025 12:10:54.826 * DB saved on disk
+8210:M 05 Aug 2025 12:10:54.826 # Redis is now ready to exit, bye bye...
+15969:C 05 Aug 2025 13:16:23.087 * oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+15969:C 05 Aug 2025 13:16:23.087 * Redis version=7.4.5, bits=64, commit=7e0f5339, modified=0, pid=15969, just started
+15969:C 05 Aug 2025 13:16:23.087 * Configuration loaded
+15969:M 05 Aug 2025 13:16:23.087 * monotonic clock: POSIX clock_gettime
+15969:M 05 Aug 2025 13:16:23.089 * Running mode=standalone, port=6379.
+15969:M 05 Aug 2025 13:16:23.089 # WARNING: The TCP backlog setting of 511 cannot be enforced because kern.ipc.somaxconn is set to the lower value of 128.
+15969:M 05 Aug 2025 13:16:23.090 * Module 'RedisCompat' loaded from /opt/homebrew/Caskroom/redis-stack-server/7.4.0-v6/lib/rediscompat.so
+15969:M 05 Aug 2025 13:16:23.097 * <search> Redis version found by RedisSearch : 7.4.5 - oss
+15969:M 05 Aug 2025 13:16:23.098 * <search> RediSearch version 2.10.20 (Git=5c09b69)
+15969:M 05 Aug 2025 13:16:23.098 * <search> Low level api version 1 initialized successfully
+15969:M 05 Aug 2025 13:16:23.099 * <search> gc: ON, prefix min length: 2, min word length to stem: 4, prefix max expansions: 200, query timeout (ms): 500, timeout policy: return, cursor read size: 1000, cursor max idle (ms): 300000, max doctable size: 1000000, max number of search results:  10000, 
+15969:M 05 Aug 2025 13:16:23.099 * <search> Initialized thread pools!
+15969:M 05 Aug 2025 13:16:23.099 * <search> Subscribe to config changes
+15969:M 05 Aug 2025 13:16:23.099 * <search> Enabled role change notification
+15969:M 05 Aug 2025 13:16:23.100 * Module 'search' loaded from /opt/homebrew/Caskroom/redis-stack-server/7.4.0-v6/lib/redisearch.so
+15969:M 05 Aug 2025 13:16:23.102 * <timeseries> RedisTimeSeries version 11206, git_sha=cdcbe34f8e87e15ea700b737634be6bac6b6700b
+15969:M 05 Aug 2025 13:16:23.102 * <timeseries> Redis version found by RedisTimeSeries : 7.4.5 - oss
+15969:M 05 Aug 2025 13:16:23.102 * <timeseries> loaded default CHUNK_SIZE_BYTES policy: 4096
+15969:M 05 Aug 2025 13:16:23.102 * <timeseries> loaded server DUPLICATE_POLICY: block
+15969:M 05 Aug 2025 13:16:23.102 * <timeseries> loaded default IGNORE_MAX_TIME_DIFF: 0
+15969:M 05 Aug 2025 13:16:23.102 * <timeseries> loaded default IGNORE_MAX_VAL_DIFF: 0.000000
+15969:M 05 Aug 2025 13:16:23.102 * <timeseries> Setting default series ENCODING to: compressed
+15969:M 05 Aug 2025 13:16:23.103 * <timeseries> Detected redis oss
+15969:M 05 Aug 2025 13:16:23.103 * Module 'timeseries' loaded from /opt/homebrew/Caskroom/redis-stack-server/7.4.0-v6/lib/redistimeseries.so
+15969:M 05 Aug 2025 13:16:23.107 * <ReJSON> Created new data type 'ReJSON-RL'
+15969:M 05 Aug 2025 13:16:23.107 # <ReJSON> Skip register defrag callbacks as defrag callbacks is not supported on the current Redis server.
+15969:M 05 Aug 2025 13:16:23.107 * <ReJSON> version: 20809 git sha: unknown branch: unknown
+15969:M 05 Aug 2025 13:16:23.108 * <ReJSON> Exported RedisJSON_V1 API
+15969:M 05 Aug 2025 13:16:23.108 * <ReJSON> Exported RedisJSON_V2 API
+15969:M 05 Aug 2025 13:16:23.108 * <ReJSON> Exported RedisJSON_V3 API
+15969:M 05 Aug 2025 13:16:23.108 * <ReJSON> Exported RedisJSON_V4 API
+15969:M 05 Aug 2025 13:16:23.108 * <ReJSON> Exported RedisJSON_V5 API
+15969:M 05 Aug 2025 13:16:23.108 * <ReJSON> Enabled diskless replication
+15969:M 05 Aug 2025 13:16:23.108 * <ReJSON> Initialized shared string cache, thread safe: false.
+15969:M 05 Aug 2025 13:16:23.108 * Module 'ReJSON' loaded from /opt/homebrew/Caskroom/redis-stack-server/7.4.0-v6/lib/rejson.so
+15969:M 05 Aug 2025 13:16:23.108 * <search> Acquired RedisJSON_V5 API
+15969:M 05 Aug 2025 13:16:23.109 * <bf> RedisBloom version 2.8.7 (Git=unknown)
+15969:M 05 Aug 2025 13:16:23.109 * Module 'bf' loaded from /opt/homebrew/Caskroom/redis-stack-server/7.4.0-v6/lib/redisbloom.so
+15969:M 05 Aug 2025 13:16:23.114 * <redisgears_2> Created new data type 'GearsType'
+15969:M 05 Aug 2025 13:16:23.115 * <redisgears_2> Detected redis oss
+15969:M 05 Aug 2025 13:16:23.115 # <redisgears_2> could not initialize RedisAI_InitError
+
+15969:M 05 Aug 2025 13:16:23.115 * <redisgears_2> Failed loading RedisAI API.
+15969:M 05 Aug 2025 13:16:23.116 * <redisgears_2> RedisGears v2.0.20, sha='9b737886bf825fe29ddc2f8da81f73cbe0b4e858', build_type='release', built_for='Macos-mac os12.6.3.aarch64', redis_version:'7.4.5', enterprise:'false'.
+15969:M 05 Aug 2025 13:16:23.120 * <redisgears_2> Registered backend: js.
+15969:M 05 Aug 2025 13:16:23.123 * Module 'redisgears_2' loaded from /opt/homebrew/Caskroom/redis-stack-server/7.4.0-v6/lib/redisgears.so
+15969:M 05 Aug 2025 13:16:23.123 * Server initialized
+15969:M 05 Aug 2025 13:16:23.124 * <search> Loading event starts
+15969:M 05 Aug 2025 13:16:23.124 * <redisgears_2> Got a loading start event, clear the entire functions data.
+15969:M 05 Aug 2025 13:16:23.124 * Reading RDB base file on AOF loading...
+15969:M 05 Aug 2025 13:16:23.124 * Loading RDB produced by version 7.4.5
+15969:M 05 Aug 2025 13:16:23.124 * RDB age 42925 seconds
+15969:M 05 Aug 2025 13:16:23.124 * RDB memory usage when created 1.40 Mb
+15969:M 05 Aug 2025 13:16:23.124 * RDB is base AOF
+15969:M 05 Aug 2025 13:16:23.124 * Done loading RDB, keys loaded: 0, keys expired: 0.
+15969:M 05 Aug 2025 13:16:23.124 * DB loaded from base file appendonly.aof.1.base.rdb: 0.001 seconds
+15969:M 05 Aug 2025 13:16:23.125 * DB loaded from incr file appendonly.aof.1.incr.aof: 0.000 seconds
+15969:M 05 Aug 2025 13:16:23.125 * <search> Loading event ends
+15969:M 05 Aug 2025 13:16:23.125 * <redisgears_2> Loading finished, re-enable key space notificaitons.
+15969:M 05 Aug 2025 13:16:23.125 * DB loaded from append only file: 0.001 seconds
+15969:M 05 Aug 2025 13:16:23.125 * Opening AOF incr file appendonly.aof.1.incr.aof on server start
+15969:M 05 Aug 2025 13:16:23.125 * Ready to accept connections tcp
+15969:signal-handler (1754402606) Received SIGINT scheduling shutdown...
+15969:M 05 Aug 2025 16:03:26.934 * User requested shutdown...
+15969:M 05 Aug 2025 16:03:26.935 * Calling fsync() on the AOF file.
+15969:M 05 Aug 2025 16:03:26.939 * Saving the final RDB snapshot before exiting.
+15969:M 05 Aug 2025 16:03:26.949 * DB saved on disk
+15969:M 05 Aug 2025 16:03:26.949 # Redis is now ready to exit, bye bye...
