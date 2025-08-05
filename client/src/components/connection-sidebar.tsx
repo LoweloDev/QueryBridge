@@ -4,13 +4,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Search, MoreVertical, Loader2 } from "lucide-react";
+import { Plus, Search, MoreVertical, Loader2, Settings } from "lucide-react";
 import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { ConnectionDropdownMenu } from "./connection-dropdown-menu";
+import { EditConnectionDialog } from "./edit-connection-dialog";
+import { SettingsDialog } from "./settings-dialog";
+import type { DatabaseConnection } from "universal-query-translator";
 
 export function ConnectionSidebar() {
   const [searchTerm, setSearchTerm] = useState("");
   const [connectionStatus, setConnectionStatus] = useState<Record<string, boolean>>({});
+  const [editingConnection, setEditingConnection] = useState<DatabaseConnection | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -36,6 +42,86 @@ export function ConnectionSidebar() {
       toast({
         title: "Connection failed",
         description: "Could not connect to the database.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const resetDatabaseMutation = useMutation({
+    mutationFn: (id: string) => 
+      fetch(`/api/connections/${id}/reset`, { method: 'POST' }).then(res => res.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/connections"] });
+      toast({
+        title: "Database reset successfully",
+        description: "All data cleared and example dataset loaded.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Reset failed",
+        description: error.message || "Failed to reset database.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteConnectionMutation = useMutation({
+    mutationFn: (id: string) => 
+      fetch(`/api/connections/${id}`, { method: 'DELETE' }).then(res => res.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/connections"] });
+      toast({
+        title: "Connection deleted",
+        description: "Database connection removed successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Delete failed",
+        description: error.message || "Failed to delete connection.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const loadDatasetMutation = useMutation({
+    mutationFn: (id: string) => 
+      fetch(`/api/connections/${id}/load-dataset`, { method: 'POST' }).then(res => res.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/connections"] });
+      toast({
+        title: "Dataset loaded successfully",
+        description: "Example dataset has been loaded into the database.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Dataset loading failed",
+        description: error.message || "Failed to load example dataset.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateConnectionMutation = useMutation({
+    mutationFn: (connection: DatabaseConnection) => 
+      fetch(`/api/connections/${connection.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(connection)
+      }).then(res => res.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/connections"] });
+      toast({
+        title: "Connection updated",
+        description: "Connection configuration saved successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Update failed", 
+        description: error.message || "Failed to update connection.",
         variant: "destructive",
       });
     },
@@ -87,9 +173,19 @@ export function ConnectionSidebar() {
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-semibold text-primary">Available Connections</h2>
-          <Badge variant="secondary" className="text-xs">
-            {connections?.length || 0} active
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setShowSettings(true)}
+              className="h-8 w-8 p-0"
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
+            <Badge variant="secondary" className="text-xs">
+              {connections?.length || 0} active
+            </Badge>
+          </div>
         </div>
         <div className="relative">
           <Input
@@ -122,9 +218,13 @@ export function ConnectionSidebar() {
                   />
                   <span className="font-medium text-sm">{connection.name}</span>
                 </div>
-                <Button size="sm" variant="ghost" className="h-auto p-1">
-                  <MoreVertical size={12} className="text-muted-foreground" />
-                </Button>
+                <ConnectionDropdownMenu 
+                  connection={connection}
+                  onEdit={setEditingConnection}
+                  onReset={(conn) => resetDatabaseMutation.mutate(conn.id)}
+                  onDelete={(conn) => deleteConnectionMutation.mutate(conn.id)}
+                  onLoadDataset={(conn) => loadDatasetMutation.mutate(conn.id)}
+                />
               </div>
               <div className="text-xs text-muted-foreground space-y-1">
                 <div className="flex items-center justify-between">
@@ -156,6 +256,23 @@ export function ConnectionSidebar() {
           Add Connection
         </Button>
       </div>
+
+      {/* Edit Connection Dialog */}
+      <EditConnectionDialog
+        connection={editingConnection}
+        isOpen={!!editingConnection}
+        onClose={() => setEditingConnection(null)}
+        onSave={(connection) => {
+          updateConnectionMutation.mutate(connection);
+          setEditingConnection(null);
+        }}
+      />
+
+      {/* Settings Dialog */}
+      <SettingsDialog
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+      />
     </aside>
   );
 }
