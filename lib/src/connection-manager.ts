@@ -167,6 +167,10 @@ export class ConnectionManager {
           const mongoQuery = query as any;
           let mongoResult: any;
           
+          // Get the database and collection using proper MongoDB driver pattern
+          const db = client.db(mongoQuery.database || config.database || 'test');
+          const collection = db.collection(mongoQuery.collection);
+          
           if (mongoQuery.operation === 'find') {
             const findOptions: any = {};
             if (mongoQuery.sort) findOptions.sort = mongoQuery.sort;
@@ -174,13 +178,26 @@ export class ConnectionManager {
             if (mongoQuery.skip) findOptions.skip = mongoQuery.skip;
             if (mongoQuery.projection) findOptions.projection = mongoQuery.projection;
             
-            const cursor = client.collection(mongoQuery.collection).find(mongoQuery.filter || {}, findOptions);
+            const cursor = collection.find(mongoQuery.filter || {}, findOptions);
             mongoResult = await cursor.toArray();
           } else if (mongoQuery.operation === 'aggregate') {
-            mongoResult = await client.collection(mongoQuery.collection).aggregate(mongoQuery.pipeline).toArray();
+            mongoResult = await collection.aggregate(mongoQuery.pipeline).toArray();
           } else if (mongoQuery.operation === 'findOne') {
-            mongoResult = await client.collection(mongoQuery.collection).findOne(mongoQuery.filter || {}, { projection: mongoQuery.projection });
+            mongoResult = await collection.findOne(mongoQuery.filter || {}, { projection: mongoQuery.projection });
             mongoResult = mongoResult ? [mongoResult] : [];
+          } else if (mongoQuery.operation === 'insertOne') {
+            const result = await collection.insertOne(mongoQuery.document);
+            mongoResult = [{ insertedId: result.insertedId, acknowledged: result.acknowledged }];
+          } else if (mongoQuery.operation === 'updateOne') {
+            const result = await collection.updateOne(mongoQuery.filter, mongoQuery.update);
+            mongoResult = [{ 
+              matchedCount: result.matchedCount, 
+              modifiedCount: result.modifiedCount,
+              acknowledged: result.acknowledged 
+            }];
+          } else if (mongoQuery.operation === 'deleteOne') {
+            const result = await collection.deleteOne(mongoQuery.filter);
+            mongoResult = [{ deletedCount: result.deletedCount, acknowledged: result.acknowledged }];
           } else {
             throw new Error(`Unsupported MongoDB operation: ${mongoQuery.operation}`);
           }
