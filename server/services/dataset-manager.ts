@@ -224,8 +224,10 @@ export class DatasetManager {
       } while (lastEvaluatedKey);
       
     } catch (error) {
-      // Table might not exist, which is fine for reset
-      console.log(`Table ${tableName} does not exist or is empty`);
+      // Table might not exist, which is fine for reset - only log for DynamoDB
+      if (tableName) {
+        console.log(`DynamoDB table ${tableName} does not exist or is empty`);
+      }
     }
   }
 
@@ -236,30 +238,46 @@ export class DatasetManager {
     const client = connection.client as Redis;
     
     try {
-      // Load hash sets
+      // Load hash sets (user:*, order:*, product:* keys)
+      let hashCount = 0;
       for (const [key, value] of Object.entries(redisDataset.hashes)) {
-        await client.hmset(key, value);
-      }
-      
-      // Load sets
-      for (const [key, members] of Object.entries(redisDataset.sets)) {
-        if (members.length > 0) {
-          await client.sadd(key, ...members);
+        // Check if hash exists before reporting
+        const exists = await client.exists(key);
+        if (!exists) {
+          await client.hmset(key, value);
+          hashCount++;
         }
       }
       
-      // Load sorted sets
+      // Load sets (users:active, orders:completed, etc.)
+      let setCount = 0;
+      for (const [key, members] of Object.entries(redisDataset.sets)) {
+        if (members.length > 0) {
+          const exists = await client.exists(key);
+          if (!exists) {
+            await client.sadd(key, ...members);
+            setCount++;
+          }
+        }
+      }
+      
+      // Load sorted sets (products:by_price, etc.)
+      let sortedSetCount = 0;
       for (const [key, items] of Object.entries(redisDataset.sortedSets)) {
         const args: (string | number)[] = [];
         for (const item of items) {
           args.push(item.score, item.member);
         }
         if (args.length > 0) {
-          await client.zadd(key, ...args);
+          const exists = await client.exists(key);
+          if (!exists) {
+            await client.zadd(key, ...args);
+            sortedSetCount++;
+          }
         }
       }
       
-      console.log('Redis example dataset loaded successfully');
+      console.log(`Redis example dataset loaded successfully - ${hashCount} hashes, ${setCount} sets, ${sortedSetCount} sorted sets`);
     } catch (error) {
       console.error('Failed to load Redis dataset:', error);
       throw error;
