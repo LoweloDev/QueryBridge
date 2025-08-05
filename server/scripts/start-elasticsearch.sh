@@ -117,7 +117,7 @@ fi
 echo "Starting Elasticsearch PostgreSQL Layer on port 9200..."
 
 if [ "$USING_OPENSEARCH" = "1" ]; then
-    # Create OpenSearch configuration directory and file
+    # Create OpenSearch configuration directory and files
     mkdir -p ./server/data/opensearch-config
     
     # Create opensearch.yml with security disabled
@@ -135,6 +135,120 @@ cluster.routing.allocation.disk.threshold_enabled: false
 
 # Disable security plugin
 plugins.security.disabled: true
+EOF
+
+    # Create jvm.options file
+    cat > ./server/data/opensearch-config/jvm.options << 'EOF'
+## JVM configuration for OpenSearch
+
+################################################################
+## IMPORTANT: JVM heap size
+################################################################
+##
+## The heap size is automatically configured by OpenSearch
+## based on the available memory in your system and the roles
+## each node will fulfill. If you find the automatically-
+## configured heap size inappropriate for your environment,
+## uncomment the settings below to set the heap size manually.
+##
+## Xms represents the initial size of total heap space
+## Xmx represents the maximum size of total heap space
+
+-Xms512m
+-Xmx512m
+
+################################################################
+## Expert settings
+################################################################
+##
+## All settings below here are expert settings. Do not change
+## them unless you understand what you are doing. In other words,
+## do not blame us if you change these and bad things happen.
+
+## GC configuration
+8-13:-XX:+UseConcMarkSweepGC
+8-13:-XX:CMSInitiatingOccupancyFraction=75
+8-13:-XX:+UseCMSInitiatingOccupancyOnly
+
+## G1GC Configuration
+14-:-XX:+UseG1GC
+
+## optimizations
+
+# pre-touch memory pages used by the JVM during initialization
+-XX:+AlwaysPreTouch
+
+## basic
+
+# explicitly set the stack size
+-Xss1m
+
+# set to headless, just in case
+-Djava.awt.headless=true
+
+# ensure UTF-8 encoding by default (e.g. filenames)
+-Dfile.encoding=UTF-8
+
+# use our provided JNA always versus the system one
+-Djna.nosys=true
+
+# turn off a JDK optimization that throws away stack traces for common
+# exceptions because stack traces are important for debugging
+-XX:-OmitStackTraceInFastThrow
+
+# flags to configure Netty
+-Dio.netty.noUnsafe=true
+-Dio.netty.noKeySetOptimization=true
+-Dio.netty.recycler.maxCapacityPerThread=0
+
+# log4j 2
+-Dlog4j.shutdownHookEnabled=false
+-Dlog4j2.disable.jmx=true
+
+-Djava.locale.providers=SPI,COMPAT
+
+## heap dumps
+
+# generate a heap dump when an allocation from the Java heap fails
+# heap dumps are created in the working directory of the JVM
+-XX:+HeapDumpOnOutOfMemoryError
+
+# specify an alternative path for heap dumps; ensure the directory exists and
+# has sufficient space
+-XX:HeapDumpPath=data
+
+# specify an alternative path for JVM fatal error logs
+-XX:ErrorFile=logs/hs_err_pid%p.log
+
+## JDK 8 GC logging
+8:-XX:+PrintGCDetails
+8:-XX:+PrintGCTimeStamps
+8:-XX:+PrintGCDateStamps
+8:-XX:+PrintClassHistogram
+8:-XX:+PrintTenuringDistribution
+8:-XX:+PrintGCApplicationStoppedTime
+8:-Xloggc:logs/gc.log
+8:-XX:+UseGCLogFileRotation
+8:-XX:NumberOfGCLogFiles=32
+8:-XX:GCLogFileSize=64m
+
+# JDK 9+ GC logging
+9-:-Xlog:gc*,gc+age=trace,safepoint:logs/gc.log:utctime,pid,tid,level
+9-:-XX:+UnlockExperimentalVMOptions
+9-:-XX:+UseEpsilonGC
+EOF
+
+    # Create log4j2.properties file
+    cat > ./server/data/opensearch-config/log4j2.properties << 'EOF'
+status = error
+
+appender.console.type = Console
+appender.console.name = console
+appender.console.layout.type = PatternLayout
+appender.console.layout.pattern = [%d{ISO8601}][%-5p][%-25c{1.}] [%node_name]%marker %m%n
+
+rootLogger.level = info
+rootLogger.appenderRef.console.ref = console
 EOF
     
     # Start OpenSearch with custom configuration
@@ -162,8 +276,15 @@ fi
 echo "Starting Elasticsearch DynamoDB Layer on port 9201..."
 
 if [ "$USING_OPENSEARCH" = "1" ]; then
+    # Create separate config directory for DynamoDB layer
+    mkdir -p ./server/data/opensearch-config-dynamo
+    
+    # Copy jvm.options and log4j2.properties to dynamo config dir
+    cp ./server/data/opensearch-config/jvm.options ./server/data/opensearch-config-dynamo/
+    cp ./server/data/opensearch-config/log4j2.properties ./server/data/opensearch-config-dynamo/
+    
     # Create opensearch.yml for DynamoDB layer
-    cat > ./server/data/opensearch-config/opensearch-dynamo.yml << 'EOF'
+    cat > ./server/data/opensearch-config-dynamo/opensearch.yml << 'EOF'
 # OpenSearch Configuration - Security Disabled
 cluster.name: universal-query-dynamodb  
 node.name: dynamodb-layer
@@ -180,7 +301,7 @@ plugins.security.disabled: true
 EOF
     
     # Start OpenSearch with custom configuration for DynamoDB layer
-    OPENSEARCH_PATH_CONF=./server/data/opensearch-config "$ELASTICSEARCH_BIN" -d -Econfig=./server/data/opensearch-config/opensearch-dynamo.yml
+    OPENSEARCH_PATH_CONF=./server/data/opensearch-config-dynamo "$ELASTICSEARCH_BIN" -d
 else
     # Elasticsearch configuration
     "$ELASTICSEARCH_BIN" \
