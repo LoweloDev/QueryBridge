@@ -1,6 +1,6 @@
 /**
  * Real Database Setup and Connection Establishment
- * 
+ *
  * This establishes real database connections and provides them to the library.
  * The test backend handles database setup, not the library.
  */
@@ -111,7 +111,7 @@ export class DatabaseSetup {
   private async setupPostgreSQL(config: DatabaseConnection): Promise<void> {
     try {
       let pool: NeonPool | PgPool;
-      
+
       // Check if DATABASE_URL is provided (production/Replit environment)
       if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('neon.tech')) {
         // Use Neon client for Replit/serverless environment
@@ -176,17 +176,17 @@ export class DatabaseSetup {
             database: 'postgres'
           }
         ];
-        
+
         let connectionError: Error | null = null;
         let poolToUse: PgPool | null = null;
-        
+
         console.log('Using standard PostgreSQL client for local development');
-        
+
         for (const pgConfig of possibleConfigs) {
           try {
-            console.log(`Trying PostgreSQL config:`, { 
-              ...pgConfig, 
-              password: 'password' in pgConfig && pgConfig.password ? '[HIDDEN]' : 'none' 
+            console.log(`Trying PostgreSQL config:`, {
+              ...pgConfig,
+              password: 'password' in pgConfig && pgConfig.password ? '[HIDDEN]' : 'none'
             });
             const testPool = new PgPool(pgConfig);
             // Test this configuration
@@ -202,12 +202,12 @@ export class DatabaseSetup {
             continue; // Try next config
           }
         }
-        
+
         if (!poolToUse) {
           console.log('All PostgreSQL configurations failed. Last error:', connectionError?.message);
           throw connectionError || new Error('No working PostgreSQL configuration found');
         }
-        
+
         pool = poolToUse;
       }
 
