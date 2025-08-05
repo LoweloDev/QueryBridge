@@ -705,18 +705,14 @@ export class QueryTranslator {
     const expressionAttributeValues = dynamoQuery.ExpressionAttributeValues || {};
     const expressionAttributeNames = dynamoQuery.ExpressionAttributeNames || {};
 
-    for (const condition of query.where) {
-      // Ensure unique placeholder numbering by counting existing placeholders  
-      let placeholderNum = 0;
-      const existingVals = Object.keys(expressionAttributeValues).filter(k => k.startsWith(':val'));
-      if (existingVals.length > 0) {
-        const nums = existingVals.map(k => parseInt(k.replace(':val', ''), 10)).filter(n => !isNaN(n));
-        placeholderNum = nums.length > 0 ? Math.max(...nums) + 1 : 0;
-      }
+    for (let i = 0; i < query.where.length; i++) {
+      const condition: any = query.where[i];
       
-      const placeholder = `:val${placeholderNum}`;
-      const namePlaceholder = `#${condition.field.replace(/[^a-zA-Z0-9]/g, '_')}`;
+      // Create consistent, unique placeholders
+      const placeholder = `:val${i}`;
+      const namePlaceholder = `#${condition.field}`;
 
+      // Use clean field names for ExpressionAttributeNames
       expressionAttributeNames[namePlaceholder] = condition.field;
       
       if (condition.operator === 'IN') {
@@ -727,9 +723,9 @@ export class QueryTranslator {
           values = values.replace(/[\[\]()]/g, '').split(',').map(v => v.trim().replace(/^["']|["']$/g, ''));
         }
         if (Array.isArray(values)) {
-          const inPlaceholders = values.map((_, i) => `${placeholder}_${i}`);
-          values.forEach((val, i) => {
-            expressionAttributeValues[`${placeholder}_${i}`] = val;
+          const inPlaceholders = values.map((_, idx) => `${placeholder}_${idx}`);
+          values.forEach((val, idx) => {
+            expressionAttributeValues[`${placeholder}_${idx}`] = val;
           });
           filterExpressions.push(`${namePlaceholder} IN (${inPlaceholders.join(', ')})`);
         }
