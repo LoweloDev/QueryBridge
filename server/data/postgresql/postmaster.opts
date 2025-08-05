@@ -1,1 +1,0 @@
-/nix/store/w7ldv9b1vc48a235g7ib2kjyqlrzfv0s-postgresql-16.9/bin/postgres "-D" "/home/runner/workspace/server/data/postgresql" "-p" "5432" "-k" "/home/runner/workspace/server/data/postgresql"
