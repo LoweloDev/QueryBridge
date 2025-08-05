@@ -23,34 +23,18 @@ elif [ -f "server/elasticsearch/bin/elasticsearch" ]; then
 else
     echo "❌ Elasticsearch not found. Setting up local installation..."
     
-    # Clean up any broken installation
-    if [ -d "server/elasticsearch" ] && [ ! -f "server/elasticsearch/jdk/bin/java" ] && [ ! -f "server/elasticsearch/jdk.app/Contents/Home/bin/java" ]; then
-        echo "🧹 Removing broken Elasticsearch installation..."
-        rm -rf server/elasticsearch
-    fi
-    
-    # Force macOS detection for development environment
-    # Since the user confirmed they are on macOS with Homebrew
-    DETECTED_OS="macOS"
-    echo "🍎 Forcing macOS environment (user confirmed macOS + Homebrew setup)"
-    
-    # Download appropriate version for macOS
-    if [ "$DETECTED_OS" = "macOS" ]; then
+    # Detect OS and download appropriate version
+    if [[ "$OSTYPE" == "darwin"* ]]; then
         # macOS
         ELASTICSEARCH_URL="https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-8.15.0-darwin-x86_64.tar.gz"
         if [[ $(uname -m) == "arm64" ]]; then
             ELASTICSEARCH_URL="https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-8.15.0-darwin-aarch64.tar.gz"
-            echo "📱 Using Apple Silicon (ARM64) version"
-        else
-            echo "💻 Using Intel (x86_64) version"
         fi
     else
         # Linux
         ELASTICSEARCH_URL="https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-8.15.0-linux-x86_64.tar.gz"
-        echo "🐧 Using Linux version"
     fi
     
-    echo "📦 Downloading from: $ELASTICSEARCH_URL"
     curl -s -L "$ELASTICSEARCH_URL" -o /tmp/elasticsearch.tar.gz
     
     if [ $? -eq 0 ]; then
@@ -59,13 +43,6 @@ else
         tar -xzf /tmp/elasticsearch.tar.gz -C server/elasticsearch --strip-components=1
         rm /tmp/elasticsearch.tar.gz
         ELASTICSEARCH_BIN="server/elasticsearch/bin/elasticsearch"
-        
-        # Verify JDK is present
-        if [ -f "server/elasticsearch/jdk/bin/java" ] || [ -f "server/elasticsearch/jdk.app/Contents/Home/bin/java" ]; then
-            echo "✅ JDK verified in Elasticsearch bundle"
-        else
-            echo "⚠️  JDK not found in bundle, but will try to start anyway"
-        fi
     else
         echo "❌ Failed to download Elasticsearch"
         exit 1
