@@ -133,13 +133,22 @@ else
         if command_exists brew; then
             brew install postgresql@15
             # Add PostgreSQL to PATH
-            echo 'export PATH="/opt/homebrew/opt/postgresql@15/bin:$PATH"' >> ~/.zshrc
-            echo 'export PATH="/opt/homebrew/opt/postgresql@15/bin:$PATH"' >> ~/.bash_profile
+            if ! grep -q "/opt/homebrew/opt/postgresql@15/bin" ~/.zshrc 2>/dev/null; then
+                echo 'export PATH="/opt/homebrew/opt/postgresql@15/bin:$PATH"' >> ~/.zshrc
+            fi
+            if ! grep -q "/opt/homebrew/opt/postgresql@15/bin" ~/.bash_profile 2>/dev/null; then
+                echo 'export PATH="/opt/homebrew/opt/postgresql@15/bin:$PATH"' >> ~/.bash_profile
+            fi
+            
+            # Add to current session PATH
+            export PATH="/opt/homebrew/opt/postgresql@15/bin:$PATH"
+            
             # Initialize database if not exists
             if [ ! -d "/opt/homebrew/var/postgresql@15" ]; then
                 initdb -D /opt/homebrew/var/postgresql@15
             fi
             echo "✅ PostgreSQL installed via Homebrew"
+            echo "⚠️  Note: Restart your terminal or run 'source ~/.zshrc' to update PATH"
         else
             echo "❌ Homebrew not found. Please install Homebrew first."
             exit 1
