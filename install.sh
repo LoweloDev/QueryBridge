@@ -162,10 +162,11 @@ else
     fi
 fi
 
-# Create PostgreSQL data directory
+# Create PostgreSQL data directory with correct permissions
 PG_DATA_DIR="$(pwd)/server/data/postgresql"
 mkdir -p "$PG_DATA_DIR"
-echo "✅ PostgreSQL data directory created: $PG_DATA_DIR"
+chmod 700 "$PG_DATA_DIR"
+echo "✅ PostgreSQL data directory created with secure permissions (700): $PG_DATA_DIR"
 
 # Check and install MongoDB
 print_step "6" "Installing MongoDB"

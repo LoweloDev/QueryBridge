@@ -84,6 +84,24 @@ if command -v lsof >/dev/null 2>&1; then
     fi
 fi
 
+# Create and fix permissions for data directory
+if [ ! -d "$PG_DATA_DIR" ]; then
+    echo "Creating PostgreSQL data directory: $PG_DATA_DIR"
+    mkdir -p "$PG_DATA_DIR"
+fi
+
+# Fix directory permissions for PostgreSQL (required: 0700 or 0750)
+echo "Setting correct permissions for PostgreSQL data directory..."
+chmod 700 "$PG_DATA_DIR"
+if [ $? -eq 0 ]; then
+    echo "✅ Directory permissions set to 700 (owner read/write/execute only)"
+else
+    echo "❌ Failed to set directory permissions. You may need to run:"
+    echo "   sudo chmod 700 '$PG_DATA_DIR'"
+    echo "   sudo chown $(whoami) '$PG_DATA_DIR'"
+    exit 1
+fi
+
 # Initialize data directory if it doesn't exist
 if [ ! -f "$PG_DATA_DIR/postgresql.conf" ]; then
     echo "Initializing PostgreSQL data directory..."
