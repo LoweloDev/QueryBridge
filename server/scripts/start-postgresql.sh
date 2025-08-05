@@ -33,7 +33,39 @@ echo "✅ Found PostgreSQL: $PG_VERSION"
 # Check if already running
 if pg_isready -h localhost -p 5432 >/dev/null 2>&1; then
     echo "✅ PostgreSQL is already running on port 5432"
+    
+    # Verify we can create database if needed
+    if ! psql -h localhost -p 5432 -U "$USER" -lqt | cut -d \| -f 1 | grep -qw querybridge_dev; then
+        echo "Creating development database..."
+        createdb -h localhost -p 5432 -U "$USER" querybridge_dev 2>/dev/null || echo "⚠️  Database may already exist"
+    fi
     exit 0
+fi
+
+# Check for Homebrew PostgreSQL service
+if command -v brew >/dev/null 2>&1; then
+    if brew services list | grep postgresql | grep started >/dev/null 2>&1; then
+        echo "Found Homebrew PostgreSQL service running. Stopping it..."
+        brew services stop postgresql@15 2>/dev/null || brew services stop postgresql 2>/dev/null || true
+        sleep 3
+    fi
+fi
+
+# More thorough cleanup of PostgreSQL processes
+echo "Checking for existing PostgreSQL processes..."
+if pgrep -f postgres >/dev/null 2>&1; then
+    echo "Found existing PostgreSQL processes:"
+    pgrep -fl postgres | sed 's/^/   /'
+    echo "Stopping them..."
+    pkill -f postgres 2>/dev/null || true
+    sleep 3
+    
+    # Force kill if still running
+    if pgrep -f postgres >/dev/null 2>&1; then
+        echo "Force stopping remaining PostgreSQL processes..."
+        pkill -9 -f postgres 2>/dev/null || true
+        sleep 2
+    fi
 fi
 
 # Kill any lingering processes on port 5432
@@ -43,6 +75,12 @@ if command -v lsof >/dev/null 2>&1; then
         echo "Cleaning up port 5432..."
         kill -TERM $pid 2>/dev/null || true
         sleep 2
+        
+        # Force kill if still there
+        if lsof -ti:5432 >/dev/null 2>&1; then
+            kill -9 $pid 2>/dev/null || true
+            sleep 1
+        fi
     fi
 fi
 
@@ -52,22 +90,51 @@ if [ ! -f "$PG_DATA_DIR/postgresql.conf" ]; then
     initdb -D "$PG_DATA_DIR" --auth-local=trust --auth-host=trust
     echo "✅ PostgreSQL data directory initialized"
     
-    # Configure PostgreSQL for local development
+    # Configure PostgreSQL for local development with unique port to avoid conflicts
     echo "Configuring PostgreSQL for local environment..."
-    echo "unix_socket_directories = '$PG_DATA_DIR'" >> "$PG_DATA_DIR/postgresql.conf"
-    echo "listen_addresses = 'localhost'" >> "$PG_DATA_DIR/postgresql.conf"
-    echo "port = 5432" >> "$PG_DATA_DIR/postgresql.conf"
     
-    # Update pg_hba.conf for passwordless local connections
-    echo "# Local connections without password for development" >> "$PG_DATA_DIR/pg_hba.conf"
-    echo "local   all             all                                     trust" >> "$PG_DATA_DIR/pg_hba.conf"
-    echo "host    all             all             127.0.0.1/32            trust" >> "$PG_DATA_DIR/pg_hba.conf"
-    echo "host    all             all             ::1/128                 trust" >> "$PG_DATA_DIR/pg_hba.conf"
+    # Create custom postgresql.conf to override defaults
+    cat >> "$PG_DATA_DIR/postgresql.conf" << EOF
+
+# Custom configuration for development
+listen_addresses = 'localhost'
+port = 5432
+unix_socket_directories = '$PG_DATA_DIR'
+log_destination = 'stderr'
+logging_collector = on
+log_directory = 'log'
+log_filename = 'postgresql-%Y-%m-%d_%H%M%S.log'
+log_rotation_age = 1d
+log_rotation_size = 10MB
+EOF
+    
+    # Ensure pg_hba.conf allows local connections
+    cat > "$PG_DATA_DIR/pg_hba.conf" << EOF
+# PostgreSQL Client Authentication Configuration File
+# TYPE  DATABASE        USER            ADDRESS                 METHOD
+
+# Local connections for development
+local   all             all                                     trust
+host    all             all             127.0.0.1/32            trust
+host    all             all             ::1/128                 trust
+EOF
 fi
 
 # Start PostgreSQL
 echo "Starting PostgreSQL server..."
-pg_ctl start -D "$PG_DATA_DIR" -l "$PG_DATA_DIR/postgresql.log" -o "-p 5432 -k $PG_DATA_DIR" -w
+if ! pg_ctl start -D "$PG_DATA_DIR" -l "$PG_DATA_DIR/postgresql.log" -o "-p 5432 -k $PG_DATA_DIR" -w; then
+    echo "❌ PostgreSQL failed to start. Checking log..."
+    if [ -f "$PG_DATA_DIR/postgresql.log" ]; then
+        echo "Last 10 lines from PostgreSQL log:"
+        tail -10 "$PG_DATA_DIR/postgresql.log" | sed 's/^/   /'
+    fi
+    echo ""
+    echo "Troubleshooting steps:"
+    echo "1. Check if port 5432 is in use: lsof -Pi :5432"
+    echo "2. Check for existing PostgreSQL processes: pgrep postgres"
+    echo "3. If needed, kill existing processes: pkill postgres"
+    exit 1
+fi
 
 # Wait for PostgreSQL to start
 echo "Waiting for PostgreSQL to start..."
