@@ -123,7 +123,14 @@ export class DatabaseSetup {
           ...(process.env.DATABASE_URL && process.env.DATABASE_URL !== 'postgresql://user:password@host:port/database' ? [{
             connectionString: process.env.DATABASE_URL
           }] : []),
-          // First try the database that the startup script creates
+          // Primary: Match the exact working CLI connection (tobiasbarthold@localhost:5432/querybridge_dev)
+          {
+            host: 'localhost',
+            port: 5432,
+            user: 'tobiasbarthold',
+            database: 'querybridge_dev'
+          },
+          // Secondary: Use actual USER environment variable
           {
             host: 'localhost',
             port: 5432,
