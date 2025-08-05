@@ -18,14 +18,17 @@ elif [ -f "/usr/local/bin/elasticsearch" ]; then
     ELASTICSEARCH_BIN="/usr/local/bin/elasticsearch"
 elif [ -f "/opt/homebrew/bin/opensearch" ]; then
     ELASTICSEARCH_BIN="/opt/homebrew/bin/opensearch"
+    USING_OPENSEARCH=1
     echo "ℹ️  Using OpenSearch as Elasticsearch alternative"
 elif [ -f "/usr/local/bin/opensearch" ]; then
     ELASTICSEARCH_BIN="/usr/local/bin/opensearch"
+    USING_OPENSEARCH=1
     echo "ℹ️  Using OpenSearch as Elasticsearch alternative"
 elif command -v elasticsearch >/dev/null 2>&1; then
     ELASTICSEARCH_BIN="elasticsearch"
 elif command -v opensearch >/dev/null 2>&1; then
     ELASTICSEARCH_BIN="opensearch"
+    USING_OPENSEARCH=1
     echo "ℹ️  Using OpenSearch as Elasticsearch alternative"
 elif [ -f "server/elasticsearch/bin/elasticsearch" ]; then
     ELASTICSEARCH_BIN="server/elasticsearch/bin/elasticsearch"
@@ -112,39 +115,75 @@ fi
 
 # Start Elasticsearch instance 1: PostgreSQL Layer (port 9200)
 echo "Starting Elasticsearch PostgreSQL Layer on port 9200..."
-"$ELASTICSEARCH_BIN" \
-    -d \
-    -E cluster.name=universal-query-postgresql \
-    -E node.name=postgresql-layer \
-    -E network.host=127.0.0.1 \
-    -E http.port=9200 \
-    -E discovery.type=single-node \
-    -E path.data=./server/data/elasticsearch/postgresql-layer \
-    -E path.logs=./server/data/elasticsearch/logs \
-    -E xpack.security.enabled=false \
-    -E xpack.security.enrollment.enabled=false \
-    -E xpack.security.http.ssl.enabled=false \
-    -E xpack.security.transport.ssl.enabled=false \
-    -E action.auto_create_index=true \
-    -E cluster.routing.allocation.disk.threshold_enabled=false
+
+if [ "$USING_OPENSEARCH" = "1" ]; then
+    # OpenSearch-compatible configuration
+    "$ELASTICSEARCH_BIN" \
+        -d \
+        -E cluster.name=universal-query-postgresql \
+        -E node.name=postgresql-layer \
+        -E network.host=127.0.0.1 \
+        -E http.port=9200 \
+        -E discovery.type=single-node \
+        -E path.data=./server/data/elasticsearch/postgresql-layer \
+        -E path.logs=./server/data/elasticsearch/logs \
+        -E plugins.security.disabled=true \
+        -E action.auto_create_index=true \
+        -E cluster.routing.allocation.disk.threshold_enabled=false
+else
+    # Elasticsearch configuration
+    "$ELASTICSEARCH_BIN" \
+        -d \
+        -E cluster.name=universal-query-postgresql \
+        -E node.name=postgresql-layer \
+        -E network.host=127.0.0.1 \
+        -E http.port=9200 \
+        -E discovery.type=single-node \
+        -E path.data=./server/data/elasticsearch/postgresql-layer \
+        -E path.logs=./server/data/elasticsearch/logs \
+        -E xpack.security.enabled=false \
+        -E xpack.security.enrollment.enabled=false \
+        -E xpack.security.http.ssl.enabled=false \
+        -E xpack.security.transport.ssl.enabled=false \
+        -E action.auto_create_index=true \
+        -E cluster.routing.allocation.disk.threshold_enabled=false
+fi
 
 # Start Elasticsearch instance 2: DynamoDB Layer (port 9201)
 echo "Starting Elasticsearch DynamoDB Layer on port 9201..."
-"$ELASTICSEARCH_BIN" \
-    -d \
-    -E cluster.name=universal-query-dynamodb \
-    -E node.name=dynamodb-layer \
-    -E network.host=127.0.0.1 \
-    -E http.port=9201 \
-    -E discovery.type=single-node \
-    -E path.data=./server/data/elasticsearch/dynamodb-layer \
-    -E path.logs=./server/data/elasticsearch/logs \
-    -E xpack.security.enabled=false \
-    -E xpack.security.enrollment.enabled=false \
-    -E xpack.security.http.ssl.enabled=false \
-    -E xpack.security.transport.ssl.enabled=false \
-    -E action.auto_create_index=true \
-    -E cluster.routing.allocation.disk.threshold_enabled=false
+
+if [ "$USING_OPENSEARCH" = "1" ]; then
+    # OpenSearch-compatible configuration
+    "$ELASTICSEARCH_BIN" \
+        -d \
+        -E cluster.name=universal-query-dynamodb \
+        -E node.name=dynamodb-layer \
+        -E network.host=127.0.0.1 \
+        -E http.port=9201 \
+        -E discovery.type=single-node \
+        -E path.data=./server/data/elasticsearch/dynamodb-layer \
+        -E path.logs=./server/data/elasticsearch/logs \
+        -E plugins.security.disabled=true \
+        -E action.auto_create_index=true \
+        -E cluster.routing.allocation.disk.threshold_enabled=false
+else
+    # Elasticsearch configuration
+    "$ELASTICSEARCH_BIN" \
+        -d \
+        -E cluster.name=universal-query-dynamodb \
+        -E node.name=dynamodb-layer \
+        -E network.host=127.0.0.1 \
+        -E http.port=9201 \
+        -E discovery.type=single-node \
+        -E path.data=./server/data/elasticsearch/dynamodb-layer \
+        -E path.logs=./server/data/elasticsearch/logs \
+        -E xpack.security.enabled=false \
+        -E xpack.security.enrollment.enabled=false \
+        -E xpack.security.http.ssl.enabled=false \
+        -E xpack.security.transport.ssl.enabled=false \
+        -E action.auto_create_index=true \
+        -E cluster.routing.allocation.disk.threshold_enabled=false
+fi
 
 echo "Elasticsearch instances startup initiated:"
 echo "  - PostgreSQL Layer: http://127.0.0.1:9200"
