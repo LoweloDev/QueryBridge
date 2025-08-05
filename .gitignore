@@ -10,5 +10,9 @@ server/elasticsearch/
 *.tar.gz
 attached_assets
 server/data/mongodb/
-server/data/
+server/data/postgresql/
+server/data/redis/
+server/data/dynamodb/
+server/data/elasticsearch/
+!server/data/example-datasets.ts
 !server/data/.gitkeep
