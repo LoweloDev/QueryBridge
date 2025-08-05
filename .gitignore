@@ -10,4 +10,5 @@ server/elasticsearch/
 *.tar.gz
 attached_assets
 server/data/mongodb/
-server/data/postgresql
+server/data/
+!server/data/.gitkeep

@@ -147,11 +147,7 @@ listen_addresses = 'localhost'
 port = 5432
 unix_socket_directories = '$PG_DATA_DIR'
 log_destination = 'stderr'
-logging_collector = on
-log_directory = 'log'
-log_filename = 'postgresql-%Y-%m-%d_%H%M%S.log'
-log_rotation_age = 1d
-log_rotation_size = 10MB
+logging_collector = off
 EOF
     
     # Ensure pg_hba.conf allows local connections
@@ -169,11 +165,24 @@ fi
 # Start PostgreSQL
 echo "Starting PostgreSQL server..."
 if ! pg_ctl start -D "$PG_DATA_DIR" -l "$PG_DATA_DIR/postgresql.log" -o "-p 5432 -k $PG_DATA_DIR" -w; then
-    echo "❌ PostgreSQL failed to start. Checking log..."
+    echo "❌ PostgreSQL failed to start. Checking logs..."
+    
+    # Check main log file
     if [ -f "$PG_DATA_DIR/postgresql.log" ]; then
-        echo "Last 10 lines from PostgreSQL log:"
+        echo "Main PostgreSQL log:"
         tail -10 "$PG_DATA_DIR/postgresql.log" | sed 's/^/   /'
     fi
+    
+    # Check for additional log files in log directory
+    if [ -d "$PG_DATA_DIR/log" ]; then
+        echo "Checking log directory..."
+        LATEST_LOG=$(find "$PG_DATA_DIR/log" -name "*.log" -type f -exec ls -t {} + | head -1)
+        if [ -n "$LATEST_LOG" ]; then
+            echo "Latest log file: $LATEST_LOG"
+            tail -10 "$LATEST_LOG" | sed 's/^/   /'
+        fi
+    fi
+    
     echo ""
     echo "Troubleshooting steps:"
     echo "1. Check if port 5432 is in use: lsof -Pi :5432"
