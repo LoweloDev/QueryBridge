@@ -52,9 +52,46 @@ fi
 print_info "Starting database containers..."
 $COMPOSE_CMD up -d
 
-# Wait for containers to be ready
+# Wait for containers to be ready  
 print_info "Waiting for databases to initialize..."
-sleep 10
+sleep 5
+
+# Wait for specific services to be healthy
+print_info "Checking database health..."
+max_attempts=30
+attempt=1
+
+while [ $attempt -le $max_attempts ]; do
+    ready_count=0
+    
+    # Check PostgreSQL
+    if nc -z localhost 5432 2>/dev/null; then
+        ready_count=$((ready_count + 1))
+    fi
+    
+    # Check MongoDB
+    if nc -z localhost 27017 2>/dev/null; then
+        ready_count=$((ready_count + 1))
+    fi
+    
+    # Check Redis
+    if nc -z localhost 6379 2>/dev/null; then
+        ready_count=$((ready_count + 1))
+    fi
+    
+    if [ $ready_count -ge 3 ]; then
+        print_status "Core databases are ready"
+        break
+    fi
+    
+    if [ $attempt -eq $max_attempts ]; then
+        print_warning "Some databases may not be ready, continuing anyway..."
+        break
+    fi
+    
+    sleep 1
+    attempt=$((attempt + 1))
+done
 
 # Check container status
 containers=("uqt-postgresql" "uqt-mongodb" "uqt-redis" "uqt-dynamodb" "uqt-opensearch" "uqt-opensearch-secondary")
@@ -118,6 +155,14 @@ export OPENSEARCH_HOST=localhost
 export OPENSEARCH_PORT=9200
 export OPENSEARCH_SECONDARY_PORT=9201
 
-# Step 4: Start the application
+# Step 4: Check for port conflicts
+print_info "Checking for port conflicts..."
+if lsof -Pi :5000 -sTCP:LISTEN -t >/dev/null 2>&1; then
+    print_warning "Port 5000 is in use, killing existing process..."
+    lsof -ti:5000 | xargs kill -9 2>/dev/null || true
+    sleep 2
+fi
+
+# Step 5: Start the application
 print_info "Starting development server..."
-npm run dev
+exec npm run dev

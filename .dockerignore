@@ -1,0 +1,68 @@
+# Docker ignore file to reduce build context and improve performance
+
+# Node modules
+node_modules/
+npm-debug.log*
+
+# Build outputs
+dist/
+build/
+lib/dist/
+
+# Environment files
+.env*
+!.env.docker
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+!README.md
+
+# Test files
+*.test.*
+__tests__/
+
+# Local development files
+server/data/postgresql/
+server/data/mongodb/
+server/data/redis/
+server/data/dynamodb/
+server/data/elasticsearch/
+
+# Logs
+logs/
+*.log
+
+# Runtime data
+pids/
+*.pid
+*.seed
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# NPM package files
+*.tgz
+
+# Optional npm cache directory
+.npm
+
+# Optional ESLint cache
+.eslintcache
+
+# Temporary files
+tmp/
+temp/
