@@ -1,0 +1,33 @@
+# Override file for development-specific configurations
+# This file is automatically merged with docker-compose.yml
+
+version: '3.8'
+
+services:
+  postgresql:
+    # Development-specific PostgreSQL settings
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: trust  # For easier local development
+    volumes:
+      - ./server/data/postgresql-logs:/var/log/postgresql
+
+  mongodb:
+    # Development logging
+    volumes:
+      - ./server/data/mongodb-logs:/var/log/mongodb
+
+  opensearch:
+    # Development settings for OpenSearch
+    environment:
+      - "OPENSEARCH_JAVA_OPTS=-Xms256m -Xmx256m"  # Lower memory for development
+      - logger.level=INFO
+    volumes:
+      - ./server/data/opensearch-logs:/usr/share/opensearch/logs
+
+  opensearch-secondary:
+    # Development settings for secondary OpenSearch
+    environment:
+      - "OPENSEARCH_JAVA_OPTS=-Xms256m -Xmx256m"  # Lower memory for development
+      - logger.level=INFO
+    volumes:
+      - ./server/data/opensearch-secondary-logs:/usr/share/opensearch/logs

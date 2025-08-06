@@ -23,55 +23,61 @@ export class DatabaseSetup {
    * Setup real database connections for testing
    */
   async setupRealDatabases(): Promise<void> {
+    // Check if running in Docker mode
+    const isDockerMode = process.env.DOCKER_MODE === 'true';
+    
     const configs: DatabaseConnection[] = [
       {
         id: '943e7415-b1fb-4090-8645-3698be872423',
         name: 'PostgreSQL - Production',
         type: 'postgresql',
-        host: process.env.PGHOST || 'localhost',
-        port: parseInt(process.env.PGPORT || '5432'),
-        database: process.env.PGDATABASE || 'postgres',
-        username: process.env.PGUSER || process.env.USER || 'postgres'
+        host: process.env.POSTGRES_HOST || process.env.PGHOST || 'localhost',
+        port: parseInt(process.env.POSTGRES_PORT || process.env.PGPORT || '5432'),
+        database: process.env.POSTGRES_DB || process.env.PGDATABASE || (isDockerMode ? 'querybridge_dev' : 'postgres'),
+        username: process.env.POSTGRES_USER || process.env.PGUSER || process.env.USER || 'postgres',
+        password: process.env.POSTGRES_PASSWORD || process.env.PGPASSWORD
       },
       {
         id: 'mongodb-analytics',
         name: 'MongoDB - Analytics',
         type: 'mongodb',
-        host: 'localhost',
-        port: 27017,
-        database: 'analytics'
+        host: process.env.MONGODB_HOST || 'localhost',
+        port: parseInt(process.env.MONGODB_PORT || '27017'),
+        database: process.env.MONGODB_DB || 'analytics',
+        username: process.env.MONGODB_USER || (isDockerMode ? 'admin' : undefined),
+        password: process.env.MONGODB_PASSWORD || (isDockerMode ? 'password' : undefined)
       },
       {
         id: 'redis-cache',
         name: 'Redis - Cache',
         type: 'redis',
-        host: 'localhost',
-        port: 6379,
+        host: process.env.REDIS_HOST || 'localhost',
+        port: parseInt(process.env.REDIS_PORT || '6379'),
         database: '0'
       },
       {
         id: 'dynamodb-users',
         name: 'DynamoDB - Users',
         type: 'dynamodb',
-        host: 'localhost',
-        port: 8000,
+        host: process.env.DYNAMODB_HOST || 'localhost',
+        port: parseInt(process.env.DYNAMODB_PORT || '8000'),
         database: 'main',
         region: 'us-east-1'
       },
       {
         id: 'elasticsearch-postgresql',
-        name: 'Elasticsearch - PostgreSQL Layer',
+        name: 'OpenSearch - PostgreSQL Layer',
         type: 'elasticsearch',
-        host: 'localhost',
-        port: 9200,
+        host: process.env.OPENSEARCH_HOST || 'localhost',
+        port: parseInt(process.env.OPENSEARCH_PORT || '9200'),
         database: 'postgresql-search'
       },
       {
         id: 'elasticsearch-dynamodb',
-        name: 'Elasticsearch - DynamoDB Layer',
+        name: 'OpenSearch - DynamoDB Layer',
         type: 'elasticsearch',
-        host: 'localhost',
-        port: 9201,
+        host: process.env.OPENSEARCH_HOST || 'localhost',
+        port: parseInt(process.env.OPENSEARCH_SECONDARY_PORT || '9201'),
         database: 'dynamodb-search'
       }
     ];
@@ -226,7 +232,22 @@ export class DatabaseSetup {
 
   private async setupMongoDB(config: DatabaseConnection): Promise<void> {
     try {
-      const client = new MongoClient(`mongodb://${config.host}:${config.port}/${config.database}`);
+      console.log(`Attempting MongoDB connection to ${config.host}:${config.port}`);
+      
+      // Build connection URL with optional authentication
+      let connectionUrl: string;
+      if (config.username && config.password) {
+        connectionUrl = `mongodb://${config.username}:${config.password}@${config.host}:${config.port}/${config.database}?authSource=admin`;
+      } else {
+        connectionUrl = `mongodb://${config.host}:${config.port}/${config.database}`;
+      }
+      
+      const client = new MongoClient(connectionUrl, {
+        serverSelectionTimeoutMS: 5000,
+        connectTimeoutMS: 5000,
+        socketTimeoutMS: 5000,
+      });
+      
       await client.connect();
       await client.db().admin().ping();
 
@@ -295,8 +316,9 @@ export class DatabaseSetup {
 
   private async setupDynamoDB(config: DatabaseConnection): Promise<void> {
     try {
+      const endpoint = process.env.DYNAMODB_ENDPOINT || `http://${config.host}:${config.port}`;
       const client = new DynamoDBClient({
-        endpoint: `http://${config.host}:${config.port}`,
+        endpoint: endpoint,
         region: config.region || 'us-east-1',
         credentials: {
           accessKeyId: 'fake',
