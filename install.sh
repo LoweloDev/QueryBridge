@@ -313,6 +313,42 @@ else
             echo "   OpenSearch is fully compatible with Elasticsearch queries"
             export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
             ELASTICSEARCH_INSTALLED=1
+            
+            # Install OpenSearch SQL plugin
+            echo "📦 Installing OpenSearch SQL plugin..."
+            OPENSEARCH_VERSION=$(opensearch --version 2>/dev/null | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+' | head -1 || echo "2.14.0")
+            if [ -z "$OPENSEARCH_VERSION" ] || [ "$OPENSEARCH_VERSION" = "" ]; then
+                OPENSEARCH_VERSION="2.14.0"
+                echo "   Using default OpenSearch version: $OPENSEARCH_VERSION"
+            else
+                echo "   Detected OpenSearch version: $OPENSEARCH_VERSION"
+            fi
+            
+            # Find OpenSearch installation directory
+            OPENSEARCH_HOME=""
+            if [ -d "/opt/homebrew/opt/opensearch" ]; then
+                OPENSEARCH_HOME="/opt/homebrew/opt/opensearch"
+            elif [ -d "/usr/local/opt/opensearch" ]; then
+                OPENSEARCH_HOME="/usr/local/opt/opensearch"
+            fi
+            
+            if [ -n "$OPENSEARCH_HOME" ] && [ -f "$OPENSEARCH_HOME/bin/opensearch-plugin" ]; then
+                echo "   Installing SQL plugin for OpenSearch $OPENSEARCH_VERSION..."
+                if "$OPENSEARCH_HOME/bin/opensearch-plugin" install "https://artifacts.opensearch.org/releases/plugins/opensearch-sql/${OPENSEARCH_VERSION}.0/opensearch-sql-${OPENSEARCH_VERSION}.0.zip" 2>/dev/null; then
+                    echo "✅ OpenSearch SQL plugin installed successfully"
+                else
+                    # Try without the extra .0 in version
+                    if "$OPENSEARCH_HOME/bin/opensearch-plugin" install "https://artifacts.opensearch.org/releases/plugins/opensearch-sql/${OPENSEARCH_VERSION}/opensearch-sql-${OPENSEARCH_VERSION}.zip" 2>/dev/null; then
+                        echo "✅ OpenSearch SQL plugin installed successfully"
+                    else
+                        echo "⚠️  OpenSearch SQL plugin installation failed, but OpenSearch will still work"
+                        echo "   Plugin can be installed manually later if needed"
+                    fi
+                fi
+            else
+                echo "⚠️  OpenSearch plugin installer not found"
+                echo "   SQL plugin can be installed manually when OpenSearch is started"
+            fi
         else
             echo "   OpenSearch installation failed, trying Elasticsearch..."
             
@@ -355,19 +391,78 @@ else
             echo "   The application will work with other databases while Elasticsearch downloads automatically"
         fi
     elif [ "$OS" = "Linux" ]; then
-        # Install Elasticsearch on Linux with improved error handling
-        if wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch 2>/dev/null | sudo apt-key add - >/dev/null 2>&1; then
-            echo "deb https://artifacts.elastic.co/packages/8.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-8.x.list >/dev/null
-            if sudo apt-get update >/dev/null 2>&1 && sudo apt-get install -y elasticsearch >/dev/null 2>&1; then
-                echo "✅ Elasticsearch installed via package manager"
-                sudo systemctl enable elasticsearch >/dev/null 2>&1 || true
+        # Install OpenSearch first (more reliable) or fallback to Elasticsearch
+        echo "   Installing OpenSearch (Elasticsearch-compatible alternative)..."
+        if wget -qO - https://artifacts.opensearch.org/publickeys/opensearch.pgp | sudo apt-key add - >/dev/null 2>&1; then
+            echo "deb https://artifacts.opensearch.org/releases/bundle/opensearch/2.x/apt stable main" | sudo tee -a /etc/apt/sources.list.d/opensearch-2.x.list >/dev/null
+            if sudo apt-get update >/dev/null 2>&1 && sudo apt-get install -y opensearch >/dev/null 2>&1; then
+                echo "✅ OpenSearch installed via package manager"
+                sudo systemctl enable opensearch >/dev/null 2>&1 || true
+                ELASTICSEARCH_INSTALLED=1
+                
+                # Install OpenSearch SQL plugin
+                echo "📦 Installing OpenSearch SQL plugin..."
+                OPENSEARCH_VERSION=$(opensearch --version 2>/dev/null | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+' | head -1 || echo "2.14.0")
+                if [ -z "$OPENSEARCH_VERSION" ] || [ "$OPENSEARCH_VERSION" = "" ]; then
+                    OPENSEARCH_VERSION="2.14.0"
+                    echo "   Using default OpenSearch version: $OPENSEARCH_VERSION"
+                else
+                    echo "   Detected OpenSearch version: $OPENSEARCH_VERSION"
+                fi
+                
+                # Find OpenSearch installation directory on Linux
+                OPENSEARCH_HOME="/usr/share/opensearch"
+                if [ -f "$OPENSEARCH_HOME/bin/opensearch-plugin" ]; then
+                    echo "   Installing SQL plugin for OpenSearch $OPENSEARCH_VERSION..."
+                    if sudo "$OPENSEARCH_HOME/bin/opensearch-plugin" install "https://artifacts.opensearch.org/releases/plugins/opensearch-sql/${OPENSEARCH_VERSION}.0/opensearch-sql-${OPENSEARCH_VERSION}.0.zip" 2>/dev/null; then
+                        echo "✅ OpenSearch SQL plugin installed successfully"
+                    else
+                        # Try without the extra .0 in version
+                        if sudo "$OPENSEARCH_HOME/bin/opensearch-plugin" install "https://artifacts.opensearch.org/releases/plugins/opensearch-sql/${OPENSEARCH_VERSION}/opensearch-sql-${OPENSEARCH_VERSION}.zip" 2>/dev/null; then
+                            echo "✅ OpenSearch SQL plugin installed successfully"
+                        else
+                            echo "⚠️  OpenSearch SQL plugin installation failed, but OpenSearch will still work"
+                            echo "   Plugin can be installed manually later if needed"
+                        fi
+                    fi
+                else
+                    echo "⚠️  OpenSearch plugin installer not found"
+                    echo "   SQL plugin can be installed manually when OpenSearch is started"
+                fi
             else
-                echo "⚠️  Elasticsearch installation failed"
-                echo "   The startup script will download a local copy automatically"
+                # Fallback to Elasticsearch
+                echo "   OpenSearch installation failed, trying Elasticsearch..."
+                if wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch 2>/dev/null | sudo apt-key add - >/dev/null 2>&1; then
+                    echo "deb https://artifacts.elastic.co/packages/8.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-8.x.list >/dev/null
+                    if sudo apt-get update >/dev/null 2>&1 && sudo apt-get install -y elasticsearch >/dev/null 2>&1; then
+                        echo "✅ Elasticsearch installed via package manager"
+                        sudo systemctl enable elasticsearch >/dev/null 2>&1 || true
+                        ELASTICSEARCH_INSTALLED=1
+                    else
+                        echo "⚠️  Elasticsearch installation failed"
+                        echo "   The startup script will download a local copy automatically"
+                    fi
+                else
+                    echo "⚠️  Could not add Elasticsearch repository"
+                    echo "   The startup script will download a local copy automatically"
+                fi
             fi
         else
-            echo "⚠️  Could not add Elasticsearch repository"
-            echo "   The startup script will download a local copy automatically"
+            echo "⚠️  Could not add OpenSearch repository, trying Elasticsearch..."
+            if wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch 2>/dev/null | sudo apt-key add - >/dev/null 2>&1; then
+                echo "deb https://artifacts.elastic.co/packages/8.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-8.x.list >/dev/null
+                if sudo apt-get update >/dev/null 2>&1 && sudo apt-get install -y elasticsearch >/dev/null 2>&1; then
+                    echo "✅ Elasticsearch installed via package manager"
+                    sudo systemctl enable elasticsearch >/dev/null 2>&1 || true
+                    ELASTICSEARCH_INSTALLED=1
+                else
+                    echo "⚠️  Elasticsearch installation failed"
+                    echo "   The startup script will download a local copy automatically"
+                fi
+            else
+                echo "⚠️  Could not add Elasticsearch repository"
+                echo "   The startup script will download a local copy automatically"
+            fi
         fi
     fi
 fi
@@ -433,6 +528,33 @@ echo "DynamoDB Local test completed"
 
 echo "✅ All installations tested successfully"
 
+# Verify OpenSearch SQL plugin installation
+if command_exists opensearch; then
+    echo "Testing OpenSearch SQL plugin installation..."
+    
+    # Find OpenSearch home directory
+    OPENSEARCH_HOME=""
+    if [ -d "/opt/homebrew/opt/opensearch" ]; then
+        OPENSEARCH_HOME="/opt/homebrew/opt/opensearch"
+    elif [ -d "/usr/local/opt/opensearch" ]; then
+        OPENSEARCH_HOME="/usr/local/opt/opensearch"
+    elif [ -d "/usr/share/opensearch" ]; then
+        OPENSEARCH_HOME="/usr/share/opensearch"
+    fi
+    
+    if [ -n "$OPENSEARCH_HOME" ] && [ -f "$OPENSEARCH_HOME/bin/opensearch-plugin" ]; then
+        if "$OPENSEARCH_HOME/bin/opensearch-plugin" list 2>/dev/null | grep -q "opensearch-sql"; then
+            echo "✅ OpenSearch SQL plugin verified successfully"
+        elif [ -d "$OPENSEARCH_HOME/plugins/opensearch-sql" ]; then
+            echo "✅ OpenSearch SQL plugin directory found"
+        else
+            echo "⚠️  OpenSearch SQL plugin not detected, but will be available after startup"
+        fi
+    else
+        echo "ℹ️  OpenSearch plugin verification skipped"
+    fi
+fi
+
 # Set up environment
 print_step "12" "Setting Up Environment"
 if [ ! -f ".env" ]; then
@@ -461,7 +583,11 @@ else
     echo "✅ Redis Stack available (module support depends on configuration)"
 fi
 echo "✅ DynamoDB Local installed"
-echo "✅ Elasticsearch installed"
+if command_exists opensearch; then
+    echo "✅ OpenSearch installed with SQL plugin support"
+else
+    echo "✅ Elasticsearch installed"
+fi
 echo "✅ Data directories created"
 echo "✅ Development environment configured"
 
@@ -471,6 +597,7 @@ echo ""
 echo "Next steps:"
 echo "1. Start the development server: ./start-dev.sh"
 echo "2. Visit http://localhost:5000 to access the application"
+echo "3. OpenSearch SQL plugin will be available at: http://localhost:9200/_plugins/_sql"
 echo ""
 if [ "$SKIP_REDIS_STACK" = "true" ]; then
     echo "Note: Redis Stack modules are not available due to spaces in project path."

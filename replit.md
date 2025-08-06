@@ -12,6 +12,17 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### OpenSearch SQL Plugin Integration (January 2025)
+- **Strategic Architecture Pivot**: Moving from custom query translation to leveraging native SQL capabilities in databases (OpenSearch SQL plugin, DynamoDB PartiQL)
+- **OpenSearch SQL Plugin Installation**: Enhanced install.sh script with comprehensive OpenSearch SQL plugin installation for both macOS (Homebrew) and Linux (package manager) systems
+- **Cross-Platform Plugin Support**: Automatic version detection, proper plugin URL construction, and fallback mechanisms for reliable plugin installation
+- **Installation Verification**: Added plugin verification steps to confirm successful SQL plugin installation with detailed status reporting
+- **Multi-Environment Compatibility**: Plugin installation works with both local development (Homebrew, apt) and self-managed OpenSearch installations
+- **Robust Error Handling**: Comprehensive fallback mechanisms when plugin installation fails, ensuring OpenSearch still functions
+- **Enhanced Documentation**: Updated installation summary and user guidance to highlight SQL plugin availability at `http://localhost:9200/_plugins/_sql`
+
+This architectural shift significantly simplifies the query translation layer by utilizing native SQL capabilities instead of maintaining complex custom translators, particularly beneficial for OpenSearch (Elasticsearch) and DynamoDB integrations.
+
 ### Complete Database Integration Success (January 2025)
 - **OpenSearch Client Replacement**: Solved Elasticsearch detection issues by switching to `@opensearch-project/opensearch` client, eliminating "unknown product" rejection completely
 - **PostgreSQL Production Success**: Database fully functional in both Replit environment (via DATABASE_URL) and local development with enhanced multi-fallback configuration
