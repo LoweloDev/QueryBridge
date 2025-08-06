@@ -1,6 +1,6 @@
 /**
  * Connection Manager for Universal Query Translator Library
- * 
+ *
  * This is the core library that accepts database connections by reference
  * from external applications. It handles query parsing, translation, and execution.
  */
@@ -8,6 +8,7 @@
 import { QueryLanguage, DatabaseConnection, DatabaseType, ActiveConnection, QueryResult } from "./types";
 import { QueryParser } from "./query-parser";
 import { QueryTranslator } from "./query-translator";
+import {ExecuteStatementCommand} from "@aws-sdk/lib-dynamodb";
 
 export class ConnectionManager {
   private activeConnections: Map<string, ActiveConnection> = new Map();
@@ -24,7 +25,7 @@ export class ConnectionManager {
       isConnected: true,
       lastUsed: new Date()
     });
-    
+
     this.connectionConfigs.set(connectionId, config);
     console.log(`Registered ${config.type} connection: ${config.name}`);
   }
@@ -34,17 +35,17 @@ export class ConnectionManager {
    */
   async executeQuery(connectionId: string, queryString: string): Promise<QueryResult> {
     const connection = this.activeConnections.get(connectionId);
-    
+
     if (!connection) {
       throw new Error(`No active connection found for ID: ${connectionId}`);
     }
 
     // Parse the universal query
     const parsedQuery = QueryParser.parse(queryString);
-    
+
     // Translate to database-specific format
     let translatedQuery: string | object;
-    
+
     switch (connection.config.type) {
       case 'postgresql':
         translatedQuery = QueryTranslator.toSQL(parsedQuery);
@@ -56,7 +57,7 @@ export class ConnectionManager {
         translatedQuery = QueryTranslator.toElasticsearch(parsedQuery);
         break;
       case 'dynamodb':
-        translatedQuery = QueryTranslator.toDynamoDB(parsedQuery, connection.config.dynamodb);
+        translatedQuery = QueryTranslator.toSQL(parsedQuery);
         break;
       case 'redis':
         translatedQuery = QueryTranslator.toRedis(parsedQuery);
@@ -66,11 +67,11 @@ export class ConnectionManager {
     }
 
     // Execute the translated query
-    const results = await this.executeTranslatedQuery(connection, translatedQuery);
-    
+    const results = await this.executeTranslatedQuery(connection, translatedQuery, QueryTranslator.toSQL(parsedQuery));
+
     // Update last used time
     connection.lastUsed = new Date();
-    
+
     // Add translation metadata to results
     return {
       ...results,
@@ -99,14 +100,14 @@ export class ConnectionManager {
    */
   translateQuery(queryString: string, targetType: DatabaseType, connectionId?: string): string | object {
     const parsedQuery = QueryParser.parse(queryString);
-    
+
     // Get schema configuration for DynamoDB if connection ID is provided
     let schemaConfig;
     if (targetType === 'dynamodb' && connectionId) {
       const connectionConfig = this.connectionConfigs.get(connectionId);
       schemaConfig = connectionConfig?.dynamodb;
     }
-    
+
     switch (targetType) {
       case 'postgresql':
         return QueryTranslator.toSQL(parsedQuery);
@@ -149,35 +150,35 @@ export class ConnectionManager {
   /**
    * Execute translated query against the database client
    */
-  private async executeTranslatedQuery(connection: ActiveConnection, query: string | object): Promise<QueryResult> {
+  private async executeTranslatedQuery(connection: ActiveConnection, query: string | object, sql:string): Promise<QueryResult> {
     const { client, config } = connection;
 
     try {
       switch (config.type) {
         case 'postgresql':
           const pgResult = await client.query(query as string);
-          return { 
-            rows: pgResult.rows, 
+          return {
+            rows: pgResult.rows,
             count: pgResult.rowCount,
-            data: pgResult.rows 
+            data: pgResult.rows
           };
 
         case 'mongodb':
           // Execute MongoDB query
           const mongoQuery = query as any;
           let mongoResult: any;
-          
+
           // Get the database and collection using proper MongoDB driver pattern
           const db = client.db(mongoQuery.database || config.database || 'test');
           const collection = db.collection(mongoQuery.collection);
-          
+
           if (mongoQuery.operation === 'find') {
             const findOptions: any = {};
             if (mongoQuery.sort) findOptions.sort = mongoQuery.sort;
             if (mongoQuery.limit) findOptions.limit = mongoQuery.limit;
             if (mongoQuery.skip) findOptions.skip = mongoQuery.skip;
             if (mongoQuery.projection) findOptions.projection = mongoQuery.projection;
-            
+
             const cursor = collection.find(mongoQuery.filter || {}, findOptions);
             mongoResult = await cursor.toArray();
           } else if (mongoQuery.operation === 'aggregate') {
@@ -190,10 +191,10 @@ export class ConnectionManager {
             mongoResult = [{ insertedId: result.insertedId, acknowledged: result.acknowledged }];
           } else if (mongoQuery.operation === 'updateOne') {
             const result = await collection.updateOne(mongoQuery.filter, mongoQuery.update);
-            mongoResult = [{ 
-              matchedCount: result.matchedCount, 
+            mongoResult = [{
+              matchedCount: result.matchedCount,
               modifiedCount: result.modifiedCount,
-              acknowledged: result.acknowledged 
+              acknowledged: result.acknowledged
             }];
           } else if (mongoQuery.operation === 'deleteOne') {
             const result = await collection.deleteOne(mongoQuery.filter);
@@ -201,7 +202,7 @@ export class ConnectionManager {
           } else {
             throw new Error(`Unsupported MongoDB operation: ${mongoQuery.operation}`);
           }
-          
+
           return {
             rows: mongoResult,
             count: mongoResult.length,
@@ -210,16 +211,27 @@ export class ConnectionManager {
 
         case 'elasticsearch':
           // Execute Elasticsearch query
+            console.log("HERE")
           const esQuery = query as any;
           let esResult: any;
-          
+
+          const translatted = await client.transport.request({
+            method: 'POST',
+            path: '/_plugins/_sql/_translate',
+            body: {
+              query: sql
+            }
+          });
+
+          console.log("translatted", translatted);
+
           if (esQuery.body) {
             // Standard search query
             esResult = await client.search({
               index: esQuery.index,
               body: esQuery.body
             });
-            
+
             return {
               rows: esResult.hits?.hits?.map((hit: any) => ({ _id: hit._id, ...hit._source })) || [],
               count: esResult.hits?.total?.value || 0,
@@ -230,37 +242,10 @@ export class ConnectionManager {
           };
 
         case 'dynamodb':
-          // Execute DynamoDB query - determine operation type based on query structure
-          const dynamoQuery = query as any;
-          
-          // Import the required commands dynamically to avoid bundling issues
-          const { QueryCommand, ScanCommand } = await import('@aws-sdk/lib-dynamodb');
-          
-          // Determine operation type based on query structure
-          let operation: string;
-          if (dynamoQuery.KeyConditionExpression) {
-            operation = 'query';
-          } else {
-            operation = 'scan';
-          }
-          
-          let dynamoResult: any;
-          
-          switch (operation) {
-            case 'query':
-              const queryCommand = new QueryCommand(dynamoQuery);
-              dynamoResult = await client.send(queryCommand);
-              break;
-              
-            case 'scan':
-              const scanCommand = new ScanCommand(dynamoQuery);
-              dynamoResult = await client.send(scanCommand);
-              break;
-              
-            default:
-              throw new Error(`Unsupported DynamoDB operation: ${operation}`);
-          }
-          
+          const dynamoResult = await client.send(new ExecuteStatementCommand({
+            Statement: query as string,
+          }));
+
           return {
             rows: dynamoResult.Items || (dynamoResult.Item ? [dynamoResult.Item] : []),
             count: dynamoResult.Count || (dynamoResult.Item ? 1 : 0),
@@ -271,25 +256,25 @@ export class ConnectionManager {
           // Execute Redis query based on operation type
           const redisQuery = query as any;
           let redisResult: any;
-          
+
           switch (redisQuery.operation) {
             case 'SCAN':
               redisResult = await client.scan(0, 'MATCH', redisQuery.pattern, 'COUNT', redisQuery.count || 1000);
               return { rows: redisResult[1], count: redisResult[1].length, data: redisResult[1] };
-              
+
             case 'GET':
               redisResult = await client.get(redisQuery.key);
               return { rows: redisResult ? [redisResult] : [], count: redisResult ? 1 : 0, data: redisResult ? [redisResult] : [] };
-              
+
             case 'MGET':
               redisResult = await client.mget(...redisQuery.keys);
               const filteredResults = redisResult.filter((r: any) => r !== null);
               return { rows: filteredResults, count: filteredResults.length, data: filteredResults };
-              
+
             case 'HGETALL':
               redisResult = await client.hgetall(redisQuery.key);
               return { rows: [redisResult], count: 1, data: [redisResult] };
-              
+
             case 'FT.SEARCH':
               // Note: This requires RediSearch module
               try {
@@ -298,7 +283,7 @@ export class ConnectionManager {
               } catch (error: any) {
                 throw new Error(`RediSearch not available: ${error.message}`);
               }
-              
+
             default:
               return { rows: [], count: 0, data: [] };
           }
