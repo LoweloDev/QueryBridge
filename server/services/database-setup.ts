@@ -138,14 +138,22 @@ export class DatabaseSetup {
           ...(process.env.DATABASE_URL && process.env.DATABASE_URL !== 'postgresql://user:password@host:port/database' ? [{
             connectionString: process.env.DATABASE_URL
           }] : []),
-          // Primary: Match the exact working CLI connection (tobiasbarthold@localhost:5432/querybridge_dev)
+          // Primary: Docker environment configuration
+          ...(process.env.DOCKER_MODE === 'true' ? [{
+            host: process.env.POSTGRES_HOST || 'localhost',
+            port: parseInt(process.env.POSTGRES_PORT || '5432'),
+            user: process.env.POSTGRES_USER || 'postgres',
+            password: process.env.POSTGRES_PASSWORD || 'password',
+            database: process.env.POSTGRES_DB || 'querybridge_dev'
+          }] : []),
+          // Local development: Match the exact working CLI connection
           {
             host: 'localhost',
             port: 5432,
-            user: 'tobiasbarthold',
+            user: process.env.USER || 'postgres',
             database: 'querybridge_dev'
           },
-          // Secondary: Use actual USER environment variable
+          // Fallback: Use actual USER environment variable
           {
             host: 'localhost',
             port: 5432,

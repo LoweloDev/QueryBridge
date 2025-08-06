@@ -1,30 +1,30 @@
 version: '3.8'
 
 services:
-  # PostgreSQL - Primary database
-  postgresql:
+  # PostgreSQL Database
+  postgres:
     image: postgres:16
-    container_name: uqt-postgresql
+    container_name: querybridge-postgres
     environment:
       POSTGRES_DB: querybridge_dev
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
-      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
     ports:
       - "5432:5432"
     volumes:
-      - postgresql_data:/var/lib/postgresql/data
-      - ./server/data/postgresql-init:/docker-entrypoint-initdb.d
+      - postgres_data:/var/lib/postgresql/data
+      - ./server/data/postgresql:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d querybridge_dev"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
 
-  # MongoDB - Document database
+  # MongoDB Database
   mongodb:
-    image: mongo:7
-    container_name: uqt-mongodb
+    image: mongo:7.0
+    container_name: querybridge-mongodb
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: password
@@ -33,51 +33,53 @@ services:
       - "27017:27017"
     volumes:
       - mongodb_data:/data/db
-      - ./server/data/mongodb-init:/docker-entrypoint-initdb.d
+      - ./server/data/mongodb:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
 
-  # Redis Stack - Cache and search
+  # Redis Stack (includes RedisSearch, RedisJSON, RedisGraph)
   redis:
     image: redis/redis-stack:latest
-    container_name: uqt-redis
+    container_name: querybridge-redis
     ports:
-      - "6379:6379"
-      - "8001:8001"  # RedisInsight UI
+      - "6379:6379"      # Redis
+      - "8001:8001"      # RedisInsight web UI
     volumes:
       - redis_data:/data
-    command: redis-stack-server --appendonly yes
+    environment:
+      REDIS_ARGS: "--save 60 1 --loglevel warning"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
 
   # DynamoDB Local
   dynamodb:
     image: amazon/dynamodb-local:latest
-    container_name: uqt-dynamodb
+    container_name: querybridge-dynamodb
     ports:
       - "8000:8000"
-    volumes:
-      - dynamodb_data:/home/dynamodblocal/data
-    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-dbPath", "/home/dynamodblocal/data"]
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-inMemory"]
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/ || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
 
-  # OpenSearch with SQL plugin (Elasticsearch alternative)
+  # OpenSearch (Elasticsearch alternative with SQL plugin included)
   opensearch:
-    image: opensearchproject/opensearch:2.14.0
-    container_name: uqt-opensearch
+    image: opensearchproject/opensearch:2.11.1
+    container_name: querybridge-opensearch
     environment:
-      - cluster.name=opensearch-cluster
-      - node.name=opensearch-node1
+      - cluster.name=querybridge-cluster
+      - node.name=querybridge-node
       - discovery.type=single-node
       - bootstrap.memory_lock=true
       - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
@@ -92,7 +94,7 @@ services:
         hard: 65536
     ports:
       - "9200:9200"
-      - "9300:9300"
+      - "9600:9600"
     volumes:
       - opensearch_data:/usr/share/opensearch/data
     healthcheck:
@@ -100,45 +102,29 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
+    restart: unless-stopped
 
-  # OpenSearch Secondary Instance (for multi-database scenarios)
-  opensearch-secondary:
-    image: opensearchproject/opensearch:2.14.0
-    container_name: uqt-opensearch-secondary
-    environment:
-      - cluster.name=opensearch-cluster-secondary
-      - node.name=opensearch-node2
-      - discovery.type=single-node
-      - bootstrap.memory_lock=true
-      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
-      - "DISABLE_INSTALL_DEMO_CONFIG=true"
-      - "DISABLE_SECURITY_PLUGIN=true"
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-      nofile:
-        soft: 65536
-        hard: 65536
+  # OpenSearch Dashboards (optional)
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:2.11.1
+    container_name: querybridge-dashboards
     ports:
-      - "9201:9200"
-      - "9301:9300"
-    volumes:
-      - opensearch_secondary_data:/usr/share/opensearch/data
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
+      - "5601:5601"
+    expose:
+      - "5601"
+    environment:
+      OPENSEARCH_HOSTS: '["http://opensearch:9200"]'
+      DISABLE_SECURITY_DASHBOARDS_PLUGIN: "true"
+    depends_on:
+      - opensearch
+    restart: unless-stopped
 
 volumes:
-  postgresql_data:
+  postgres_data:
   mongodb_data:
   redis_data:
-  dynamodb_data:
   opensearch_data:
-  opensearch_secondary_data:
 
 networks:
   default:
-    name: uqt-network
+    name: querybridge-network

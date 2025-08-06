@@ -1,71 +1,83 @@
 #!/bin/bash
-# Universal Query Library - Complete Development Environment Startup
-# Starts all databases and the application for local development
+# Universal Query Library - Docker-based Development Environment Startup
+# Starts all databases via Docker Compose and the application
 
 set -e  # Exit on any error
 
-echo "🚀 Starting Universal Query Library Development Environment"
-echo "=========================================================="
+echo "🚀 Starting Universal Query Library Development Environment (Docker)"
+echo "=================================================================="
 
-# Function to check if a port is in use
-check_port() {
-    local port=$1
-    if lsof -Pi :$port -sTCP:LISTEN -t >/dev/null 2>&1; then
-        echo "⚠️  Port $port is already in use"
-        return 1
+# Function to check if Docker is running
+check_docker() {
+    if ! command -v docker >/dev/null 2>&1; then
+        echo "❌ Docker not found. Please run ./install.sh first"
+        exit 1
     fi
-    return 0
+    
+    if ! docker info >/dev/null 2>&1; then
+        echo "❌ Docker is not running. Please start Docker and try again"
+        exit 1
+    fi
+    
+    echo "✅ Docker is running"
+}
+
+# Function to check if Docker Compose is available
+check_docker_compose() {
+    if docker compose version >/dev/null 2>&1; then
+        COMPOSE_CMD="docker compose"
+        echo "✅ Docker Compose v2 available"
+    elif command -v docker-compose >/dev/null 2>&1; then
+        COMPOSE_CMD="docker-compose"
+        echo "✅ Docker Compose v1 available"
+    else
+        echo "❌ Docker Compose not found. Please run ./install.sh first"
+        exit 1
+    fi
 }
 
 # Function to wait for service to be ready
 wait_for_service() {
     local service=$1
     local port=$2
-    local max_attempts=30
+    local max_attempts=60
     local attempt=1
     
-    echo "⏳ Waiting for $service to be ready on port $port..."
+    echo -n "⏳ Waiting for $service (port $port)..."
     while [ $attempt -le $max_attempts ]; do
-        if nc -z localhost $port 2>/dev/null; then
-            echo "✅ $service is ready"
+        if nc -z localhost $port 2>/dev/null || curl -s --connect-timeout 1 localhost:$port >/dev/null 2>&1; then
+            echo " ✅ Ready"
             return 0
         fi
+        echo -n "."
         sleep 2
         attempt=$((attempt + 1))
     done
     
-    echo "❌ $service failed to start on port $port"
+    echo " ⚠️  Timeout after $((max_attempts * 2)) seconds"
     return 1
 }
 
-# Create all data directories
-echo "📁 Creating data directories..."
-mkdir -p server/data/{mongodb,redis,dynamodb,elasticsearch/{postgresql-layer,dynamodb-layer,logs}}
+# Check prerequisites
+echo "🔍 Checking prerequisites..."
+check_docker
+check_docker_compose
 
-# Check required tools
-echo "🔍 Checking system requirements..."
-
-# Check Java (required for DynamoDB and Elasticsearch)
-if ! command -v java &> /dev/null; then
-    echo "❌ Java not found. Please install Java 17+ for DynamoDB and Elasticsearch"
-    exit 1
-fi
-
-# Check Node.js
-if ! command -v node &> /dev/null; then
-    echo "❌ Node.js not found. Please install Node.js"
-    exit 1
-fi
-
-echo "✅ System requirements met"
+# Set environment variables for Docker mode
+export DOCKER_MODE=true
+export NODE_ENV=development
 
 # Check for environment file
 if [ ! -f .env ]; then
     echo ""
-    echo "⚠️  No .env file found. For full functionality, copy .env.example to .env and configure your database connections."
-    echo "   PostgreSQL via DATABASE_URL is recommended for production features."
+    echo "⚠️  No .env file found. Run ./install.sh to create one with Docker defaults."
     echo ""
 fi
+
+# Clean up any existing containers and start fresh
+echo ""
+echo "🧹 Cleaning up existing containers..."
+$COMPOSE_CMD down --remove-orphans 2>/dev/null || true
 
 # Build and install the local npm package
 echo ""
@@ -88,109 +100,125 @@ tar -xzf ../../lib/universal-query-translator-1.0.0.tgz --strip-components=1
 cd ../..
 echo "✅ Library installed locally as npm package"
 
-# Clean up any existing database processes first
+# Start all database services with Docker Compose
 echo ""
-echo "🧹 Cleaning up existing database processes..."
-./server/scripts/cleanup-ports.sh
+echo "🐳 Starting Database Services with Docker..."
+echo "============================================"
 
-# Start databases using dedicated scripts
+# Start services in detached mode
+echo "Starting all database containers..."
+$COMPOSE_CMD up -d
+
+# Check if containers started successfully
 echo ""
-echo "🗄️  Starting Database Services..."
-echo "=================================="
+echo "📊 Container Status:"
+$COMPOSE_CMD ps
 
-# Function to start a database service
-start_database_service() {
-    local service_name=$1
-    local script_path=$2
-    local process_pattern=$3
-    
-    echo ""
-    echo "Starting $service_name..."
-    
-    if [ -n "$process_pattern" ] && pgrep $process_pattern >/dev/null 2>&1; then
-        echo "✅ $service_name already running"
-        return 0
-    fi
-    
-    if $script_path; then
-        echo "✅ $service_name startup completed"
-        return 0
-    else
-        echo "⚠️  $service_name startup failed (will use fallback in app)"
-        return 1
-    fi
-}
-
-# Start each database service
-start_database_service "PostgreSQL" "./server/scripts/start-postgresql.sh" "postgres"
-start_database_service "MongoDB" "./server/scripts/start-mongodb.sh" "mongod"
-start_database_service "Redis" "./server/scripts/start-redis.sh" "redis-server" 
-start_database_service "DynamoDB Local" "./server/scripts/start-dynamodb.sh" "-f DynamoDBLocal"
-start_database_service "Elasticsearch" "./server/scripts/start-elasticsearch.sh" ""
-
-# Function to check if a service is responding
-check_service() {
-    local service_name=$1
-    local port=$2
-    local max_attempts=10
-    local attempt=1
-    
-    echo -n "Checking $service_name on port $port..."
-    
-    while [ $attempt -le $max_attempts ]; do
-        # Use different methods to check port connectivity depending on available tools
-        if command -v nc >/dev/null 2>&1; then
-            # Use netcat if available
-            if nc -z localhost $port 2>/dev/null; then
-                echo " ✅ Ready"
-                return 0
-            fi
-        elif command -v curl >/dev/null 2>&1; then
-            # Use curl as fallback for HTTP services
-            if [ "$port" = "9200" ] || [ "$port" = "9201" ]; then
-                if curl -s --connect-timeout 1 localhost:$port >/dev/null 2>&1; then
-                    echo " ✅ Ready"
-                    return 0
-                fi
-            fi
-        else
-            # Use lsof as last resort
-            if lsof -Pi :$port -sTCP:LISTEN -t >/dev/null 2>&1; then
-                echo " ✅ Ready"
-                return 0
-            fi
-        fi
-        echo -n "."
-        sleep 1
-        attempt=$((attempt + 1))
-    done
-    
-    echo " ⚠️  Not responding"
-    return 1
-}
-
-# Wait for databases to be ready
+# Wait for all services to be ready
 echo ""
-echo "⏳ Verifying Database Connectivity..."
+echo "⏳ Waiting for services to be ready..."
 echo "====================================="
 
-check_service "PostgreSQL" 5432
-check_service "MongoDB" 27017
-check_service "Redis" 6379  
-check_service "DynamoDB Local" 8000
-check_service "Elasticsearch PostgreSQL" 9200
-check_service "Elasticsearch DynamoDB" 9201
+wait_for_service "PostgreSQL" 5432
+wait_for_service "MongoDB" 27017
+wait_for_service "Redis" 6379
+wait_for_service "DynamoDB Local" 8000
+wait_for_service "OpenSearch" 9200
 
-# Show database status
+# Show service health
 echo ""
-echo "📊 Database Status Summary:"
-echo "============================"
-echo "PostgreSQL: $(pgrep postgres >/dev/null 2>&1 && echo "✅ Running locally" || echo "⚠️  Using Neon (remote)")"
-echo "MongoDB: $(pgrep mongod >/dev/null 2>&1 && echo "✅ Running" || echo "❌ Not running")"
-echo "Redis: $(pgrep redis-server >/dev/null 2>&1 && echo "✅ Running" || echo "❌ Not running")"
-echo "DynamoDB: $(pgrep -f DynamoDBLocal >/dev/null 2>&1 && echo "✅ Running" || echo "❌ Not running")"
-echo "Elasticsearch PostgreSQL: $(curl -s http://localhost:9200/_cluster/health >/dev/null 2>&1 && echo "✅ Running" || echo "❌ Not running")"
-echo "Elasticsearch DynamoDB: $(curl -s http://localhost:9201/_cluster/health >/dev/null 2>&1 && echo "✅ Running" || echo "❌ Not running")"
+echo "🏥 Service Health Check:"
+echo "========================"
+
+# PostgreSQL health check
+if docker exec querybridge-postgres pg_isready -U postgres >/dev/null 2>&1; then
+    echo "✅ PostgreSQL: Healthy"
+else
+    echo "⚠️  PostgreSQL: Not ready"
+fi
+
+# MongoDB health check
+if docker exec querybridge-mongodb mongosh --eval "db.adminCommand('ping')" >/dev/null 2>&1; then
+    echo "✅ MongoDB: Healthy"
+else
+    echo "⚠️  MongoDB: Not ready"
+fi
+
+# Redis health check
+if docker exec querybridge-redis redis-cli ping >/dev/null 2>&1; then
+    echo "✅ Redis: Healthy"
+else
+    echo "⚠️  Redis: Not ready"
+fi
+
+# DynamoDB health check
+if curl -s http://localhost:8000/ >/dev/null 2>&1; then
+    echo "✅ DynamoDB Local: Healthy"
+else
+    echo "⚠️  DynamoDB Local: Not ready"
+fi
+
+# OpenSearch health check
+if curl -s http://localhost:9200/_cluster/health >/dev/null 2>&1; then
+    echo "✅ OpenSearch: Healthy"
+else
+    echo "⚠️  OpenSearch: Not ready"
+fi
+
+# Show database URLs and access information
+echo ""
+echo "🔗 Database Connection Information:"
+echo "==================================="
+echo "PostgreSQL:"
+echo "  • Host: localhost:5432"
+echo "  • Database: querybridge_dev"
+echo "  • Username: postgres"
+echo "  • Password: password"
+echo ""
+echo "MongoDB:"
+echo "  • Host: localhost:27017"
+echo "  • Database: analytics"
+echo "  • Username: admin"
+echo "  • Password: password"
+echo ""
+echo "Redis:"
+echo "  • Host: localhost:6379"
+echo "  • Web UI: http://localhost:8001 (RedisInsight)"
+echo ""
+echo "DynamoDB Local:"
+echo "  • Endpoint: http://localhost:8000"
+echo "  • Region: us-east-1"
+echo "  • Access Key: dummy / Secret Key: dummy"
+echo ""
+echo "OpenSearch:"
+echo "  • API: http://localhost:9200"
+echo "  • Dashboards: http://localhost:5601"
+echo "  • SQL Plugin: http://localhost:9200/_plugins/_sql"
+echo ""
+
+# Create cleanup script
+cat > stop-dev.sh << 'EOF'
+#!/bin/bash
+echo "🛑 Stopping Universal Query Library Development Environment..."
+
+# Determine Docker Compose command
+if docker compose version >/dev/null 2>&1; then
+    COMPOSE_CMD="docker compose"
+elif command -v docker-compose >/dev/null 2>&1; then
+    COMPOSE_CMD="docker-compose"
+else
+    echo "❌ Docker Compose not found"
+    exit 1
+fi
+
+# Stop all services
+$COMPOSE_CMD down
+
+echo "✅ All services stopped"
+EOF
+
+chmod +x stop-dev.sh
+echo "📝 Created stop-dev.sh script to stop all services"
 
 # Start the application
 echo ""
@@ -198,16 +226,31 @@ echo "🚀 Starting Universal Query Library Application..."
 echo "================================================="
 echo "Starting development server on http://localhost:5000"
 echo ""
-echo "Available database connections:"
-echo "  - PostgreSQL: localhost:5432 (local) or DATABASE_URL (remote)"
-echo "  - MongoDB: localhost:27017 (analytics)"
-echo "  - Redis: localhost:6379 (cache)"  
-echo "  - DynamoDB: localhost:8000 (users)"
-echo "  - Elasticsearch PostgreSQL: localhost:9200"
-echo "  - Elasticsearch DynamoDB: localhost:9201"
+echo "📚 Available interfaces:"
+echo "  • Main application: http://localhost:5000"
+echo "  • RedisInsight: http://localhost:8001"
+echo "  • OpenSearch Dashboards: http://localhost:5601"
 echo ""
-echo "Press Ctrl+C to stop all services"
+echo "🛑 To stop all services:"
+echo "  • Press Ctrl+C to stop the application"
+echo "  • Run './stop-dev.sh' to stop Docker containers"
 echo ""
+echo "🐳 Docker commands:"
+echo "  • View logs: docker compose logs -f [service]"
+echo "  • Restart service: docker compose restart [service]"
+echo "  • Shell access: docker exec -it querybridge-[service] bash"
+echo ""
+
+# Cleanup function for graceful shutdown
+cleanup() {
+    echo ""
+    echo "🛑 Shutting down development server..."
+    echo "   💡 Docker containers are still running. Use './stop-dev.sh' to stop them."
+    exit 0
+}
+
+# Set up signal handlers
+trap cleanup SIGINT SIGTERM
 
 # Start the application
 npm run dev
