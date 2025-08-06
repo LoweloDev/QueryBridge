@@ -4,10 +4,10 @@ export class QueryParser {
   static parse(queryString: string): QueryLanguage {
     // Enhanced parser that handles both single-line and multi-line queries
     const input = queryString.trim();
-    
+
     // Check if it's a single-line query by checking if newlines exist
     const isSingleLine = !input.includes('\n');
-    
+
     let lines: string[];
     if (isSingleLine) {
       // Split single-line query into logical sections
@@ -16,19 +16,19 @@ export class QueryParser {
       // Multi-line query
       lines = input.split('\n').map(line => line.trim()).filter(line => line);
     }
-    
+
     const result: Partial<QueryLanguage> = {};
     let currentSection = '';
     let whereBuffer = '';
     let aggregateBuffer = '';
-    
+
     for (const line of lines) {
       const upperLine = line.toUpperCase();
-      
+
       if (upperLine.startsWith('FIND ')) {
         result.operation = 'FIND';
         const tablePart = line.substring(5).trim();
-        
+
         // Check for field selection in parentheses: FIND users (name, email)
         const parenMatch = tablePart.match(/^(\w+)\s*\(([^)]+)\)/);
         if (parenMatch) {
@@ -38,6 +38,13 @@ export class QueryParser {
           // Extract just the table name, not everything after FIND
           const firstSpace = tablePart.indexOf(' ');
           result.table = firstSpace > 0 ? tablePart.substring(0, firstSpace) : tablePart;
+        }
+
+        // Check for explicit index specification: FIND users FROM users_index
+        const fromMatch = tablePart.match(/^(\w+)\s+FROM\s+(\w+)/);
+        if (fromMatch) {
+          result.table = fromMatch[1];
+          result.index = fromMatch[2];
         }
       } else if (upperLine.includes('JOIN')) {
         // Parse JOIN clauses (handle both "JOIN" and "LEFT JOIN", "RIGHT JOIN", etc.)
@@ -119,14 +126,14 @@ export class QueryParser {
         this.mergeDbSpecific(result.dbSpecific, additionalConfig);
       } else if (currentSection === 'WHERE') {
         // Check if this line starts a new section
-        if (upperLine.startsWith('DB_SPECIFIC:') || upperLine.startsWith('ORDER BY') || 
-            upperLine.startsWith('LIMIT') || upperLine.startsWith('AGGREGATE') || 
-            upperLine.startsWith('GROUP BY') || upperLine.startsWith('HAVING')) {
+        if (upperLine.startsWith('DB_SPECIFIC:') || upperLine.startsWith('ORDER BY') ||
+          upperLine.startsWith('LIMIT') || upperLine.startsWith('AGGREGATE') ||
+          upperLine.startsWith('GROUP BY') || upperLine.startsWith('HAVING')) {
           // Process buffered WHERE and start new section
           result.where = this.parseWhere(whereBuffer);
           whereBuffer = '';
           currentSection = '';
-          
+
           // Re-process this line
           if (upperLine.startsWith('DB_SPECIFIC:')) {
             currentSection = 'DB_SPECIFIC';
@@ -151,7 +158,7 @@ export class QueryParser {
         aggregateBuffer += ' ' + line;
       }
     }
-    
+
     // Process any remaining buffers
     if (whereBuffer) {
       result.where = this.parseWhere(whereBuffer);
@@ -159,23 +166,23 @@ export class QueryParser {
     if (aggregateBuffer) {
       result.aggregate = this.parseAggregate(aggregateBuffer);
     }
-    
+
     return QueryLanguageSchema.parse(result);
   }
-  
+
   private static splitSingleLineQuery(queryString: string): string[] {
     // Split a single-line query into logical sections while preserving quoted strings
     const sections = [];
     let current = '';
     let inQuotes = false;
     let quoteChar = '';
-    
+
     // Keywords that start new sections
     const keywords = ['WHERE', 'ORDER BY', 'LIMIT', 'OFFSET', 'AGGREGATE', 'GROUP BY', 'HAVING', 'JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'INNER JOIN', 'FULL OUTER JOIN'];
-    
+
     for (let i = 0; i < queryString.length; i++) {
       const char = queryString[i];
-      
+
       if ((char === '"' || char === "'") && !inQuotes) {
         inQuotes = true;
         quoteChar = char;
@@ -210,44 +217,44 @@ export class QueryParser {
         current += char;
       }
     }
-    
+
     if (current.trim()) {
       sections.push(current.trim());
     }
-    
+
     return sections;
   }
-  
+
   private static parseWhere(whereClause: string) {
     const conditions = [];
-    
+
     // Clean up the where clause - remove extra whitespace and normalize
     const cleanedClause = whereClause.replace(/\s+/g, ' ').trim();
-    
+
     // Split by AND/OR while preserving the operators
     const parts = cleanedClause.split(/\s+(AND|OR)\s+/i);
-    
+
     for (let i = 0; i < parts.length; i += 2) {
       const condition = parts[i].trim();
       const logical = i + 1 < parts.length ? parts[i + 1].toUpperCase() as 'AND' | 'OR' : undefined;
-      
+
       // Parse individual condition - order operators by length (longest first) to match "NOT IN" before "IN"
       const operators = ['NOT IN', '>=', '<=', '!=', 'ILIKE', 'LIKE', 'IN', '=', '>', '<'];
       let operator = '';
       let field = '';
       let value: any = '';
-      
+
       for (const op of operators) {
         if (condition.includes(` ${op} `)) {
           const [f, v] = condition.split(` ${op} `, 2);
           field = f.trim();
           operator = op;
           let rawValue = v.trim();
-          
+
           // Check if value is quoted (string literal)
-          const isQuoted = (rawValue.startsWith('"') && rawValue.endsWith('"')) || 
-                          (rawValue.startsWith("'") && rawValue.endsWith("'"));
-          
+          const isQuoted = (rawValue.startsWith('"') && rawValue.endsWith('"')) ||
+            (rawValue.startsWith("'") && rawValue.endsWith("'"));
+
           if (isQuoted) {
             // Remove quotes for quoted strings
             value = rawValue.slice(1, -1);
@@ -263,7 +270,7 @@ export class QueryParser {
           break;
         }
       }
-      
+
       if (field && operator) {
         conditions.push({
           field,
@@ -273,10 +280,10 @@ export class QueryParser {
         });
       }
     }
-    
+
     return conditions;
   }
-  
+
   private static parseOrderBy(orderClause: string) {
     return orderClause.split(',').map(part => {
       const [field, direction] = part.trim().split(/\s+/);
@@ -286,11 +293,11 @@ export class QueryParser {
       };
     });
   }
-  
+
   private static parseAggregate(aggregateClause: string) {
     const aggregates = [];
     const parts = aggregateClause.split(',');
-    
+
     for (const part of parts) {
       const trimmed = part.trim();
       // Handle "COUNT(id) AS total_orders" format
@@ -302,7 +309,7 @@ export class QueryParser {
           const field = funcMatch[2].trim();
           const func = funcMatch[1].toUpperCase();
           let finalAlias = alias;
-          
+
           // Generate proper aliases for common cases
           if (!finalAlias) {
             if (field === '*' && func === 'COUNT') {
@@ -311,7 +318,7 @@ export class QueryParser {
               finalAlias = field;
             }
           }
-          
+
           aggregates.push({
             function: func as any,
             field: field,
@@ -326,7 +333,7 @@ export class QueryParser {
           const field = funcMatch[2].trim() || '*';
           const func = funcMatch[1].toUpperCase();
           let alias = funcMatch[3];
-          
+
           // Generate proper aliases for common cases
           if (!alias) {
             if (field === '*' && func === 'COUNT') {
@@ -335,7 +342,7 @@ export class QueryParser {
               alias = field;
             }
           }
-          
+
           aggregates.push({
             function: func as any,
             field: field,
@@ -344,16 +351,16 @@ export class QueryParser {
         }
       }
     }
-    
+
     return aggregates;
   }
-  
+
   private static parseJoin(joinClause: string) {
     // Parse JOIN syntax: "JOIN orders ON users.id = orders.user_id"
     // or "LEFT JOIN orders ON users.id = orders.user_id"
     const upperClause = joinClause.toUpperCase();
     let joinType: 'INNER' | 'LEFT' | 'RIGHT' | 'FULL' = 'INNER';
-    
+
     if (upperClause.includes('LEFT JOIN')) {
       joinType = 'LEFT';
     } else if (upperClause.includes('RIGHT JOIN')) {
@@ -361,16 +368,16 @@ export class QueryParser {
     } else if (upperClause.includes('FULL JOIN') || upperClause.includes('FULL OUTER JOIN')) {
       joinType = 'FULL';
     }
-    
+
     // Extract table name and ON condition - handle table aliases like "orders o"
     const joinMatch = joinClause.match(/(?:(?:INNER|LEFT|RIGHT|FULL(?:\s+OUTER)?)\s+)?JOIN\s+(\w+)(?:\s+(\w+))?\s+ON\s+([^=]+)\s*=\s*(.+)/i);
-    
+
     if (!joinMatch) {
       throw new Error(`Invalid JOIN syntax: ${joinClause}`);
     }
-    
+
     const [, table, alias, leftField, rightField] = joinMatch;
-    
+
     return {
       type: joinType,
       table: table.trim(),
@@ -382,30 +389,30 @@ export class QueryParser {
       }
     };
   }
-  
+
   private static parseDbSpecific(dbSpecificClause: string) {
     // Parse database-specific configurations
     // Example: "partition_key=TENANT#123, sort_key=USER#456, gsi_name=GSI1"
     // or individual lines like "partition_key=\"TENANT#123\""
     const dbSpecific: any = {};
-    
+
     // Handle both comma-separated and individual key=value pairs
-    const pairs = dbSpecificClause.includes(',') 
+    const pairs = dbSpecificClause.includes(',')
       ? dbSpecificClause.split(',')
       : [dbSpecificClause];
-    
+
     for (const pair of pairs) {
       const trimmedPair = pair.trim();
       if (!trimmedPair.includes('=')) continue;
-      
+
       const equalIndex = trimmedPair.indexOf('=');
       const key = trimmedPair.substring(0, equalIndex).trim();
       const value = trimmedPair.substring(equalIndex + 1).trim();
-      
+
       if (key && value) {
         const cleanKey = key.trim();
         const cleanValue = value.replace(/^["']|["']$/g, ''); // Remove quotes
-        
+
         // Handle DynamoDB patterns
         if (cleanKey === 'partition_key_attribute') {
           // Inline attribute name override
@@ -447,7 +454,7 @@ export class QueryParser {
         }
       }
     }
-    
+
     return dbSpecific;
   }
 
@@ -456,14 +463,14 @@ export class QueryParser {
       if (!target[dbType]) {
         target[dbType] = {};
       }
-      
+
       if (source[dbType].keyCondition) {
         if (!target[dbType].keyCondition) {
           target[dbType].keyCondition = {};
         }
         Object.assign(target[dbType].keyCondition, source[dbType].keyCondition);
       }
-      
+
       // Merge other properties
       Object.keys(source[dbType]).forEach(key => {
         if (key !== 'keyCondition') {

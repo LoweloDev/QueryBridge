@@ -1,0 +1,3069 @@
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+StartTime=1754512263.304
+EndTime=Wed, 06 Aug 2025 20:32:03 UTC
+Time=60031 msecs
+Timing=
+Counters=NumberOfPAThreadsStarted=5,TotalError=6,NumberOfPAThreadsEnded=1
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:32:03 UTC
+Time=1754512323391 msecs
+Timing=total-time:1.754512323391E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=MetricsdbFileSize=125269.33333333333 bytes aggr|MEAN,MetricsdbFileSize=151552 bytes aggr|MAX
+StartTime=1754512266.928
+EndTime=Wed, 06 Aug 2025 20:32:03 UTC
+Time=56476 msecs
+Timing=GCInfoEmitterExecutionTime:79.0/1,total-time:56476.0/1,ClusterManagerThrottlingEmitterExecutionTime:69.0/1,ClusterManagerEventMetricsEmitterExecutionTime:90.0/1,ReaderMetricsProcessTime:3517.0/1,ThreadNameMetricsEmitterExecutionTime:6.0/1,AggregatedOSMetricsEmitterExecutionTime:140.0/1,HTTPMetricsEmitterExecutionTime:41.0/1,ReaderOSMetricsEmitTime:107.0/1,AdmissionControlMetricsEmitterExecutionTime:47.0/1,ReaderMetricsEmitTime:1295.0/1,ShardRequestMetricsEmitterExecutionTime:287.0/1,FaultDetectionMetricsEmitterExecutionTime:44.0/1,WorkloadMetricsEmitterExecutionTime:53.0/1,ShardStateEmitterExecutionTime:41.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:32:03 UTC
+Time=1754512323409 msecs
+Timing=total-time:1.754512323409E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:32:03 UTC
+Time=1754512323411 msecs
+Timing=total-time:1.754512323411E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:32:03 UTC
+Time=1754512323414 msecs
+Timing=total-time:1.754512323414E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=RcaEnabled=0 count aggr|SAMPLE,MetricsdbSizeUncompressedFiles=303104 bytes aggr|SAMPLE,MetricsdbNumUncompressedFiles=2 count aggr|SAMPLE,BatchMetricsEnabled=0 count aggr|SAMPLE,MetricsdbSizeFiles=303104 bytes aggr|SAMPLE,JvmTotalMem=64880640 bytes aggr|SAMPLE,MetricsdbNumFiles=2 count aggr|SAMPLE,JvmFreeMem=28880360 bytes aggr|SAMPLE
+StartTime=1754512263.304
+EndTime=Wed, 06 Aug 2025 20:32:03 UTC
+Time=60112 msecs
+Timing=total-time:60112.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:32:03 UTC
+Time=1754512323418 msecs
+Timing=total-time:1.754512323418E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:32:03 UTC
+Time=1754512323419 msecs
+Timing=total-time:1.754512323419E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:32:03 UTC
+Time=1754512323421 msecs
+Timing=total-time:1.754512323421E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+StartTime=1754512323.422
+EndTime=Wed, 06 Aug 2025 20:33:03 UTC
+Time=59906 msecs
+Timing=
+Counters=TotalError=0
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=1754512323.422
+EndTime=Wed, 06 Aug 2025 20:33:03 UTC
+Time=59914 msecs
+Timing=StatCollectorExecutionTime:96.0/1,total-time:59914.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=MetricsdbFileSize=151552.0 bytes aggr|MEAN,MetricsdbFileSize=151552 bytes aggr|MAX
+StartTime=1754512325.754
+EndTime=Wed, 06 Aug 2025 20:33:03 UTC
+Time=57589 msecs
+Timing=GCInfoEmitterExecutionTime:76.0/1,total-time:57589.0/1,ClusterManagerThrottlingEmitterExecutionTime:66.0/1,ClusterManagerEventMetricsEmitterExecutionTime:61.0/1,ReaderMetricsProcessTime:1190.0/1,ThreadNameMetricsEmitterExecutionTime:2.0/1,AggregatedOSMetricsEmitterExecutionTime:99.0/1,HTTPMetricsEmitterExecutionTime:19.0/1,ReaderOSMetricsEmitTime:68.0/1,AdmissionControlMetricsEmitterExecutionTime:32.0/1,ReaderMetricsEmitTime:768.0/1,ShardRequestMetricsEmitterExecutionTime:191.0/1,FaultDetectionMetricsEmitterExecutionTime:25.0/1,WorkloadMetricsEmitterExecutionTime:34.0/1,ShardStateEmitterExecutionTime:36.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:33:03 UTC
+Time=1754512383348 msecs
+Timing=total-time:1.754512383348E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:33:03 UTC
+Time=1754512383352 msecs
+Timing=total-time:1.754512383352E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:33:03 UTC
+Time=1754512383356 msecs
+Timing=total-time:1.754512383356E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=RcaEnabled=0 count aggr|SAMPLE,MetricsdbSizeUncompressedFiles=303104 bytes aggr|SAMPLE,MetricsdbNumUncompressedFiles=2 count aggr|SAMPLE,BatchMetricsEnabled=0 count aggr|SAMPLE,MetricsdbSizeFiles=303104 bytes aggr|SAMPLE,JvmTotalMem=64880640 bytes aggr|SAMPLE,MetricsdbNumFiles=2 count aggr|SAMPLE,JvmFreeMem=27776936 bytes aggr|SAMPLE
+StartTime=1754512353.304
+EndTime=Wed, 06 Aug 2025 20:33:03 UTC
+Time=30054 msecs
+Timing=total-time:30054.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:33:03 UTC
+Time=1754512383361 msecs
+Timing=total-time:1.754512383361E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:33:03 UTC
+Time=1754512383364 msecs
+Timing=total-time:1.754512383364E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:33:03 UTC
+Time=1754512383366 msecs
+Timing=total-time:1.754512383366E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+StartTime=1754512383.368
+EndTime=Wed, 06 Aug 2025 20:34:03 UTC
+Time=59963 msecs
+Timing=
+Counters=TotalError=0
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=1754512383.368
+EndTime=Wed, 06 Aug 2025 20:34:03 UTC
+Time=59968 msecs
+Timing=StatCollectorExecutionTime:41.0/1,total-time:59968.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=MetricsdbFileSize=151552.0 bytes aggr|MEAN,MetricsdbFileSize=151552 bytes aggr|MAX
+StartTime=1754512383.521
+EndTime=Wed, 06 Aug 2025 20:34:03 UTC
+Time=59817 msecs
+Timing=GCInfoEmitterExecutionTime:67.0/1,total-time:59817.0/1,ClusterManagerThrottlingEmitterExecutionTime:48.0/1,ClusterManagerEventMetricsEmitterExecutionTime:55.0/1,ReaderMetricsProcessTime:924.0/1,ThreadNameMetricsEmitterExecutionTime:2.0/1,AggregatedOSMetricsEmitterExecutionTime:64.0/1,HTTPMetricsEmitterExecutionTime:15.0/1,ReaderOSMetricsEmitTime:64.0/1,AdmissionControlMetricsEmitterExecutionTime:27.0/1,ReaderMetricsEmitTime:599.0/1,ShardRequestMetricsEmitterExecutionTime:128.0/1,FaultDetectionMetricsEmitterExecutionTime:17.0/1,WorkloadMetricsEmitterExecutionTime:22.0/1,ShardStateEmitterExecutionTime:34.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:34:03 UTC
+Time=1754512443342 msecs
+Timing=total-time:1.754512443342E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:34:03 UTC
+Time=1754512443349 msecs
+Timing=total-time:1.754512443349E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:34:03 UTC
+Time=1754512443351 msecs
+Timing=total-time:1.754512443351E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=RcaEnabled=0 count aggr|SAMPLE,MetricsdbSizeUncompressedFiles=303104 bytes aggr|SAMPLE,MetricsdbNumUncompressedFiles=2 count aggr|SAMPLE,BatchMetricsEnabled=0 count aggr|SAMPLE,MetricsdbSizeFiles=303104 bytes aggr|SAMPLE,JvmTotalMem=64880640 bytes aggr|SAMPLE,MetricsdbNumFiles=2 count aggr|SAMPLE,JvmFreeMem=28578232 bytes aggr|SAMPLE
+StartTime=1754512413.299
+EndTime=Wed, 06 Aug 2025 20:34:03 UTC
+Time=30053 msecs
+Timing=total-time:30053.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:34:03 UTC
+Time=1754512443354 msecs
+Timing=total-time:1.754512443354E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:34:03 UTC
+Time=1754512443357 msecs
+Timing=total-time:1.754512443357E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:34:03 UTC
+Time=1754512443360 msecs
+Timing=total-time:1.75451244336E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+StartTime=1754512443.362
+EndTime=Wed, 06 Aug 2025 20:35:03 UTC
+Time=59980 msecs
+Timing=
+Counters=TotalError=0
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=1754512443.362
+EndTime=Wed, 06 Aug 2025 20:35:03 UTC
+Time=59990 msecs
+Timing=StatCollectorExecutionTime:31.0/1,total-time:59990.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=MetricsdbFileSize=151552.0 bytes aggr|MEAN,MetricsdbFileSize=151552 bytes aggr|MAX
+StartTime=1754512443.812
+EndTime=Wed, 06 Aug 2025 20:35:03 UTC
+Time=59545 msecs
+Timing=GCInfoEmitterExecutionTime:85.0/1,total-time:59545.0/1,ClusterManagerThrottlingEmitterExecutionTime:45.0/1,ClusterManagerEventMetricsEmitterExecutionTime:60.0/1,ReaderMetricsProcessTime:861.0/1,ThreadNameMetricsEmitterExecutionTime:1.0/1,AggregatedOSMetricsEmitterExecutionTime:57.0/1,HTTPMetricsEmitterExecutionTime:13.0/1,ReaderOSMetricsEmitTime:71.0/1,AdmissionControlMetricsEmitterExecutionTime:29.0/1,ReaderMetricsEmitTime:604.0/1,ShardRequestMetricsEmitterExecutionTime:121.0/1,FaultDetectionMetricsEmitterExecutionTime:12.0/1,WorkloadMetricsEmitterExecutionTime:20.0/1,ShardStateEmitterExecutionTime:44.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:35:03 UTC
+Time=1754512503365 msecs
+Timing=total-time:1.754512503365E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:35:03 UTC
+Time=1754512503368 msecs
+Timing=total-time:1.754512503368E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:35:03 UTC
+Time=1754512503370 msecs
+Timing=total-time:1.75451250337E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=RcaEnabled=0 count aggr|SAMPLE,MetricsdbSizeUncompressedFiles=303104 bytes aggr|SAMPLE,MetricsdbNumUncompressedFiles=2 count aggr|SAMPLE,BatchMetricsEnabled=0 count aggr|SAMPLE,MetricsdbSizeFiles=303104 bytes aggr|SAMPLE,JvmTotalMem=64880640 bytes aggr|SAMPLE,MetricsdbNumFiles=2 count aggr|SAMPLE,JvmFreeMem=29251224 bytes aggr|SAMPLE
+StartTime=1754512473.299
+EndTime=Wed, 06 Aug 2025 20:35:03 UTC
+Time=30073 msecs
+Timing=total-time:30073.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:35:03 UTC
+Time=1754512503375 msecs
+Timing=total-time:1.754512503375E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:35:03 UTC
+Time=1754512503376 msecs
+Timing=total-time:1.754512503376E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:35:03 UTC
+Time=1754512503378 msecs
+Timing=total-time:1.754512503378E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+StartTime=1754512503.380
+EndTime=Wed, 06 Aug 2025 20:36:03 UTC
+Time=59960 msecs
+Timing=
+Counters=TotalError=0
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=1754512503.380
+EndTime=Wed, 06 Aug 2025 20:36:03 UTC
+Time=59967 msecs
+Timing=StatCollectorExecutionTime:38.0/1,total-time:59967.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=MetricsdbFileSize=151552 bytes aggr|MAX,MetricsdbFileSize=151552.0 bytes aggr|MEAN
+StartTime=1754512504.144
+EndTime=Wed, 06 Aug 2025 20:36:03 UTC
+Time=59205 msecs
+Timing=GCInfoEmitterExecutionTime:73.0/1,total-time:59205.0/1,ClusterManagerThrottlingEmitterExecutionTime:46.0/1,ClusterManagerEventMetricsEmitterExecutionTime:53.0/1,ReaderMetricsProcessTime:784.0/1,ThreadNameMetricsEmitterExecutionTime:1.0/1,AggregatedOSMetricsEmitterExecutionTime:45.0/1,HTTPMetricsEmitterExecutionTime:10.0/1,ReaderOSMetricsEmitTime:56.0/1,AdmissionControlMetricsEmitterExecutionTime:26.0/1,ReaderMetricsEmitTime:519.0/1,ShardRequestMetricsEmitterExecutionTime:106.0/1,FaultDetectionMetricsEmitterExecutionTime:14.0/1,WorkloadMetricsEmitterExecutionTime:19.0/1,ShardStateEmitterExecutionTime:28.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:36:03 UTC
+Time=1754512563351 msecs
+Timing=total-time:1.754512563351E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:36:03 UTC
+Time=1754512563354 msecs
+Timing=total-time:1.754512563354E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:36:03 UTC
+Time=1754512563359 msecs
+Timing=total-time:1.754512563359E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=RcaEnabled=0 count aggr|SAMPLE,MetricsdbSizeUncompressedFiles=303104 bytes aggr|SAMPLE,MetricsdbNumUncompressedFiles=2 count aggr|SAMPLE,BatchMetricsEnabled=0 count aggr|SAMPLE,MetricsdbSizeFiles=303104 bytes aggr|SAMPLE,JvmTotalMem=64880640 bytes aggr|SAMPLE,MetricsdbNumFiles=2 count aggr|SAMPLE,JvmFreeMem=30735736 bytes aggr|SAMPLE
+StartTime=1754512533.300
+EndTime=Wed, 06 Aug 2025 20:36:03 UTC
+Time=30061 msecs
+Timing=total-time:30061.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:36:03 UTC
+Time=1754512563363 msecs
+Timing=total-time:1.754512563363E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:36:03 UTC
+Time=1754512563365 msecs
+Timing=total-time:1.754512563365E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:36:03 UTC
+Time=1754512563368 msecs
+Timing=total-time:1.754512563368E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+StartTime=1754512563.370
+EndTime=Wed, 06 Aug 2025 20:37:03 UTC
+Time=59970 msecs
+Timing=
+Counters=TotalError=0
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=1754512563.370
+EndTime=Wed, 06 Aug 2025 20:37:03 UTC
+Time=59985 msecs
+Timing=StatCollectorExecutionTime:31.0/1,total-time:59985.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=MetricsdbFileSize=151552 bytes aggr|MAX,MetricsdbFileSize=151552.0 bytes aggr|MEAN
+StartTime=1754512564.509
+EndTime=Wed, 06 Aug 2025 20:37:03 UTC
+Time=58851 msecs
+Timing=GCInfoEmitterExecutionTime:74.0/1,total-time:58851.0/1,ClusterManagerThrottlingEmitterExecutionTime:39.0/1,ClusterManagerEventMetricsEmitterExecutionTime:51.0/1,ReaderMetricsProcessTime:739.0/1,ThreadNameMetricsEmitterExecutionTime:1.0/1,AggregatedOSMetricsEmitterExecutionTime:42.0/1,HTTPMetricsEmitterExecutionTime:10.0/1,ReaderOSMetricsEmitTime:50.0/1,AdmissionControlMetricsEmitterExecutionTime:26.0/1,ReaderMetricsEmitTime:501.0/1,ShardRequestMetricsEmitterExecutionTime:95.0/1,FaultDetectionMetricsEmitterExecutionTime:11.0/1,WorkloadMetricsEmitterExecutionTime:16.0/1,ShardStateEmitterExecutionTime:27.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:37:03 UTC
+Time=1754512623363 msecs
+Timing=total-time:1.754512623363E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:37:03 UTC
+Time=1754512623365 msecs
+Timing=total-time:1.754512623365E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:37:03 UTC
+Time=1754512623367 msecs
+Timing=total-time:1.754512623367E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=RcaEnabled=0 count aggr|SAMPLE,MetricsdbSizeUncompressedFiles=303104 bytes aggr|SAMPLE,MetricsdbNumUncompressedFiles=2 count aggr|SAMPLE,BatchMetricsEnabled=0 count aggr|SAMPLE,MetricsdbSizeFiles=303104 bytes aggr|SAMPLE,JvmTotalMem=64880640 bytes aggr|SAMPLE,MetricsdbNumFiles=2 count aggr|SAMPLE,JvmFreeMem=32155864 bytes aggr|SAMPLE
+StartTime=1754512593.307
+EndTime=Wed, 06 Aug 2025 20:37:03 UTC
+Time=30062 msecs
+Timing=total-time:30062.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:37:03 UTC
+Time=1754512623372 msecs
+Timing=total-time:1.754512623372E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:37:03 UTC
+Time=1754512623374 msecs
+Timing=total-time:1.754512623374E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:37:03 UTC
+Time=1754512623377 msecs
+Timing=total-time:1.754512623377E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+StartTime=1754512623.378
+EndTime=Wed, 06 Aug 2025 20:38:03 UTC
+Time=59966 msecs
+Timing=
+Counters=TotalError=0
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=1754512623.378
+EndTime=Wed, 06 Aug 2025 20:38:03 UTC
+Time=59974 msecs
+Timing=StatCollectorExecutionTime:38.0/1,total-time:59974.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=MetricsdbFileSize=151552 bytes aggr|MAX,MetricsdbFileSize=151552.0 bytes aggr|MEAN
+StartTime=1754512624.822
+EndTime=Wed, 06 Aug 2025 20:38:03 UTC
+Time=58543 msecs
+Timing=GCInfoEmitterExecutionTime:65.0/1,total-time:58543.0/1,ClusterManagerThrottlingEmitterExecutionTime:40.0/1,ClusterManagerEventMetricsEmitterExecutionTime:50.0/1,ReaderMetricsProcessTime:695.0/1,ThreadNameMetricsEmitterExecutionTime:0.0/1,AggregatedOSMetricsEmitterExecutionTime:37.0/1,HTTPMetricsEmitterExecutionTime:12.0/1,ReaderOSMetricsEmitTime:49.0/1,AdmissionControlMetricsEmitterExecutionTime:25.0/1,ReaderMetricsEmitTime:473.0/1,ShardRequestMetricsEmitterExecutionTime:86.0/1,FaultDetectionMetricsEmitterExecutionTime:9.0/1,WorkloadMetricsEmitterExecutionTime:17.0/1,ShardStateEmitterExecutionTime:24.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:38:03 UTC
+Time=1754512683370 msecs
+Timing=total-time:1.75451268337E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:38:03 UTC
+Time=1754512683373 msecs
+Timing=total-time:1.754512683373E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:38:03 UTC
+Time=1754512683376 msecs
+Timing=total-time:1.754512683376E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=RcaEnabled=0 count aggr|SAMPLE,MetricsdbSizeUncompressedFiles=303104 bytes aggr|SAMPLE,MetricsdbNumUncompressedFiles=2 count aggr|SAMPLE,BatchMetricsEnabled=0 count aggr|SAMPLE,MetricsdbSizeFiles=303104 bytes aggr|SAMPLE,JvmTotalMem=64880640 bytes aggr|SAMPLE,MetricsdbNumFiles=2 count aggr|SAMPLE,JvmFreeMem=33569120 bytes aggr|SAMPLE
+StartTime=1754512653.308
+EndTime=Wed, 06 Aug 2025 20:38:03 UTC
+Time=30070 msecs
+Timing=total-time:30070.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:38:03 UTC
+Time=1754512683381 msecs
+Timing=total-time:1.754512683381E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:38:03 UTC
+Time=1754512683383 msecs
+Timing=total-time:1.754512683383E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:38:03 UTC
+Time=1754512683384 msecs
+Timing=total-time:1.754512683384E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+StartTime=1754512683.386
+EndTime=Wed, 06 Aug 2025 20:39:03 UTC
+Time=59961 msecs
+Timing=
+Counters=TotalError=0
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=1754512683.386
+EndTime=Wed, 06 Aug 2025 20:39:03 UTC
+Time=59974 msecs
+Timing=StatCollectorExecutionTime:43.0/1,total-time:59974.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=MetricsdbFileSize=151552 bytes aggr|MAX,MetricsdbFileSize=151552.0 bytes aggr|MEAN
+StartTime=1754512685.113
+EndTime=Wed, 06 Aug 2025 20:39:03 UTC
+Time=58254 msecs
+Timing=GCInfoEmitterExecutionTime:73.0/1,total-time:58254.0/1,ClusterManagerThrottlingEmitterExecutionTime:48.0/1,ClusterManagerEventMetricsEmitterExecutionTime:49.0/1,ReaderMetricsProcessTime:743.0/1,ThreadNameMetricsEmitterExecutionTime:0.0/1,AggregatedOSMetricsEmitterExecutionTime:39.0/1,HTTPMetricsEmitterExecutionTime:10.0/1,ReaderOSMetricsEmitTime:60.0/1,AdmissionControlMetricsEmitterExecutionTime:30.0/1,ReaderMetricsEmitTime:512.0/1,ShardRequestMetricsEmitterExecutionTime:94.0/1,FaultDetectionMetricsEmitterExecutionTime:11.0/1,WorkloadMetricsEmitterExecutionTime:17.0/1,ShardStateEmitterExecutionTime:33.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:39:03 UTC
+Time=1754512743369 msecs
+Timing=total-time:1.754512743369E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:39:03 UTC
+Time=1754512743372 msecs
+Timing=total-time:1.754512743372E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:39:03 UTC
+Time=1754512743374 msecs
+Timing=total-time:1.754512743374E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=RcaEnabled=0 count aggr|SAMPLE,MetricsdbSizeUncompressedFiles=303104 bytes aggr|SAMPLE,MetricsdbNumUncompressedFiles=2 count aggr|SAMPLE,BatchMetricsEnabled=0 count aggr|SAMPLE,MetricsdbSizeFiles=303104 bytes aggr|SAMPLE,JvmTotalMem=64880640 bytes aggr|SAMPLE,MetricsdbNumFiles=2 count aggr|SAMPLE,JvmFreeMem=34966536 bytes aggr|SAMPLE
+StartTime=1754512713.307
+EndTime=Wed, 06 Aug 2025 20:39:03 UTC
+Time=30068 msecs
+Timing=total-time:30068.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:39:03 UTC
+Time=1754512743377 msecs
+Timing=total-time:1.754512743377E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:39:03 UTC
+Time=1754512743378 msecs
+Timing=total-time:1.754512743378E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:39:03 UTC
+Time=1754512743381 msecs
+Timing=total-time:1.754512743381E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+StartTime=1754512743.382
+EndTime=Wed, 06 Aug 2025 20:40:03 UTC
+Time=59959 msecs
+Timing=
+Counters=TotalError=0
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=1754512743.382
+EndTime=Wed, 06 Aug 2025 20:40:03 UTC
+Time=59973 msecs
+Timing=StatCollectorExecutionTime:35.0/1,total-time:59973.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=MetricsdbFileSize=151552 bytes aggr|MAX,MetricsdbFileSize=151552.0 bytes aggr|MEAN
+StartTime=1754512745.458
+EndTime=Wed, 06 Aug 2025 20:40:03 UTC
+Time=57902 msecs
+Timing=GCInfoEmitterExecutionTime:72.0/1,total-time:57902.0/1,ClusterManagerThrottlingEmitterExecutionTime:53.0/1,ClusterManagerEventMetricsEmitterExecutionTime:51.0/1,ReaderMetricsProcessTime:735.0/1,ThreadNameMetricsEmitterExecutionTime:1.0/1,AggregatedOSMetricsEmitterExecutionTime:34.0/1,HTTPMetricsEmitterExecutionTime:10.0/1,ReaderOSMetricsEmitTime:58.0/1,AdmissionControlMetricsEmitterExecutionTime:24.0/1,ReaderMetricsEmitTime:516.0/1,ShardRequestMetricsEmitterExecutionTime:90.0/1,FaultDetectionMetricsEmitterExecutionTime:11.0/1,WorkloadMetricsEmitterExecutionTime:18.0/1,ShardStateEmitterExecutionTime:29.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:40:03 UTC
+Time=1754512803366 msecs
+Timing=total-time:1.754512803366E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:40:03 UTC
+Time=1754512803368 msecs
+Timing=total-time:1.754512803368E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:40:03 UTC
+Time=1754512803370 msecs
+Timing=total-time:1.75451280337E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=RcaEnabled=0 count aggr|SAMPLE,MetricsdbSizeUncompressedFiles=303104 bytes aggr|SAMPLE,MetricsdbNumUncompressedFiles=2 count aggr|SAMPLE,BatchMetricsEnabled=0 count aggr|SAMPLE,MetricsdbSizeFiles=303104 bytes aggr|SAMPLE,JvmTotalMem=64880640 bytes aggr|SAMPLE,MetricsdbNumFiles=2 count aggr|SAMPLE,JvmFreeMem=36787880 bytes aggr|SAMPLE
+StartTime=1754512773.301
+EndTime=Wed, 06 Aug 2025 20:40:03 UTC
+Time=30070 msecs
+Timing=total-time:30070.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:40:03 UTC
+Time=1754512803373 msecs
+Timing=total-time:1.754512803373E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:40:03 UTC
+Time=1754512803376 msecs
+Timing=total-time:1.754512803376E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:40:03 UTC
+Time=1754512803377 msecs
+Timing=total-time:1.754512803377E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+StartTime=1754512803.382
+EndTime=Wed, 06 Aug 2025 20:41:03 UTC
+Time=59951 msecs
+Timing=
+Counters=TotalError=0
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=1754512803.382
+EndTime=Wed, 06 Aug 2025 20:41:03 UTC
+Time=59961 msecs
+Timing=StatCollectorExecutionTime:41.0/1,total-time:59961.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=MetricsdbFileSize=151552 bytes aggr|MAX,MetricsdbFileSize=151552.0 bytes aggr|MEAN
+StartTime=1754512805.763
+EndTime=Wed, 06 Aug 2025 20:41:03 UTC
+Time=57584 msecs
+Timing=GCInfoEmitterExecutionTime:63.0/1,total-time:57584.0/1,ClusterManagerThrottlingEmitterExecutionTime:45.0/1,ClusterManagerEventMetricsEmitterExecutionTime:49.0/1,ReaderMetricsProcessTime:652.0/1,ThreadNameMetricsEmitterExecutionTime:1.0/1,AggregatedOSMetricsEmitterExecutionTime:26.0/1,HTTPMetricsEmitterExecutionTime:8.0/1,ReaderOSMetricsEmitTime:42.0/1,AdmissionControlMetricsEmitterExecutionTime:29.0/1,ReaderMetricsEmitTime:470.0/1,ShardRequestMetricsEmitterExecutionTime:75.0/1,FaultDetectionMetricsEmitterExecutionTime:10.0/1,WorkloadMetricsEmitterExecutionTime:14.0/1,ShardStateEmitterExecutionTime:29.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:41:03 UTC
+Time=1754512863351 msecs
+Timing=total-time:1.754512863351E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:41:03 UTC
+Time=1754512863353 msecs
+Timing=total-time:1.754512863353E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:41:03 UTC
+Time=1754512863354 msecs
+Timing=total-time:1.754512863354E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=RcaEnabled=0 count aggr|SAMPLE,MetricsdbSizeUncompressedFiles=303104 bytes aggr|SAMPLE,MetricsdbNumUncompressedFiles=2 count aggr|SAMPLE,BatchMetricsEnabled=0 count aggr|SAMPLE,MetricsdbSizeFiles=303104 bytes aggr|SAMPLE,JvmTotalMem=64880640 bytes aggr|SAMPLE,MetricsdbNumFiles=2 count aggr|SAMPLE,JvmFreeMem=38708832 bytes aggr|SAMPLE
+StartTime=1754512833.299
+EndTime=Wed, 06 Aug 2025 20:41:03 UTC
+Time=30057 msecs
+Timing=total-time:30057.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:41:03 UTC
+Time=1754512863359 msecs
+Timing=total-time:1.754512863359E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:41:03 UTC
+Time=1754512863362 msecs
+Timing=total-time:1.754512863362E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:41:03 UTC
+Time=1754512863364 msecs
+Timing=total-time:1.754512863364E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+StartTime=1754512863.365
+EndTime=Wed, 06 Aug 2025 20:42:03 UTC
+Time=59988 msecs
+Timing=
+Counters=TotalError=0
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=1754512863.365
+EndTime=Wed, 06 Aug 2025 20:42:03 UTC
+Time=59999 msecs
+Timing=StatCollectorExecutionTime:32.0/1,total-time:59999.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=MetricsdbFileSize=151552 bytes aggr|MAX,MetricsdbFileSize=151552.0 bytes aggr|MEAN
+StartTime=1754512863.566
+EndTime=Wed, 06 Aug 2025 20:42:03 UTC
+Time=59806 msecs
+Timing=GCInfoEmitterExecutionTime:68.0/1,total-time:59806.0/1,ClusterManagerThrottlingEmitterExecutionTime:50.0/1,ClusterManagerEventMetricsEmitterExecutionTime:54.0/1,ReaderMetricsProcessTime:815.0/1,ThreadNameMetricsEmitterExecutionTime:1.0/1,AggregatedOSMetricsEmitterExecutionTime:34.0/1,HTTPMetricsEmitterExecutionTime:7.0/1,ReaderOSMetricsEmitTime:72.0/1,AdmissionControlMetricsEmitterExecutionTime:26.0/1,ReaderMetricsEmitTime:522.0/1,ShardRequestMetricsEmitterExecutionTime:92.0/1,FaultDetectionMetricsEmitterExecutionTime:13.0/1,WorkloadMetricsEmitterExecutionTime:17.0/1,ShardStateEmitterExecutionTime:32.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:42:03 UTC
+Time=1754512923376 msecs
+Timing=total-time:1.754512923376E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:42:03 UTC
+Time=1754512923379 msecs
+Timing=total-time:1.754512923379E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:42:03 UTC
+Time=1754512923380 msecs
+Timing=total-time:1.75451292338E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=RcaEnabled=0 count aggr|SAMPLE,MetricsdbSizeUncompressedFiles=303104 bytes aggr|SAMPLE,MetricsdbNumUncompressedFiles=2 count aggr|SAMPLE,BatchMetricsEnabled=0 count aggr|SAMPLE,MetricsdbSizeFiles=303104 bytes aggr|SAMPLE,JvmTotalMem=64880640 bytes aggr|SAMPLE,MetricsdbNumFiles=2 count aggr|SAMPLE,JvmFreeMem=39900560 bytes aggr|SAMPLE
+StartTime=1754512893.301
+EndTime=Wed, 06 Aug 2025 20:42:03 UTC
+Time=30082 msecs
+Timing=total-time:30082.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:42:03 UTC
+Time=1754512923385 msecs
+Timing=total-time:1.754512923385E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:42:03 UTC
+Time=1754512923387 msecs
+Timing=total-time:1.754512923387E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:42:03 UTC
+Time=1754512923389 msecs
+Timing=total-time:1.754512923389E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+StartTime=1754512923.391
+EndTime=Wed, 06 Aug 2025 20:43:03 UTC
+Time=59962 msecs
+Timing=
+Counters=TotalError=0
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=1754512923.391
+EndTime=Wed, 06 Aug 2025 20:43:03 UTC
+Time=59970 msecs
+Timing=StatCollectorExecutionTime:39.0/1,total-time:59970.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=MetricsdbFileSize=151552 bytes aggr|MAX,MetricsdbFileSize=151552.0 bytes aggr|MEAN
+StartTime=1754512923.952
+EndTime=Wed, 06 Aug 2025 20:43:03 UTC
+Time=59413 msecs
+Timing=GCInfoEmitterExecutionTime:66.0/1,total-time:59413.0/1,ClusterManagerThrottlingEmitterExecutionTime:44.0/1,ClusterManagerEventMetricsEmitterExecutionTime:53.0/1,ReaderMetricsProcessTime:682.0/1,ThreadNameMetricsEmitterExecutionTime:4.0/1,AggregatedOSMetricsEmitterExecutionTime:29.0/1,HTTPMetricsEmitterExecutionTime:7.0/1,ReaderOSMetricsEmitTime:48.0/1,AdmissionControlMetricsEmitterExecutionTime:22.0/1,ReaderMetricsEmitTime:493.0/1,ShardRequestMetricsEmitterExecutionTime:90.0/1,FaultDetectionMetricsEmitterExecutionTime:13.0/1,WorkloadMetricsEmitterExecutionTime:23.0/1,ShardStateEmitterExecutionTime:28.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:43:03 UTC
+Time=1754512983369 msecs
+Timing=total-time:1.754512983369E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:43:03 UTC
+Time=1754512983371 msecs
+Timing=total-time:1.754512983371E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:43:03 UTC
+Time=1754512983372 msecs
+Timing=total-time:1.754512983372E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=RcaEnabled=0 count aggr|SAMPLE,MetricsdbSizeUncompressedFiles=303104 bytes aggr|SAMPLE,MetricsdbNumUncompressedFiles=2 count aggr|SAMPLE,BatchMetricsEnabled=0 count aggr|SAMPLE,MetricsdbSizeFiles=303104 bytes aggr|SAMPLE,JvmTotalMem=64880640 bytes aggr|SAMPLE,MetricsdbNumFiles=2 count aggr|SAMPLE,JvmFreeMem=41786328 bytes aggr|SAMPLE
+StartTime=1754512953.306
+EndTime=Wed, 06 Aug 2025 20:43:03 UTC
+Time=30068 msecs
+Timing=total-time:30068.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:43:03 UTC
+Time=1754512983376 msecs
+Timing=total-time:1.754512983376E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:43:03 UTC
+Time=1754512983377 msecs
+Timing=total-time:1.754512983377E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:43:03 UTC
+Time=1754512983378 msecs
+Timing=total-time:1.754512983378E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+StartTime=1754512983.380
+EndTime=Wed, 06 Aug 2025 20:44:03 UTC
+Time=59975 msecs
+Timing=
+Counters=TotalError=0
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=1754512983.380
+EndTime=Wed, 06 Aug 2025 20:44:03 UTC
+Time=59981 msecs
+Timing=StatCollectorExecutionTime:27.0/1,total-time:59981.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=MetricsdbFileSize=151552.0 bytes aggr|MEAN,MetricsdbFileSize=151552 bytes aggr|MAX
+StartTime=1754512984.230
+EndTime=Wed, 06 Aug 2025 20:44:03 UTC
+Time=59132 msecs
+Timing=GCInfoEmitterExecutionTime:61.0/1,total-time:59132.0/1,ClusterManagerThrottlingEmitterExecutionTime:39.0/1,ClusterManagerEventMetricsEmitterExecutionTime:41.0/1,ReaderMetricsProcessTime:536.0/1,ThreadNameMetricsEmitterExecutionTime:2.0/1,AggregatedOSMetricsEmitterExecutionTime:25.0/1,HTTPMetricsEmitterExecutionTime:5.0/1,ReaderOSMetricsEmitTime:37.0/1,AdmissionControlMetricsEmitterExecutionTime:22.0/1,ReaderMetricsEmitTime:407.0/1,ShardRequestMetricsEmitterExecutionTime:66.0/1,FaultDetectionMetricsEmitterExecutionTime:7.0/1,WorkloadMetricsEmitterExecutionTime:11.0/1,ShardStateEmitterExecutionTime:24.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:44:03 UTC
+Time=1754513043364 msecs
+Timing=total-time:1.754513043364E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:44:03 UTC
+Time=1754513043367 msecs
+Timing=total-time:1.754513043367E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:44:03 UTC
+Time=1754513043369 msecs
+Timing=total-time:1.754513043369E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=RcaEnabled=0 count aggr|SAMPLE,MetricsdbSizeUncompressedFiles=303104 bytes aggr|SAMPLE,MetricsdbNumUncompressedFiles=2 count aggr|SAMPLE,BatchMetricsEnabled=0 count aggr|SAMPLE,MetricsdbSizeFiles=303104 bytes aggr|SAMPLE,JvmTotalMem=64880640 bytes aggr|SAMPLE,MetricsdbNumFiles=2 count aggr|SAMPLE,JvmFreeMem=43209920 bytes aggr|SAMPLE
+StartTime=1754513013.309
+EndTime=Wed, 06 Aug 2025 20:44:03 UTC
+Time=30062 msecs
+Timing=total-time:30062.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:44:03 UTC
+Time=1754513043372 msecs
+Timing=total-time:1.754513043372E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:44:03 UTC
+Time=1754513043375 msecs
+Timing=total-time:1.754513043375E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:44:03 UTC
+Time=1754513043376 msecs
+Timing=total-time:1.754513043376E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+StartTime=1754513043.377
+EndTime=Wed, 06 Aug 2025 20:45:03 UTC
+Time=59983 msecs
+Timing=
+Counters=TotalError=0
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=1754513043.377
+EndTime=Wed, 06 Aug 2025 20:45:03 UTC
+Time=59986 msecs
+Timing=StatCollectorExecutionTime:22.0/1,total-time:59986.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=MetricsdbFileSize=151552.0 bytes aggr|MEAN,MetricsdbFileSize=151552 bytes aggr|MAX
+StartTime=1754513044.423
+EndTime=Wed, 06 Aug 2025 20:45:03 UTC
+Time=58943 msecs
+Timing=GCInfoEmitterExecutionTime:63.0/1,total-time:58943.0/1,ClusterManagerThrottlingEmitterExecutionTime:43.0/1,ClusterManagerEventMetricsEmitterExecutionTime:49.0/1,ReaderMetricsProcessTime:655.0/1,ThreadNameMetricsEmitterExecutionTime:0.0/1,AggregatedOSMetricsEmitterExecutionTime:29.0/1,HTTPMetricsEmitterExecutionTime:7.0/1,ReaderOSMetricsEmitTime:45.0/1,AdmissionControlMetricsEmitterExecutionTime:26.0/1,ReaderMetricsEmitTime:462.0/1,ShardRequestMetricsEmitterExecutionTime:75.0/1,FaultDetectionMetricsEmitterExecutionTime:13.0/1,WorkloadMetricsEmitterExecutionTime:12.0/1,ShardStateEmitterExecutionTime:27.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:45:03 UTC
+Time=1754513103368 msecs
+Timing=total-time:1.754513103368E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:45:03 UTC
+Time=1754513103369 msecs
+Timing=total-time:1.754513103369E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:45:03 UTC
+Time=1754513103373 msecs
+Timing=total-time:1.754513103373E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=RcaEnabled=0 count aggr|SAMPLE,MetricsdbSizeUncompressedFiles=303104 bytes aggr|SAMPLE,MetricsdbNumUncompressedFiles=2 count aggr|SAMPLE,BatchMetricsEnabled=0 count aggr|SAMPLE,MetricsdbSizeFiles=303104 bytes aggr|SAMPLE,JvmTotalMem=64880640 bytes aggr|SAMPLE,MetricsdbNumFiles=2 count aggr|SAMPLE,JvmFreeMem=27237056 bytes aggr|SAMPLE
+StartTime=1754513073.299
+EndTime=Wed, 06 Aug 2025 20:45:03 UTC
+Time=30075 msecs
+Timing=total-time:30075.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:45:03 UTC
+Time=1754513103376 msecs
+Timing=total-time:1.754513103376E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:45:03 UTC
+Time=1754513103377 msecs
+Timing=total-time:1.754513103377E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:45:03 UTC
+Time=1754513103379 msecs
+Timing=total-time:1.754513103379E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+StartTime=1754513103.381
+EndTime=Wed, 06 Aug 2025 20:46:03 UTC
+Time=59980 msecs
+Timing=
+Counters=TotalError=0
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=1754513103.381
+EndTime=Wed, 06 Aug 2025 20:46:03 UTC
+Time=59990 msecs
+Timing=StatCollectorExecutionTime:21.0/1,total-time:59990.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=MetricsdbFileSize=151552 bytes aggr|MAX,MetricsdbFileSize=151552.0 bytes aggr|MEAN
+StartTime=1754513104.730
+EndTime=Wed, 06 Aug 2025 20:46:03 UTC
+Time=58647 msecs
+Timing=GCInfoEmitterExecutionTime:86.0/1,total-time:58647.0/1,ClusterManagerThrottlingEmitterExecutionTime:47.0/1,ClusterManagerEventMetricsEmitterExecutionTime:58.0/1,ReaderMetricsProcessTime:766.0/1,ThreadNameMetricsEmitterExecutionTime:2.0/1,AggregatedOSMetricsEmitterExecutionTime:29.0/1,HTTPMetricsEmitterExecutionTime:9.0/1,ReaderOSMetricsEmitTime:62.0/1,AdmissionControlMetricsEmitterExecutionTime:23.0/1,ReaderMetricsEmitTime:518.0/1,ShardRequestMetricsEmitterExecutionTime:84.0/1,FaultDetectionMetricsEmitterExecutionTime:11.0/1,WorkloadMetricsEmitterExecutionTime:16.0/1,ShardStateEmitterExecutionTime:33.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:46:03 UTC
+Time=1754513163382 msecs
+Timing=total-time:1.754513163382E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:46:03 UTC
+Time=1754513163384 msecs
+Timing=total-time:1.754513163384E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:46:03 UTC
+Time=1754513163386 msecs
+Timing=total-time:1.754513163386E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=RcaEnabled=0 count aggr|SAMPLE,MetricsdbSizeUncompressedFiles=303104 bytes aggr|SAMPLE,MetricsdbNumUncompressedFiles=2 count aggr|SAMPLE,BatchMetricsEnabled=0 count aggr|SAMPLE,MetricsdbSizeFiles=303104 bytes aggr|SAMPLE,JvmTotalMem=64880640 bytes aggr|SAMPLE,MetricsdbNumFiles=2 count aggr|SAMPLE,JvmFreeMem=28593136 bytes aggr|SAMPLE
+StartTime=1754513133.302
+EndTime=Wed, 06 Aug 2025 20:46:03 UTC
+Time=30086 msecs
+Timing=total-time:30086.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:46:03 UTC
+Time=1754513163391 msecs
+Timing=total-time:1.754513163391E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:46:03 UTC
+Time=1754513163393 msecs
+Timing=total-time:1.754513163393E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:46:03 UTC
+Time=1754513163395 msecs
+Timing=total-time:1.754513163395E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+StartTime=1754513163.396
+EndTime=Wed, 06 Aug 2025 20:47:03 UTC
+Time=59969 msecs
+Timing=
+Counters=TotalError=0
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=1754513163.396
+EndTime=Wed, 06 Aug 2025 20:47:03 UTC
+Time=59979 msecs
+Timing=StatCollectorExecutionTime:36.0/1,total-time:59979.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=MetricsdbFileSize=151552.0 bytes aggr|MEAN,MetricsdbFileSize=151552 bytes aggr|MAX
+StartTime=1754513165.095
+EndTime=Wed, 06 Aug 2025 20:47:03 UTC
+Time=58285 msecs
+Timing=GCInfoEmitterExecutionTime:73.0/1,total-time:58285.0/1,ClusterManagerThrottlingEmitterExecutionTime:47.0/1,ClusterManagerEventMetricsEmitterExecutionTime:56.0/1,ReaderMetricsProcessTime:747.0/1,ThreadNameMetricsEmitterExecutionTime:1.0/1,AggregatedOSMetricsEmitterExecutionTime:36.0/1,HTTPMetricsEmitterExecutionTime:12.0/1,ReaderOSMetricsEmitTime:66.0/1,AdmissionControlMetricsEmitterExecutionTime:28.0/1,ReaderMetricsEmitTime:526.0/1,ShardRequestMetricsEmitterExecutionTime:91.0/1,FaultDetectionMetricsEmitterExecutionTime:11.0/1,WorkloadMetricsEmitterExecutionTime:13.0/1,ShardStateEmitterExecutionTime:34.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:47:03 UTC
+Time=1754513223385 msecs
+Timing=total-time:1.754513223385E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:47:03 UTC
+Time=1754513223389 msecs
+Timing=total-time:1.754513223389E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:47:03 UTC
+Time=1754513223390 msecs
+Timing=total-time:1.75451322339E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=RcaEnabled=0 count aggr|SAMPLE,MetricsdbSizeUncompressedFiles=303104 bytes aggr|SAMPLE,MetricsdbNumUncompressedFiles=2 count aggr|SAMPLE,BatchMetricsEnabled=0 count aggr|SAMPLE,MetricsdbSizeFiles=303104 bytes aggr|SAMPLE,JvmTotalMem=64880640 bytes aggr|SAMPLE,MetricsdbNumFiles=2 count aggr|SAMPLE,JvmFreeMem=30281728 bytes aggr|SAMPLE
+StartTime=1754513193.303
+EndTime=Wed, 06 Aug 2025 20:47:03 UTC
+Time=30089 msecs
+Timing=total-time:30089.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:47:03 UTC
+Time=1754513223393 msecs
+Timing=total-time:1.754513223393E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:47:03 UTC
+Time=1754513223396 msecs
+Timing=total-time:1.754513223396E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:47:03 UTC
+Time=1754513223398 msecs
+Timing=total-time:1.754513223398E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+StartTime=1754513223.400
+EndTime=Wed, 06 Aug 2025 20:48:03 UTC
+Time=59968 msecs
+Timing=
+Counters=TotalError=0
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=1754513223.400
+EndTime=Wed, 06 Aug 2025 20:48:03 UTC
+Time=59983 msecs
+Timing=StatCollectorExecutionTime:35.0/1,total-time:59983.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=MetricsdbFileSize=151552 bytes aggr|MAX,MetricsdbFileSize=151552.0 bytes aggr|MEAN
+StartTime=1754513225.425
+EndTime=Wed, 06 Aug 2025 20:48:03 UTC
+Time=57961 msecs
+Timing=GCInfoEmitterExecutionTime:69.0/1,total-time:57961.0/1,ClusterManagerThrottlingEmitterExecutionTime:47.0/1,ClusterManagerEventMetricsEmitterExecutionTime:60.0/1,ReaderMetricsProcessTime:742.0/1,ThreadNameMetricsEmitterExecutionTime:2.0/1,AggregatedOSMetricsEmitterExecutionTime:30.0/1,HTTPMetricsEmitterExecutionTime:7.0/1,ReaderOSMetricsEmitTime:54.0/1,AdmissionControlMetricsEmitterExecutionTime:24.0/1,ReaderMetricsEmitTime:518.0/1,ShardRequestMetricsEmitterExecutionTime:82.0/1,FaultDetectionMetricsEmitterExecutionTime:11.0/1,WorkloadMetricsEmitterExecutionTime:13.0/1,ShardStateEmitterExecutionTime:34.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:48:03 UTC
+Time=1754513283388 msecs
+Timing=total-time:1.754513283388E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:48:03 UTC
+Time=1754513283390 msecs
+Timing=total-time:1.75451328339E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:48:03 UTC
+Time=1754513283391 msecs
+Timing=total-time:1.754513283391E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=RcaEnabled=0 count aggr|SAMPLE,MetricsdbSizeUncompressedFiles=303104 bytes aggr|SAMPLE,MetricsdbNumUncompressedFiles=2 count aggr|SAMPLE,BatchMetricsEnabled=0 count aggr|SAMPLE,MetricsdbSizeFiles=303104 bytes aggr|SAMPLE,JvmTotalMem=64880640 bytes aggr|SAMPLE,MetricsdbNumFiles=2 count aggr|SAMPLE,JvmFreeMem=32098192 bytes aggr|SAMPLE
+StartTime=1754513253.307
+EndTime=Wed, 06 Aug 2025 20:48:03 UTC
+Time=30086 msecs
+Timing=total-time:30086.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:48:03 UTC
+Time=1754513283394 msecs
+Timing=total-time:1.754513283394E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:48:03 UTC
+Time=1754513283395 msecs
+Timing=total-time:1.754513283395E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:48:03 UTC
+Time=1754513283398 msecs
+Timing=total-time:1.754513283398E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+StartTime=1754513283.400
+EndTime=Wed, 06 Aug 2025 20:49:03 UTC
+Time=59967 msecs
+Timing=
+Counters=TotalError=0
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=1754513283.400
+EndTime=Wed, 06 Aug 2025 20:49:03 UTC
+Time=59976 msecs
+Timing=StatCollectorExecutionTime:32.0/1,total-time:59976.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=MetricsdbFileSize=151552.0 bytes aggr|MEAN,MetricsdbFileSize=151552 bytes aggr|MAX
+StartTime=1754513285.774
+EndTime=Wed, 06 Aug 2025 20:49:03 UTC
+Time=57605 msecs
+Timing=GCInfoEmitterExecutionTime:78.0/1,total-time:57605.0/1,ClusterManagerThrottlingEmitterExecutionTime:41.0/1,ClusterManagerEventMetricsEmitterExecutionTime:58.0/1,ReaderMetricsProcessTime:703.0/1,ThreadNameMetricsEmitterExecutionTime:0.0/1,AggregatedOSMetricsEmitterExecutionTime:31.0/1,HTTPMetricsEmitterExecutionTime:10.0/1,ReaderOSMetricsEmitTime:50.0/1,AdmissionControlMetricsEmitterExecutionTime:25.0/1,ReaderMetricsEmitTime:495.0/1,ShardRequestMetricsEmitterExecutionTime:77.0/1,FaultDetectionMetricsEmitterExecutionTime:10.0/1,WorkloadMetricsEmitterExecutionTime:11.0/1,ShardStateEmitterExecutionTime:36.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:49:03 UTC
+Time=1754513343381 msecs
+Timing=total-time:1.754513343381E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:49:03 UTC
+Time=1754513343383 msecs
+Timing=total-time:1.754513343383E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:49:03 UTC
+Time=1754513343384 msecs
+Timing=total-time:1.754513343384E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=RcaEnabled=0 count aggr|SAMPLE,MetricsdbSizeUncompressedFiles=303104 bytes aggr|SAMPLE,MetricsdbNumUncompressedFiles=2 count aggr|SAMPLE,BatchMetricsEnabled=0 count aggr|SAMPLE,MetricsdbSizeFiles=303104 bytes aggr|SAMPLE,JvmTotalMem=64880640 bytes aggr|SAMPLE,MetricsdbNumFiles=2 count aggr|SAMPLE,JvmFreeMem=33951904 bytes aggr|SAMPLE
+StartTime=1754513313.301
+EndTime=Wed, 06 Aug 2025 20:49:03 UTC
+Time=30085 msecs
+Timing=total-time:30085.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:49:03 UTC
+Time=1754513343388 msecs
+Timing=total-time:1.754513343388E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:49:03 UTC
+Time=1754513343390 msecs
+Timing=total-time:1.75451334339E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:49:03 UTC
+Time=1754513343391 msecs
+Timing=total-time:1.754513343391E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+StartTime=1754513343.393
+EndTime=Wed, 06 Aug 2025 20:50:03 UTC
+Time=59985 msecs
+Timing=
+Counters=TotalError=0
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=1754513343.393
+EndTime=Wed, 06 Aug 2025 20:50:03 UTC
+Time=60002 msecs
+Timing=StatCollectorExecutionTime:27.0/1,total-time:60002.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=MetricsdbFileSize=151552 bytes aggr|MAX,MetricsdbFileSize=151552.0 bytes aggr|MEAN
+StartTime=1754513343.570
+EndTime=Wed, 06 Aug 2025 20:50:03 UTC
+Time=59833 msecs
+Timing=GCInfoEmitterExecutionTime:70.0/1,total-time:59833.0/1,ClusterManagerThrottlingEmitterExecutionTime:48.0/1,ClusterManagerEventMetricsEmitterExecutionTime:47.0/1,ReaderMetricsProcessTime:687.0/1,ThreadNameMetricsEmitterExecutionTime:1.0/1,AggregatedOSMetricsEmitterExecutionTime:30.0/1,HTTPMetricsEmitterExecutionTime:5.0/1,ReaderOSMetricsEmitTime:53.0/1,AdmissionControlMetricsEmitterExecutionTime:28.0/1,ReaderMetricsEmitTime:480.0/1,ShardRequestMetricsEmitterExecutionTime:89.0/1,FaultDetectionMetricsEmitterExecutionTime:9.0/1,WorkloadMetricsEmitterExecutionTime:18.0/1,ShardStateEmitterExecutionTime:25.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:50:03 UTC
+Time=1754513403405 msecs
+Timing=total-time:1.754513403405E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:50:03 UTC
+Time=1754513403407 msecs
+Timing=total-time:1.754513403407E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:50:03 UTC
+Time=1754513403409 msecs
+Timing=total-time:1.754513403409E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=RcaEnabled=0 count aggr|SAMPLE,MetricsdbSizeUncompressedFiles=303104 bytes aggr|SAMPLE,MetricsdbNumUncompressedFiles=2 count aggr|SAMPLE,BatchMetricsEnabled=0 count aggr|SAMPLE,MetricsdbSizeFiles=303104 bytes aggr|SAMPLE,JvmTotalMem=64880640 bytes aggr|SAMPLE,MetricsdbNumFiles=2 count aggr|SAMPLE,JvmFreeMem=35318504 bytes aggr|SAMPLE
+StartTime=1754513373.306
+EndTime=Wed, 06 Aug 2025 20:50:03 UTC
+Time=30104 msecs
+Timing=total-time:30104.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:50:03 UTC
+Time=1754513403412 msecs
+Timing=total-time:1.754513403412E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:50:03 UTC
+Time=1754513403414 msecs
+Timing=total-time:1.754513403414E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:50:03 UTC
+Time=1754513403416 msecs
+Timing=total-time:1.754513403416E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+StartTime=1754513403.418
+EndTime=Wed, 06 Aug 2025 20:51:03 UTC
+Time=59962 msecs
+Timing=
+Counters=TotalError=0
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=1754513403.418
+EndTime=Wed, 06 Aug 2025 20:51:03 UTC
+Time=59974 msecs
+Timing=StatCollectorExecutionTime:40.0/1,total-time:59974.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=MetricsdbFileSize=151552 bytes aggr|MAX,MetricsdbFileSize=151552.0 bytes aggr|MEAN
+StartTime=1754513403.942
+EndTime=Wed, 06 Aug 2025 20:51:03 UTC
+Time=59455 msecs
+Timing=GCInfoEmitterExecutionTime:74.0/1,total-time:59455.0/1,ClusterManagerThrottlingEmitterExecutionTime:45.0/1,ClusterManagerEventMetricsEmitterExecutionTime:53.0/1,ReaderMetricsProcessTime:721.0/1,ThreadNameMetricsEmitterExecutionTime:1.0/1,AggregatedOSMetricsEmitterExecutionTime:38.0/1,HTTPMetricsEmitterExecutionTime:8.0/1,ReaderOSMetricsEmitTime:53.0/1,AdmissionControlMetricsEmitterExecutionTime:26.0/1,ReaderMetricsEmitTime:513.0/1,ShardRequestMetricsEmitterExecutionTime:91.0/1,FaultDetectionMetricsEmitterExecutionTime:10.0/1,WorkloadMetricsEmitterExecutionTime:14.0/1,ShardStateEmitterExecutionTime:36.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:51:03 UTC
+Time=1754513463404 msecs
+Timing=total-time:1.754513463404E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:51:03 UTC
+Time=1754513463405 msecs
+Timing=total-time:1.754513463405E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:51:03 UTC
+Time=1754513463407 msecs
+Timing=total-time:1.754513463407E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=RcaEnabled=0 count aggr|SAMPLE,MetricsdbSizeUncompressedFiles=303104 bytes aggr|SAMPLE,MetricsdbNumUncompressedFiles=2 count aggr|SAMPLE,BatchMetricsEnabled=0 count aggr|SAMPLE,MetricsdbSizeFiles=303104 bytes aggr|SAMPLE,JvmTotalMem=64880640 bytes aggr|SAMPLE,MetricsdbNumFiles=2 count aggr|SAMPLE,JvmFreeMem=37147160 bytes aggr|SAMPLE
+StartTime=1754513433.304
+EndTime=Wed, 06 Aug 2025 20:51:03 UTC
+Time=30105 msecs
+Timing=total-time:30105.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:51:03 UTC
+Time=1754513463410 msecs
+Timing=total-time:1.75451346341E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:51:03 UTC
+Time=1754513463412 msecs
+Timing=total-time:1.754513463412E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:51:03 UTC
+Time=1754513463414 msecs
+Timing=total-time:1.754513463414E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+StartTime=1754513463.415
+EndTime=Wed, 06 Aug 2025 20:52:03 UTC
+Time=59965 msecs
+Timing=
+Counters=TotalError=0
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=1754513463.415
+EndTime=Wed, 06 Aug 2025 20:52:03 UTC
+Time=59994 msecs
+Timing=StatCollectorExecutionTime:35.0/1,total-time:59994.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=MetricsdbFileSize=151552.0 bytes aggr|MEAN,MetricsdbFileSize=151552 bytes aggr|MAX
+StartTime=1754513464.282
+EndTime=Wed, 06 Aug 2025 20:52:03 UTC
+Time=59132 msecs
+Timing=GCInfoEmitterExecutionTime:95.0/1,total-time:59132.0/1,ClusterManagerThrottlingEmitterExecutionTime:55.0/1,ClusterManagerEventMetricsEmitterExecutionTime:81.0/1,ReaderMetricsProcessTime:893.0/1,ThreadNameMetricsEmitterExecutionTime:2.0/1,AggregatedOSMetricsEmitterExecutionTime:36.0/1,HTTPMetricsEmitterExecutionTime:8.0/1,ReaderOSMetricsEmitTime:44.0/1,AdmissionControlMetricsEmitterExecutionTime:31.0/1,ReaderMetricsEmitTime:639.0/1,ShardRequestMetricsEmitterExecutionTime:82.0/1,FaultDetectionMetricsEmitterExecutionTime:20.0/1,WorkloadMetricsEmitterExecutionTime:13.0/1,ShardStateEmitterExecutionTime:32.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:52:03 UTC
+Time=1754513523423 msecs
+Timing=total-time:1.754513523423E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:52:03 UTC
+Time=1754513523429 msecs
+Timing=total-time:1.754513523429E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:52:03 UTC
+Time=1754513523433 msecs
+Timing=total-time:1.754513523433E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=RcaEnabled=0 count aggr|SAMPLE,MetricsdbSizeUncompressedFiles=303104 bytes aggr|SAMPLE,MetricsdbNumUncompressedFiles=2 count aggr|SAMPLE,BatchMetricsEnabled=0 count aggr|SAMPLE,MetricsdbSizeFiles=303104 bytes aggr|SAMPLE,JvmTotalMem=64880640 bytes aggr|SAMPLE,MetricsdbNumFiles=2 count aggr|SAMPLE,JvmFreeMem=39028512 bytes aggr|SAMPLE
+StartTime=1754513493.303
+EndTime=Wed, 06 Aug 2025 20:52:03 UTC
+Time=30133 msecs
+Timing=total-time:30133.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:52:03 UTC
+Time=1754513523440 msecs
+Timing=total-time:1.75451352344E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:52:03 UTC
+Time=1754513523442 msecs
+Timing=total-time:1.754513523442E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:52:03 UTC
+Time=1754513523446 msecs
+Timing=total-time:1.754513523446E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+StartTime=1754513523.448
+EndTime=Wed, 06 Aug 2025 20:53:03 UTC
+Time=59938 msecs
+Timing=
+Counters=TotalError=0
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=1754513523.448
+EndTime=Wed, 06 Aug 2025 20:53:03 UTC
+Time=59953 msecs
+Timing=StatCollectorExecutionTime:68.0/1,total-time:59953.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=MetricsdbFileSize=151552.0 bytes aggr|MEAN,MetricsdbFileSize=151552 bytes aggr|MAX
+StartTime=1754513524.589
+EndTime=Wed, 06 Aug 2025 20:53:03 UTC
+Time=58816 msecs
+Timing=GCInfoEmitterExecutionTime:66.0/1,total-time:58816.0/1,ClusterManagerThrottlingEmitterExecutionTime:50.0/1,ClusterManagerEventMetricsEmitterExecutionTime:103.0/1,ReaderMetricsProcessTime:821.0/1,ThreadNameMetricsEmitterExecutionTime:4.0/1,AggregatedOSMetricsEmitterExecutionTime:26.0/1,HTTPMetricsEmitterExecutionTime:8.0/1,ReaderOSMetricsEmitTime:62.0/1,AdmissionControlMetricsEmitterExecutionTime:23.0/1,ReaderMetricsEmitTime:544.0/1,ShardRequestMetricsEmitterExecutionTime:68.0/1,FaultDetectionMetricsEmitterExecutionTime:12.0/1,WorkloadMetricsEmitterExecutionTime:11.0/1,ShardStateEmitterExecutionTime:33.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:53:03 UTC
+Time=1754513583408 msecs
+Timing=total-time:1.754513583408E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:53:03 UTC
+Time=1754513583413 msecs
+Timing=total-time:1.754513583413E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:53:03 UTC
+Time=1754513583416 msecs
+Timing=total-time:1.754513583416E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=RcaEnabled=0 count aggr|SAMPLE,MetricsdbSizeUncompressedFiles=303104 bytes aggr|SAMPLE,MetricsdbNumUncompressedFiles=2 count aggr|SAMPLE,BatchMetricsEnabled=0 count aggr|SAMPLE,MetricsdbSizeFiles=303104 bytes aggr|SAMPLE,JvmTotalMem=64880640 bytes aggr|SAMPLE,MetricsdbNumFiles=2 count aggr|SAMPLE,JvmFreeMem=40363840 bytes aggr|SAMPLE
+StartTime=1754513553.310
+EndTime=Wed, 06 Aug 2025 20:53:03 UTC
+Time=30109 msecs
+Timing=total-time:30109.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:53:03 UTC
+Time=1754513583421 msecs
+Timing=total-time:1.754513583421E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:53:03 UTC
+Time=1754513583424 msecs
+Timing=total-time:1.754513583424E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:53:03 UTC
+Time=1754513583426 msecs
+Timing=total-time:1.754513583426E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+StartTime=1754513583.428
+EndTime=Wed, 06 Aug 2025 20:54:03 UTC
+Time=59966 msecs
+Timing=
+Counters=TotalError=0
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=1754513583.428
+EndTime=Wed, 06 Aug 2025 20:54:03 UTC
+Time=59982 msecs
+Timing=StatCollectorExecutionTime:42.0/1,total-time:59982.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=MetricsdbFileSize=151552.0 bytes aggr|MEAN,MetricsdbFileSize=151552 bytes aggr|MAX
+StartTime=1754513584.882
+EndTime=Wed, 06 Aug 2025 20:54:03 UTC
+Time=58534 msecs
+Timing=GCInfoEmitterExecutionTime:61.0/1,total-time:58534.0/1,ClusterManagerThrottlingEmitterExecutionTime:55.0/1,ClusterManagerEventMetricsEmitterExecutionTime:53.0/1,ReaderMetricsProcessTime:665.0/1,ThreadNameMetricsEmitterExecutionTime:3.0/1,AggregatedOSMetricsEmitterExecutionTime:26.0/1,HTTPMetricsEmitterExecutionTime:8.0/1,ReaderOSMetricsEmitTime:44.0/1,AdmissionControlMetricsEmitterExecutionTime:25.0/1,ReaderMetricsEmitTime:464.0/1,ShardRequestMetricsEmitterExecutionTime:73.0/1,FaultDetectionMetricsEmitterExecutionTime:10.0/1,WorkloadMetricsEmitterExecutionTime:13.0/1,ShardStateEmitterExecutionTime:29.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:54:03 UTC
+Time=1754513643427 msecs
+Timing=total-time:1.754513643427E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:54:03 UTC
+Time=1754513643432 msecs
+Timing=total-time:1.754513643432E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:54:03 UTC
+Time=1754513643435 msecs
+Timing=total-time:1.754513643435E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=RcaEnabled=0 count aggr|SAMPLE,MetricsdbSizeUncompressedFiles=303104 bytes aggr|SAMPLE,MetricsdbNumUncompressedFiles=2 count aggr|SAMPLE,BatchMetricsEnabled=0 count aggr|SAMPLE,MetricsdbSizeFiles=303104 bytes aggr|SAMPLE,JvmTotalMem=64880640 bytes aggr|SAMPLE,MetricsdbNumFiles=2 count aggr|SAMPLE,JvmFreeMem=42074616 bytes aggr|SAMPLE
+StartTime=1754513613.290
+EndTime=Wed, 06 Aug 2025 20:54:03 UTC
+Time=30149 msecs
+Timing=total-time:30149.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:54:03 UTC
+Time=1754513643441 msecs
+Timing=total-time:1.754513643441E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:54:03 UTC
+Time=1754513643443 msecs
+Timing=total-time:1.754513643443E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:54:03 UTC
+Time=1754513643447 msecs
+Timing=total-time:1.754513643447E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+StartTime=1754513643.449
+EndTime=Wed, 06 Aug 2025 20:55:03 UTC
+Time=59944 msecs
+Timing=
+Counters=TotalError=0
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=1754513643.449
+EndTime=Wed, 06 Aug 2025 20:55:03 UTC
+Time=59966 msecs
+Timing=StatCollectorExecutionTime:57.0/1,total-time:59966.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=MetricsdbFileSize=151552 bytes aggr|MAX,MetricsdbFileSize=151552.0 bytes aggr|MEAN
+StartTime=1754513645.175
+EndTime=Wed, 06 Aug 2025 20:55:03 UTC
+Time=58245 msecs
+Timing=GCInfoEmitterExecutionTime:77.0/1,total-time:58245.0/1,ClusterManagerThrottlingEmitterExecutionTime:52.0/1,ClusterManagerEventMetricsEmitterExecutionTime:61.0/1,ReaderMetricsProcessTime:797.0/1,ThreadNameMetricsEmitterExecutionTime:2.0/1,AggregatedOSMetricsEmitterExecutionTime:31.0/1,HTTPMetricsEmitterExecutionTime:6.0/1,ReaderOSMetricsEmitTime:55.0/1,AdmissionControlMetricsEmitterExecutionTime:27.0/1,ReaderMetricsEmitTime:550.0/1,ShardRequestMetricsEmitterExecutionTime:88.0/1,FaultDetectionMetricsEmitterExecutionTime:13.0/1,WorkloadMetricsEmitterExecutionTime:16.0/1,ShardStateEmitterExecutionTime:40.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:55:03 UTC
+Time=1754513703423 msecs
+Timing=total-time:1.754513703423E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:55:03 UTC
+Time=1754513703426 msecs
+Timing=total-time:1.754513703426E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:55:03 UTC
+Time=1754513703428 msecs
+Timing=total-time:1.754513703428E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=RcaEnabled=0 count aggr|SAMPLE,MetricsdbSizeUncompressedFiles=303104 bytes aggr|SAMPLE,MetricsdbNumUncompressedFiles=2 count aggr|SAMPLE,BatchMetricsEnabled=0 count aggr|SAMPLE,MetricsdbSizeFiles=303104 bytes aggr|SAMPLE,JvmTotalMem=64880640 bytes aggr|SAMPLE,MetricsdbNumFiles=2 count aggr|SAMPLE,JvmFreeMem=43559184 bytes aggr|SAMPLE
+StartTime=1754513673.294
+EndTime=Wed, 06 Aug 2025 20:55:03 UTC
+Time=30137 msecs
+Timing=total-time:30137.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:55:03 UTC
+Time=1754513703436 msecs
+Timing=total-time:1.754513703436E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:55:03 UTC
+Time=1754513703440 msecs
+Timing=total-time:1.75451370344E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:55:03 UTC
+Time=1754513703442 msecs
+Timing=total-time:1.754513703442E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+StartTime=1754513703.445
+EndTime=Wed, 06 Aug 2025 20:56:03 UTC
+Time=59949 msecs
+Timing=
+Counters=TotalError=0
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=1754513703.445
+EndTime=Wed, 06 Aug 2025 20:56:03 UTC
+Time=59967 msecs
+Timing=StatCollectorExecutionTime:52.0/1,total-time:59967.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=MetricsdbFileSize=151552.0 bytes aggr|MEAN,MetricsdbFileSize=151552 bytes aggr|MAX
+StartTime=1754513705.461
+EndTime=Wed, 06 Aug 2025 20:56:03 UTC
+Time=57956 msecs
+Timing=GCInfoEmitterExecutionTime:76.0/1,total-time:57956.0/1,ClusterManagerThrottlingEmitterExecutionTime:53.0/1,ClusterManagerEventMetricsEmitterExecutionTime:64.0/1,ReaderMetricsProcessTime:781.0/1,ThreadNameMetricsEmitterExecutionTime:0.0/1,AggregatedOSMetricsEmitterExecutionTime:43.0/1,HTTPMetricsEmitterExecutionTime:6.0/1,ReaderOSMetricsEmitTime:45.0/1,AdmissionControlMetricsEmitterExecutionTime:25.0/1,ReaderMetricsEmitTime:574.0/1,ShardRequestMetricsEmitterExecutionTime:94.0/1,FaultDetectionMetricsEmitterExecutionTime:9.0/1,WorkloadMetricsEmitterExecutionTime:12.0/1,ShardStateEmitterExecutionTime:47.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:56:03 UTC
+Time=1754513763421 msecs
+Timing=total-time:1.754513763421E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:56:03 UTC
+Time=1754513763424 msecs
+Timing=total-time:1.754513763424E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:56:03 UTC
+Time=1754513763427 msecs
+Timing=total-time:1.754513763427E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=RcaEnabled=0 count aggr|SAMPLE,MetricsdbSizeUncompressedFiles=303104 bytes aggr|SAMPLE,MetricsdbNumUncompressedFiles=2 count aggr|SAMPLE,BatchMetricsEnabled=0 count aggr|SAMPLE,MetricsdbSizeFiles=303104 bytes aggr|SAMPLE,JvmTotalMem=64880640 bytes aggr|SAMPLE,MetricsdbNumFiles=2 count aggr|SAMPLE,JvmFreeMem=27623512 bytes aggr|SAMPLE
+StartTime=1754513733.291
+EndTime=Wed, 06 Aug 2025 20:56:03 UTC
+Time=30142 msecs
+Timing=total-time:30142.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:56:03 UTC
+Time=1754513763435 msecs
+Timing=total-time:1.754513763435E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:56:03 UTC
+Time=1754513763439 msecs
+Timing=total-time:1.754513763439E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:56:03 UTC
+Time=1754513763440 msecs
+Timing=total-time:1.75451376344E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+StartTime=1754513763.445
+EndTime=Wed, 06 Aug 2025 20:57:03 UTC
+Time=59952 msecs
+Timing=
+Counters=TotalError=0
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=1754513763.445
+EndTime=Wed, 06 Aug 2025 20:57:03 UTC
+Time=59987 msecs
+Timing=StatCollectorExecutionTime:51.0/1,total-time:59987.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=MetricsdbFileSize=151552.0 bytes aggr|MEAN,MetricsdbFileSize=151552 bytes aggr|MAX
+StartTime=1754513765.763
+EndTime=Wed, 06 Aug 2025 20:57:03 UTC
+Time=57674 msecs
+Timing=GCInfoEmitterExecutionTime:57.0/1,total-time:57674.0/1,ClusterManagerThrottlingEmitterExecutionTime:54.0/1,ClusterManagerEventMetricsEmitterExecutionTime:63.0/1,ReaderMetricsProcessTime:721.0/1,ThreadNameMetricsEmitterExecutionTime:0.0/1,AggregatedOSMetricsEmitterExecutionTime:29.0/1,HTTPMetricsEmitterExecutionTime:6.0/1,ReaderOSMetricsEmitTime:49.0/1,AdmissionControlMetricsEmitterExecutionTime:29.0/1,ReaderMetricsEmitTime:504.0/1,ShardRequestMetricsEmitterExecutionTime:79.0/1,FaultDetectionMetricsEmitterExecutionTime:12.0/1,WorkloadMetricsEmitterExecutionTime:17.0/1,ShardStateEmitterExecutionTime:29.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:57:03 UTC
+Time=1754513823441 msecs
+Timing=total-time:1.754513823441E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:57:03 UTC
+Time=1754513823445 msecs
+Timing=total-time:1.754513823445E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:57:03 UTC
+Time=1754513823448 msecs
+Timing=total-time:1.754513823448E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=RcaEnabled=0 count aggr|SAMPLE,MetricsdbSizeUncompressedFiles=303104 bytes aggr|SAMPLE,MetricsdbNumUncompressedFiles=2 count aggr|SAMPLE,BatchMetricsEnabled=0 count aggr|SAMPLE,MetricsdbSizeFiles=303104 bytes aggr|SAMPLE,JvmTotalMem=64880640 bytes aggr|SAMPLE,MetricsdbNumFiles=2 count aggr|SAMPLE,JvmFreeMem=29228400 bytes aggr|SAMPLE
+StartTime=1754513793.296
+EndTime=Wed, 06 Aug 2025 20:57:03 UTC
+Time=30157 msecs
+Timing=total-time:30157.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:57:03 UTC
+Time=1754513823457 msecs
+Timing=total-time:1.754513823457E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:57:03 UTC
+Time=1754513823460 msecs
+Timing=total-time:1.75451382346E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:57:03 UTC
+Time=1754513823462 msecs
+Timing=total-time:1.754513823462E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+StartTime=1754513823.465
+EndTime=Wed, 06 Aug 2025 20:58:03 UTC
+Time=59938 msecs
+Timing=
+Counters=TotalError=0
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=1754513823.465
+EndTime=Wed, 06 Aug 2025 20:58:03 UTC
+Time=59950 msecs
+Timing=StatCollectorExecutionTime:69.0/1,total-time:59950.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=MetricsdbFileSize=151552.0 bytes aggr|MEAN,MetricsdbFileSize=151552 bytes aggr|MAX
+StartTime=1754513823.538
+EndTime=Wed, 06 Aug 2025 20:58:03 UTC
+Time=59884 msecs
+Timing=GCInfoEmitterExecutionTime:53.0/1,total-time:59884.0/1,ClusterManagerThrottlingEmitterExecutionTime:45.0/1,ClusterManagerEventMetricsEmitterExecutionTime:53.0/1,ReaderMetricsProcessTime:574.0/1,ThreadNameMetricsEmitterExecutionTime:0.0/1,AggregatedOSMetricsEmitterExecutionTime:31.0/1,HTTPMetricsEmitterExecutionTime:4.0/1,ReaderOSMetricsEmitTime:30.0/1,AdmissionControlMetricsEmitterExecutionTime:26.0/1,ReaderMetricsEmitTime:467.0/1,ShardRequestMetricsEmitterExecutionTime:70.0/1,FaultDetectionMetricsEmitterExecutionTime:9.0/1,WorkloadMetricsEmitterExecutionTime:11.0/1,ShardStateEmitterExecutionTime:27.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:58:03 UTC
+Time=1754513883428 msecs
+Timing=total-time:1.754513883428E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:58:03 UTC
+Time=1754513883431 msecs
+Timing=total-time:1.754513883431E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:58:03 UTC
+Time=1754513883433 msecs
+Timing=total-time:1.754513883433E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=RcaEnabled=0 count aggr|SAMPLE,MetricsdbSizeUncompressedFiles=303104 bytes aggr|SAMPLE,MetricsdbNumUncompressedFiles=2 count aggr|SAMPLE,BatchMetricsEnabled=0 count aggr|SAMPLE,MetricsdbSizeFiles=303104 bytes aggr|SAMPLE,JvmTotalMem=64880640 bytes aggr|SAMPLE,MetricsdbNumFiles=2 count aggr|SAMPLE,JvmFreeMem=31055960 bytes aggr|SAMPLE
+StartTime=1754513853.292
+EndTime=Wed, 06 Aug 2025 20:58:03 UTC
+Time=30142 msecs
+Timing=total-time:30142.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:58:03 UTC
+Time=1754513883436 msecs
+Timing=total-time:1.754513883436E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:58:03 UTC
+Time=1754513883438 msecs
+Timing=total-time:1.754513883438E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:58:03 UTC
+Time=1754513883440 msecs
+Timing=total-time:1.75451388344E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+StartTime=1754513883.441
+EndTime=Wed, 06 Aug 2025 20:59:03 UTC
+Time=59961 msecs
+Timing=
+Counters=TotalError=0
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=1754513883.441
+EndTime=Wed, 06 Aug 2025 20:59:03 UTC
+Time=59967 msecs
+Timing=StatCollectorExecutionTime:38.0/1,total-time:59967.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=MetricsdbFileSize=151552 bytes aggr|MAX,MetricsdbFileSize=151552.0 bytes aggr|MEAN
+StartTime=1754513883.672
+EndTime=Wed, 06 Aug 2025 20:59:03 UTC
+Time=59739 msecs
+Timing=GCInfoEmitterExecutionTime:76.0/1,total-time:59739.0/1,ClusterManagerThrottlingEmitterExecutionTime:42.0/1,ClusterManagerEventMetricsEmitterExecutionTime:45.0/1,ReaderMetricsProcessTime:630.0/1,ThreadNameMetricsEmitterExecutionTime:2.0/1,AggregatedOSMetricsEmitterExecutionTime:29.0/1,HTTPMetricsEmitterExecutionTime:5.0/1,ReaderOSMetricsEmitTime:57.0/1,AdmissionControlMetricsEmitterExecutionTime:35.0/1,ReaderMetricsEmitTime:462.0/1,ShardRequestMetricsEmitterExecutionTime:72.0/1,FaultDetectionMetricsEmitterExecutionTime:13.0/1,WorkloadMetricsEmitterExecutionTime:12.0/1,ShardStateEmitterExecutionTime:23.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:59:03 UTC
+Time=1754513943412 msecs
+Timing=total-time:1.754513943412E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:59:03 UTC
+Time=1754513943414 msecs
+Timing=total-time:1.754513943414E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:59:03 UTC
+Time=1754513943415 msecs
+Timing=total-time:1.754513943415E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=RcaEnabled=0 count aggr|SAMPLE,MetricsdbSizeUncompressedFiles=303104 bytes aggr|SAMPLE,MetricsdbNumUncompressedFiles=2 count aggr|SAMPLE,BatchMetricsEnabled=0 count aggr|SAMPLE,MetricsdbSizeFiles=303104 bytes aggr|SAMPLE,JvmTotalMem=64880640 bytes aggr|SAMPLE,MetricsdbNumFiles=2 count aggr|SAMPLE,JvmFreeMem=32651216 bytes aggr|SAMPLE
+StartTime=1754513913.296
+EndTime=Wed, 06 Aug 2025 20:59:03 UTC
+Time=30121 msecs
+Timing=total-time:30121.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:59:03 UTC
+Time=1754513943418 msecs
+Timing=total-time:1.754513943418E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:59:03 UTC
+Time=1754513943419 msecs
+Timing=total-time:1.754513943419E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 20:59:03 UTC
+Time=1754513943421 msecs
+Timing=total-time:1.754513943421E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+StartTime=1754513943.422
+EndTime=Wed, 06 Aug 2025 21:00:03 UTC
+Time=59989 msecs
+Timing=
+Counters=TotalError=0
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=1754513943.422
+EndTime=Wed, 06 Aug 2025 21:00:03 UTC
+Time=60012 msecs
+Timing=StatCollectorExecutionTime:20.0/1,total-time:60012.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=MetricsdbFileSize=151552.0 bytes aggr|MEAN,MetricsdbFileSize=151552 bytes aggr|MAX
+StartTime=1754513943.809
+EndTime=Wed, 06 Aug 2025 21:00:03 UTC
+Time=59629 msecs
+Timing=GCInfoEmitterExecutionTime:62.0/1,total-time:59629.0/1,ClusterManagerThrottlingEmitterExecutionTime:50.0/1,ClusterManagerEventMetricsEmitterExecutionTime:51.0/1,ReaderMetricsProcessTime:625.0/1,ThreadNameMetricsEmitterExecutionTime:2.0/1,AggregatedOSMetricsEmitterExecutionTime:23.0/1,HTTPMetricsEmitterExecutionTime:6.0/1,ReaderOSMetricsEmitTime:57.0/1,AdmissionControlMetricsEmitterExecutionTime:23.0/1,ReaderMetricsEmitTime:443.0/1,ShardRequestMetricsEmitterExecutionTime:66.0/1,FaultDetectionMetricsEmitterExecutionTime:8.0/1,WorkloadMetricsEmitterExecutionTime:11.0/1,ShardStateEmitterExecutionTime:32.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 21:00:03 UTC
+Time=1754514003443 msecs
+Timing=total-time:1.754514003443E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 21:00:03 UTC
+Time=1754514003446 msecs
+Timing=total-time:1.754514003446E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 21:00:03 UTC
+Time=1754514003449 msecs
+Timing=total-time:1.754514003449E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=RcaEnabled=0 count aggr|SAMPLE,MetricsdbSizeUncompressedFiles=303104 bytes aggr|SAMPLE,MetricsdbNumUncompressedFiles=2 count aggr|SAMPLE,BatchMetricsEnabled=0 count aggr|SAMPLE,MetricsdbSizeFiles=303104 bytes aggr|SAMPLE,JvmTotalMem=64880640 bytes aggr|SAMPLE,MetricsdbNumFiles=2 count aggr|SAMPLE,JvmFreeMem=34187752 bytes aggr|SAMPLE
+StartTime=1754513973.290
+EndTime=Wed, 06 Aug 2025 21:00:03 UTC
+Time=30161 msecs
+Timing=total-time:30161.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 21:00:03 UTC
+Time=1754514003454 msecs
+Timing=total-time:1.754514003454E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 21:00:03 UTC
+Time=1754514003457 msecs
+Timing=total-time:1.754514003457E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 21:00:03 UTC
+Time=1754514003460 msecs
+Timing=total-time:1.75451400346E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+StartTime=1754514003.462
+EndTime=Wed, 06 Aug 2025 21:01:03 UTC
+Time=59947 msecs
+Timing=
+Counters=TotalError=0
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=1754514003.462
+EndTime=Wed, 06 Aug 2025 21:01:03 UTC
+Time=59956 msecs
+Timing=StatCollectorExecutionTime:52.0/1,total-time:59956.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=MetricsdbFileSize=151552.0 bytes aggr|MEAN,MetricsdbFileSize=151552 bytes aggr|MAX
+StartTime=1754514004.057
+EndTime=Wed, 06 Aug 2025 21:01:03 UTC
+Time=59364 msecs
+Timing=GCInfoEmitterExecutionTime:72.0/1,total-time:59364.0/1,ClusterManagerThrottlingEmitterExecutionTime:58.0/1,ClusterManagerEventMetricsEmitterExecutionTime:84.0/1,ReaderMetricsProcessTime:896.0/1,ThreadNameMetricsEmitterExecutionTime:2.0/1,AggregatedOSMetricsEmitterExecutionTime:58.0/1,HTTPMetricsEmitterExecutionTime:8.0/1,ReaderOSMetricsEmitTime:46.0/1,AdmissionControlMetricsEmitterExecutionTime:35.0/1,ReaderMetricsEmitTime:678.0/1,ShardRequestMetricsEmitterExecutionTime:117.0/1,FaultDetectionMetricsEmitterExecutionTime:10.0/1,WorkloadMetricsEmitterExecutionTime:20.0/1,ShardStateEmitterExecutionTime:36.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 21:01:03 UTC
+Time=1754514063427 msecs
+Timing=total-time:1.754514063427E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 21:01:03 UTC
+Time=1754514063429 msecs
+Timing=total-time:1.754514063429E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 21:01:03 UTC
+Time=1754514063432 msecs
+Timing=total-time:1.754514063432E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=RcaEnabled=0 count aggr|SAMPLE,MetricsdbSizeUncompressedFiles=303104 bytes aggr|SAMPLE,MetricsdbNumUncompressedFiles=2 count aggr|SAMPLE,BatchMetricsEnabled=0 count aggr|SAMPLE,MetricsdbSizeFiles=303104 bytes aggr|SAMPLE,JvmTotalMem=64880640 bytes aggr|SAMPLE,MetricsdbNumFiles=2 count aggr|SAMPLE,JvmFreeMem=35667144 bytes aggr|SAMPLE
+StartTime=1754514033.291
+EndTime=Wed, 06 Aug 2025 21:01:03 UTC
+Time=30144 msecs
+Timing=total-time:30144.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 21:01:03 UTC
+Time=1754514063438 msecs
+Timing=total-time:1.754514063438E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 21:01:03 UTC
+Time=1754514063441 msecs
+Timing=total-time:1.754514063441E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 21:01:03 UTC
+Time=1754514063442 msecs
+Timing=total-time:1.754514063442E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+StartTime=1754514063.444
+EndTime=Wed, 06 Aug 2025 21:02:03 UTC
+Time=59965 msecs
+Timing=
+Counters=TotalError=0
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=1754514063.444
+EndTime=Wed, 06 Aug 2025 21:02:03 UTC
+Time=59975 msecs
+Timing=StatCollectorExecutionTime:35.0/1,total-time:59975.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=MetricsdbFileSize=151552 bytes aggr|MAX,MetricsdbFileSize=151552.0 bytes aggr|MEAN
+StartTime=1754514064.305
+EndTime=Wed, 06 Aug 2025 21:02:03 UTC
+Time=59118 msecs
+Timing=GCInfoEmitterExecutionTime:79.0/1,total-time:59118.0/1,ClusterManagerThrottlingEmitterExecutionTime:58.0/1,ClusterManagerEventMetricsEmitterExecutionTime:66.0/1,ReaderMetricsProcessTime:1211.0/1,ThreadNameMetricsEmitterExecutionTime:3.0/1,AggregatedOSMetricsEmitterExecutionTime:54.0/1,HTTPMetricsEmitterExecutionTime:11.0/1,ReaderOSMetricsEmitTime:54.0/1,AdmissionControlMetricsEmitterExecutionTime:36.0/1,ReaderMetricsEmitTime:1045.0/1,ShardRequestMetricsEmitterExecutionTime:136.0/1,FaultDetectionMetricsEmitterExecutionTime:22.0/1,WorkloadMetricsEmitterExecutionTime:30.0/1,ShardStateEmitterExecutionTime:49.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 21:02:03 UTC
+Time=1754514123425 msecs
+Timing=total-time:1.754514123425E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 21:02:03 UTC
+Time=1754514123427 msecs
+Timing=total-time:1.754514123427E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 21:02:03 UTC
+Time=1754514123429 msecs
+Timing=total-time:1.754514123429E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=RcaEnabled=0 count aggr|SAMPLE,MetricsdbSizeUncompressedFiles=303104 bytes aggr|SAMPLE,MetricsdbNumUncompressedFiles=2 count aggr|SAMPLE,BatchMetricsEnabled=0 count aggr|SAMPLE,MetricsdbSizeFiles=303104 bytes aggr|SAMPLE,JvmTotalMem=64880640 bytes aggr|SAMPLE,MetricsdbNumFiles=2 count aggr|SAMPLE,JvmFreeMem=37497768 bytes aggr|SAMPLE
+StartTime=1754514093.289
+EndTime=Wed, 06 Aug 2025 21:02:03 UTC
+Time=30142 msecs
+Timing=total-time:30142.0/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 21:02:03 UTC
+Time=1754514123435 msecs
+Timing=total-time:1.754514123435E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 21:02:03 UTC
+Time=1754514123438 msecs
+Timing=total-time:1.754514123438E12/1
+Counters=
+EOE
+------------------------------------------------------------------------
+Program=PerformanceAnalyzerAgent
+rca-version=0.0.1
+Metrics=
+StartTime=0.000
+EndTime=Wed, 06 Aug 2025 21:02:03 UTC
+Time=1754514123440 msecs
+Timing=total-time:1.75451412344E12/1
+Counters=
+EOE

@@ -8,7 +8,7 @@
 import { Pool as NeonPool } from '@neondatabase/serverless';
 import { Pool as PgPool } from 'pg';
 import { MongoClient } from 'mongodb';
-import { Client as OpenSearchClient } from '@opensearch-project/opensearch';
+import { Client as ElasticsearchClient } from '@elastic/elasticsearch';
 import { DynamoDBClient, CreateTableCommand, DescribeTableCommand, ListTablesCommand } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand, ScanCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
 import Redis from 'ioredis';
@@ -309,7 +309,7 @@ export class DatasetManager {
    * Load example dataset into Elasticsearch/OpenSearch
    */
   async loadElasticsearchDataset(connection: ActiveConnection): Promise<void> {
-    const client = connection.client as OpenSearchClient;
+    const client = connection.client as ElasticsearchClient;
 
     try {
       // Create indices with mappings and load documents
@@ -353,7 +353,7 @@ export class DatasetManager {
    * Reset Elasticsearch database (delete all indices and reload dataset)
    */
   async resetElasticsearchDatabase(connection: ActiveConnection): Promise<void> {
-    const client = connection.client as OpenSearchClient;
+    const client = connection.client as ElasticsearchClient;
 
     try {
       // Delete all indices

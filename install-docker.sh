@@ -93,8 +93,7 @@ fi
 print_step "3" "Creating Data Directories"
 mkdir -p server/data/postgresql-logs
 mkdir -p server/data/mongodb-logs
-mkdir -p server/data/opensearch-logs
-mkdir -p server/data/opensearch-secondary-logs
+mkdir -p server/data/elasticsearch-logs
 print_status "Data directories created"
 
 # Step 4: Pull Docker images
@@ -106,7 +105,8 @@ images=(
     "mongo:7"
     "redis/redis-stack:latest"
     "amazon/dynamodb-local:latest"
-    "opensearchproject/opensearch:2.14.0"
+    "docker.elastic.co/elasticsearch/elasticsearch:8.11.3"
+    "docker.elastic.co/kibana/kibana:8.11.3"
 )
 
 for image in "${images[@]}"; do
@@ -140,12 +140,12 @@ MONGO_PORT=27017
 REDIS_PORT=6379
 REDIS_INSIGHT_PORT=8001
 DYNAMODB_PORT=8000
-OPENSEARCH_PORT=9200
-OPENSEARCH_SECONDARY_PORT=9201
+ELASTICSEARCH_PORT=9200
+ELASTICSEARCH_SECONDARY_PORT=9201
 
 # Docker Memory Limits (adjust based on your system)
-OPENSEARCH_MEMORY=512m
-OPENSEARCH_DEV_MEMORY=256m
+ELASTICSEARCH_MEMORY=512m
+ELASTICSEARCH_DEV_MEMORY=256m
 EOF
     print_status "Environment file created: .env.docker"
 else
@@ -208,7 +208,7 @@ print_info "Waiting for services to become healthy..."
 sleep 10
 
 # Check service health
-services=("postgresql" "mongodb" "redis" "dynamodb" "opensearch" "opensearch-secondary")
+services=("postgresql" "mongodb" "redis" "dynamodb" "elasticsearch")
 for service in "${services[@]}"; do
     if docker ps --filter "name=uqt-$service" --filter "status=running" | grep -q "uqt-$service"; then
         print_status "$service is running"
@@ -226,8 +226,8 @@ echo "  MongoDB:        localhost:27017 (user: admin, db: analytics)"
 echo "  Redis:          localhost:6379"
 echo "  Redis Insight:  http://localhost:8001"
 echo "  DynamoDB:       http://localhost:8000"
-echo "  OpenSearch:     http://localhost:9200"
-echo "  OpenSearch 2:   http://localhost:9201"
+echo "  Elasticsearch:  http://localhost:9200"
+echo "  Kibana:         http://localhost:5601"
 echo ""
 echo "🛠️  Management Commands:"
 echo "  View logs:      $COMPOSE_CMD logs -f [service_name]"
@@ -285,6 +285,6 @@ echo "  PostgreSQL: psql -h localhost -U postgres -d querybridge_dev"
 echo "  MongoDB:    mongosh mongodb://admin:password@localhost:27017/analytics"
 echo "  Redis:      redis-cli -h localhost -p 6379"
 echo "  DynamoDB:   aws dynamodb list-tables --endpoint-url http://localhost:8000"
-echo "  OpenSearch: curl http://localhost:9200"
+echo "  Elasticsearch: curl http://localhost:9200"
 echo ""
 print_info "All databases include sample data and are ready for development!"

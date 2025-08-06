@@ -4,6 +4,7 @@ import { z } from 'zod';
 export const QueryLanguageSchema = z.object({
   operation: z.enum(['FIND', 'INSERT', 'UPDATE', 'DELETE']),
   table: z.string(),
+  index: z.string().optional(), // For explicit index specification
   fields: z.array(z.string()).optional(),
   where: z.array(z.object({
     field: z.string(),

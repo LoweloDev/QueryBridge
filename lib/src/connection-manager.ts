@@ -8,7 +8,7 @@
 import { QueryLanguage, DatabaseConnection, DatabaseType, ActiveConnection, QueryResult } from "./types";
 import { QueryParser } from "./query-parser";
 import { QueryTranslator } from "./query-translator";
-import {ExecuteStatementCommand} from "@aws-sdk/lib-dynamodb";
+import { ExecuteStatementCommand } from "@aws-sdk/lib-dynamodb";
 
 export class ConnectionManager {
   private activeConnections: Map<string, ActiveConnection> = new Map();
@@ -54,7 +54,7 @@ export class ConnectionManager {
         translatedQuery = QueryTranslator.toMongoDB(parsedQuery);
         break;
       case 'elasticsearch':
-        translatedQuery = QueryTranslator.toElasticsearch(parsedQuery);
+        translatedQuery = QueryTranslator.toSQL(parsedQuery);
         break;
       case 'dynamodb':
         translatedQuery = QueryTranslator.toSQL(parsedQuery);
@@ -67,7 +67,7 @@ export class ConnectionManager {
     }
 
     // Execute the translated query
-    const results = await this.executeTranslatedQuery(connection, translatedQuery, QueryTranslator.toSQL(parsedQuery));
+    const results = await this.executeTranslatedQuery(connection, translatedQuery);
 
     // Update last used time
     connection.lastUsed = new Date();
@@ -114,9 +114,9 @@ export class ConnectionManager {
       case 'mongodb':
         return QueryTranslator.toMongoDB(parsedQuery);
       case 'elasticsearch':
-        return QueryTranslator.toElasticsearch(parsedQuery);
+        return QueryTranslator.toSQL(parsedQuery);
       case 'dynamodb':
-        return QueryTranslator.toDynamoDB(parsedQuery, schemaConfig);
+        return QueryTranslator.toSQL(parsedQuery);
       case 'redis':
         return QueryTranslator.toRedis(parsedQuery);
       default:
@@ -150,7 +150,7 @@ export class ConnectionManager {
   /**
    * Execute translated query against the database client
    */
-  private async executeTranslatedQuery(connection: ActiveConnection, query: string | object, sql:string): Promise<QueryResult> {
+  private async executeTranslatedQuery(connection: ActiveConnection, query: string | object): Promise<QueryResult> {
     const { client, config } = connection;
 
     try {
@@ -210,38 +210,36 @@ export class ConnectionManager {
           };
 
         case 'elasticsearch':
-          // Execute Elasticsearch query
-            console.log("HERE")
-          const esQuery = query as any;
-          let esResult: any;
+          // Execute SQL query using Elasticsearch SQL translate and execute
+          const sqlQuery = query as string;
 
-          const translatted = await client.transport.request({
+          // If connection has a default index configured, use it
+          let finalQuery = sqlQuery;
+          if (config.indexName && !sqlQuery.includes('FROM')) {
+            // Extract the table name and replace with index
+            const tableMatch = sqlQuery.match(/FROM\s+(\w+)/);
+            if (tableMatch) {
+              finalQuery = sqlQuery.replace(tableMatch[1], config.indexName);
+            }
+          }
+
+          // Execute the query
+          const esResult = await client.transport.request({
             method: 'POST',
-            path: '/_plugins/_sql/_translate',
+            path: '/_sql',
             body: {
-              query: sql
+              query: finalQuery
             }
           });
 
-          console.log("translatted", translatted);
-
-          if (esQuery.body) {
-            // Standard search query
-            esResult = await client.search({
-              index: esQuery.index,
-              body: esQuery.body
-            });
-
-            return {
-              rows: esResult.hits?.hits?.map((hit: any) => ({ _id: hit._id, ...hit._source })) || [],
-              count: esResult.hits?.total?.value || 0,
-              data: esResult.hits?.hits?.map((hit: any) => ({ _id: hit._id, ...hit._source })) || []
-            };
-          } else {
-            throw new Error('Invalid Elasticsearch query format');
+          return {
+            rows: esResult.rows || [],
+            count: esResult.rows?.length || 0,
+            data: esResult.rows || []
           };
 
         case 'dynamodb':
+          // Execute SQL query using DynamoDB PartiQL
           const dynamoResult = await client.send(new ExecuteStatementCommand({
             Statement: query as string,
           }));

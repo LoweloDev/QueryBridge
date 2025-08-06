@@ -73,18 +73,19 @@ services:
       retries: 3
     restart: unless-stopped
 
-  # OpenSearch (Elasticsearch alternative with SQL plugin included)
-  opensearch:
-    image: opensearchproject/opensearch:2.11.1
-    container_name: querybridge-opensearch
+  # Elasticsearch
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.3
+    container_name: querybridge-elasticsearch
     environment:
       - cluster.name=querybridge-cluster
       - node.name=querybridge-node
       - discovery.type=single-node
       - bootstrap.memory_lock=true
-      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
-      - "DISABLE_INSTALL_DEMO_CONFIG=true"
-      - "DISABLE_SECURITY_PLUGIN=true"
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - xpack.security.enabled=false
+      - xpack.watcher.enabled=false
+      - xpack.ml.enabled=false
     ulimits:
       memlock:
         soft: -1
@@ -94,9 +95,9 @@ services:
         hard: 65536
     ports:
       - "9200:9200"
-      - "9600:9600"
+      - "9300:9300"
     volumes:
-      - opensearch_data:/usr/share/opensearch/data
+      - elasticsearch_data:/usr/share/elasticsearch/data
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
       interval: 30s
@@ -104,26 +105,25 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # OpenSearch Dashboards (optional)
-  opensearch-dashboards:
-    image: opensearchproject/opensearch-dashboards:2.11.1
-    container_name: querybridge-dashboards
+  # Kibana (Elasticsearch UI)
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.3
+    container_name: querybridge-kibana
     ports:
       - "5601:5601"
-    expose:
-      - "5601"
     environment:
-      OPENSEARCH_HOSTS: '["http://opensearch:9200"]'
-      DISABLE_SECURITY_DASHBOARDS_PLUGIN: "true"
+      ELASTICSEARCH_HOSTS: '["http://elasticsearch:9200"]'
+      ELASTICSEARCH_USERNAME: elastic
+      ELASTICSEARCH_PASSWORD: changeme
     depends_on:
-      - opensearch
+      - elasticsearch
     restart: unless-stopped
 
 volumes:
   postgres_data:
   mongodb_data:
   redis_data:
-  opensearch_data:
+  elasticsearch_data:
 
 networks:
   default:

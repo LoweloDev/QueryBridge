@@ -57,7 +57,7 @@ print_info "Waiting for databases to initialize..."
 sleep 10
 
 # Check container status
-containers=("uqt-postgresql" "uqt-mongodb" "uqt-redis" "uqt-dynamodb" "uqt-opensearch" "uqt-opensearch-secondary")
+containers=("uqt-postgresql" "uqt-mongodb" "uqt-redis" "uqt-dynamodb" "uqt-elasticsearch")
 all_running=true
 
 for container in "${containers[@]}"; do
@@ -114,9 +114,9 @@ export REDIS_HOST=localhost
 export REDIS_PORT=6379
 
 export DYNAMODB_ENDPOINT=http://localhost:8000
-export OPENSEARCH_HOST=localhost
-export OPENSEARCH_PORT=9200
-export OPENSEARCH_SECONDARY_PORT=9201
+export ELASTICSEARCH_HOST=localhost
+export ELASTICSEARCH_PORT=9200
+export ELASTICSEARCH_SECONDARY_PORT=9201
 
 # Step 4: Start the application
 print_info "Starting development server..."

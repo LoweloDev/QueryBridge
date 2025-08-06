@@ -4,7 +4,7 @@
 version: '3.8'
 
 services:
-  postgresql:
+  postgres:
     # Development-specific PostgreSQL settings
     environment:
       POSTGRES_HOST_AUTH_METHOD: trust  # For easier local development
@@ -16,18 +16,11 @@ services:
     volumes:
       - ./server/data/mongodb-logs:/var/log/mongodb
 
-  opensearch:
-    # Development settings for OpenSearch
+  elasticsearch:
+    # Development settings for Elasticsearch
     environment:
-      - "OPENSEARCH_JAVA_OPTS=-Xms256m -Xmx256m"  # Lower memory for development
+      - "ES_JAVA_OPTS=-Xms256m -Xmx256m"  # Lower memory for development
       - logger.level=INFO
     volumes:
-      - ./server/data/opensearch-logs:/usr/share/opensearch/logs
+      - ./server/data/elasticsearch-logs:/usr/share/elasticsearch/logs
 
-  opensearch-secondary:
-    # Development settings for secondary OpenSearch
-    environment:
-      - "OPENSEARCH_JAVA_OPTS=-Xms256m -Xmx256m"  # Lower memory for development
-      - logger.level=INFO
-    volumes:
-      - ./server/data/opensearch-secondary-logs:/usr/share/opensearch/logs

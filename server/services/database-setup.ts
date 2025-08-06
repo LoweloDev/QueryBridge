@@ -8,7 +8,7 @@
 import { Pool as NeonPool, neonConfig } from '@neondatabase/serverless';
 import { Pool as PgPool } from 'pg';
 import { MongoClient } from 'mongodb';
-import { Client as OpenSearchClient } from '@opensearch-project/opensearch';
+import { Client as ElasticsearchClient } from '@elastic/elasticsearch';
 import { DynamoDBClient, ListTablesCommand } from '@aws-sdk/client-dynamodb';
 import Redis from 'ioredis';
 import type { DatabaseConnection, ActiveConnection } from "universal-query-translator";
@@ -66,18 +66,18 @@ export class DatabaseSetup {
       },
       {
         id: 'elasticsearch-postgresql',
-        name: 'OpenSearch - PostgreSQL Layer',
+        name: 'Elasticsearch - PostgreSQL Layer',
         type: 'elasticsearch',
-        host: process.env.OPENSEARCH_HOST || 'localhost',
-        port: parseInt(process.env.OPENSEARCH_PORT || '9200'),
+        host: process.env.ELASTICSEARCH_HOST || 'localhost',
+        port: parseInt(process.env.ELASTICSEARCH_PORT || '9200'),
         database: 'postgresql-search'
       },
       {
         id: 'elasticsearch-dynamodb',
-        name: 'OpenSearch - DynamoDB Layer',
+        name: 'Elasticsearch - DynamoDB Layer',
         type: 'elasticsearch',
-        host: process.env.OPENSEARCH_HOST || 'localhost',
-        port: parseInt(process.env.OPENSEARCH_SECONDARY_PORT || '9201'),
+        host: process.env.ELASTICSEARCH_HOST || 'localhost',
+        port: parseInt(process.env.ELASTICSEARCH_SECONDARY_PORT || '9201'),
         database: 'dynamodb-search'
       }
     ];
@@ -353,8 +353,8 @@ export class DatabaseSetup {
 
   private async setupElasticsearch(config: DatabaseConnection): Promise<void> {
     try {
-      // Use OpenSearch client directly - no more detection issues!
-      const client = new OpenSearchClient({
+      // Use Elasticsearch client
+      const client = new ElasticsearchClient({
         node: `http://${config.host}:${config.port}`,
         requestTimeout: 5000,
         pingTimeout: 3000,
@@ -372,7 +372,7 @@ export class DatabaseSetup {
         lastUsed: new Date()
       });
 
-      console.log(`Successfully connected to OpenSearch: ${config.name}`);
+      console.log(`Successfully connected to Elasticsearch: ${config.name}`);
     } catch (error: any) {
       throw new Error(`Elasticsearch connection failed: ${error.message}`);
     }

@@ -3,7 +3,7 @@ import { QueryLanguage } from "./types";
 export class QueryTranslator {
   static toSQL(query: QueryLanguage): string {
     let sql = '';
-    
+
     if (query.operation === 'FIND') {
       // SELECT clause
       if (query.aggregate && query.aggregate.length > 0) {
@@ -11,7 +11,7 @@ export class QueryTranslator {
         if (query.groupBy) {
           selectFields.push(...query.groupBy);
         }
-        selectFields.push(...query.aggregate.map(agg => 
+        selectFields.push(...query.aggregate.map(agg =>
           `${agg.function}(${agg.field}) AS ${agg.alias || agg.field}`
         ));
         sql = `SELECT ${selectFields.join(', ')}`;
@@ -20,10 +20,11 @@ export class QueryTranslator {
       } else {
         sql = 'SELECT *';
       }
-      
-      // FROM clause
-      sql += ` FROM ${query.table}`;
-      
+
+      // FROM clause - use explicit index if specified, otherwise use table
+      const fromTable = query.index || query.table;
+      sql += ` FROM ${fromTable}`;
+
       // JOIN clauses
       if (query.joins && query.joins.length > 0) {
         query.joins.forEach(join => {
@@ -32,7 +33,7 @@ export class QueryTranslator {
           sql += ` ${joinType} JOIN ${tableRef} ON ${join.on.left} ${join.on.operator} ${join.on.right}`;
         });
       }
-      
+
       // WHERE clause
       if (query.where && query.where.length > 0) {
         const conditions = query.where.map((condition, index) => {
@@ -44,7 +45,7 @@ export class QueryTranslator {
           }
           return condStr;
         });
-        
+
         // Join conditions with logical operators
         const whereClause = [];
         for (let i = 0; i < query.where.length; i++) {
@@ -53,15 +54,15 @@ export class QueryTranslator {
             whereClause.push(` ${query.where[i].logical} `);
           }
         }
-        
+
         sql += ` WHERE ${whereClause.join('')}`;
       }
-      
+
       // GROUP BY clause
       if (query.groupBy && query.groupBy.length > 0) {
         sql += ` GROUP BY ${query.groupBy.join(', ')}`;
       }
-      
+
       // ORDER BY clause (must handle GROUP BY compatibility)
       if (query.orderBy && query.orderBy.length > 0) {
         const orderFields = query.orderBy.map(order => {
@@ -73,7 +74,7 @@ export class QueryTranslator {
             }
             // For aggregated fields, we need to use the aggregate expression
             if (query.aggregate) {
-              const matchingAgg = query.aggregate.find(agg => 
+              const matchingAgg = query.aggregate.find(agg =>
                 agg.alias === order.field || agg.field === order.field
               );
               if (matchingAgg) {
@@ -86,35 +87,35 @@ export class QueryTranslator {
           }
           return `${order.field} ${order.direction}`;
         }).filter(Boolean);
-        
+
         if (orderFields.length > 0) {
           sql += ` ORDER BY ${orderFields.join(', ')}`;
         }
       }
-      
+
       // LIMIT clause
       if (query.limit) {
         sql += ` LIMIT ${query.limit}`;
       }
-      
-      sql += ';';
+
+      // Note: No semicolon added for compatibility with Elasticsearch SQL translate
     }
-    
+
     return sql;
   }
-  
+
   static toMongoDB(query: QueryLanguage): object {
     const mongoQuery: any = {};
-    
+
     if (query.operation === 'FIND') {
       // Check if we need aggregation pipeline (for joins, aggregation, or grouping)
       const needsAggregation = query.joins || query.aggregate || query.groupBy || query.dbSpecific?.mongodb;
-      
+
       if (needsAggregation) {
         mongoQuery.collection = query.table;
         mongoQuery.operation = 'aggregate';
         mongoQuery.aggregate = [];
-        
+
         // Start with match stage for WHERE conditions
         if (query.where && query.where.length > 0) {
           const matchConditions = this.buildMongoMatchConditions(query.where);
@@ -123,7 +124,7 @@ export class QueryTranslator {
           }
         }
 
-        
+
         // Add lookup stages for joins
         if (query.joins && query.joins.length > 0) {
           query.joins.forEach(join => {
@@ -136,14 +137,14 @@ export class QueryTranslator {
               }
             };
             mongoQuery.aggregate.push(lookupStage);
-            
+
             // Handle different join types
             if (join.type === 'INNER') {
               mongoQuery.aggregate.push({
                 $match: { [join.alias || join.table]: { $ne: [] } }
               });
             }
-            
+
             // Only unwind for INNER joins, not LEFT joins in simple lookups
             if (join.type === 'INNER') {
               mongoQuery.aggregate.push({
@@ -155,16 +156,16 @@ export class QueryTranslator {
             }
           });
         }
-        
+
         // Custom MongoDB pipeline from dbSpecific
         if (query.dbSpecific?.mongodb?.pipeline) {
           mongoQuery.aggregate.push(...query.dbSpecific.mongodb.pipeline);
         }
-        
+
         // Group stage for aggregation
         if (query.groupBy || query.aggregate) {
           const groupStage: any = { _id: {} };
-          
+
           if (query.groupBy) {
             if (query.groupBy.length === 1) {
               groupStage._id = `$${query.groupBy[0]}`;
@@ -176,7 +177,7 @@ export class QueryTranslator {
           } else {
             groupStage._id = null; // Global aggregation
           }
-          
+
           if (query.aggregate) {
             for (const agg of query.aggregate) {
               if (agg.function === 'COUNT') {
@@ -187,10 +188,10 @@ export class QueryTranslator {
               }
             }
           }
-          
+
           mongoQuery.aggregate.push({ $group: groupStage });
         }
-        
+
         // Project stage for field selection
         if (query.fields && query.fields.length > 0) {
           const projectStage: any = {};
@@ -199,7 +200,7 @@ export class QueryTranslator {
           }
           mongoQuery.aggregate.push({ $project: projectStage });
         }
-        
+
         // Sort stage
         if (query.orderBy) {
           const sortStage: any = {};
@@ -208,60 +209,60 @@ export class QueryTranslator {
           }
           mongoQuery.aggregate.push({ $sort: sortStage });
         }
-        
+
         // Limit stage
         if (query.limit) {
           mongoQuery.aggregate.push({ $limit: query.limit });
         }
-        
+
         // Skip stage for offset
         if (query.offset) {
           mongoQuery.aggregate.unshift({ $skip: query.offset });
         }
-        
+
       } else {
         // Simple find query without aggregation
         mongoQuery.collection = query.table;
         mongoQuery.operation = 'find';
         mongoQuery.query = {};
         mongoQuery.projection = {};
-        
+
         if (query.where && query.where.length > 0) {
           const queryConditions = this.buildMongoMatchConditions(query.where);
           mongoQuery.query = queryConditions;
         }
-        
+
         // Project specific fields
         if (query.fields && query.fields.length > 0) {
           for (const field of query.fields) {
             mongoQuery.projection[field] = 1;
           }
         }
-        
+
         if (query.orderBy) {
           mongoQuery.sort = {};
           for (const order of query.orderBy) {
             mongoQuery.sort[order.field] = order.direction === 'DESC' ? -1 : 1;
           }
         }
-        
+
         if (query.limit) {
           mongoQuery.limit = query.limit;
         }
-        
+
         if (query.offset) {
           mongoQuery.skip = query.offset;
         }
       }
     }
-    
+
     return mongoQuery;
   }
-  
+
   private static buildMongoMatchConditions(whereConditions: any[]): any {
     const conditions: any = {};
     const orConditions: any[] = [];
-    
+
     for (const condition of whereConditions) {
       if (condition.logical === 'OR') {
         // Handle OR by collecting conditions into $or array
@@ -303,7 +304,7 @@ export class QueryTranslator {
         }
       }
     }
-    
+
     // If we have OR conditions, combine them with AND conditions
     if (orConditions.length > 0) {
       if (Object.keys(conditions).length > 0) {
@@ -312,16 +313,16 @@ export class QueryTranslator {
         return { $or: orConditions };
       }
     }
-    
+
     return conditions;
   }
-  
+
   private static convertLikeToRegex(likePattern: string): string {
     // Convert SQL LIKE patterns to MongoDB regex
     // 'John%' -> '^John'
     // '%@gmail.com' -> '@gmail\\.com$'
     // '%pattern%' -> 'pattern'
-    
+
     if (likePattern.startsWith('%') && likePattern.endsWith('%')) {
       // Pattern is in the middle
       return likePattern.slice(1, -1).replace(/\./g, '\\.');
@@ -336,12 +337,12 @@ export class QueryTranslator {
       return '^' + likePattern.replace(/\./g, '\\.') + '$';
     }
   }
-  
+
   private static processInValues(value: any): any[] {
     if (Array.isArray(value)) {
       return value;
     }
-    
+
     if (typeof value === 'string') {
       // Handle different string formats: ['a','b'] or ["a","b"] or [a,b]
       if (value.startsWith('[') && value.endsWith(']')) {
@@ -355,20 +356,20 @@ export class QueryTranslator {
         return [value];
       }
     }
-    
+
     return [value];
   }
-  
+
   static toElasticsearch(query: QueryLanguage): object {
     const esQuery: any = {
       index: query.table,
       body: {}
     };
-    
+
     if (query.operation === 'FIND') {
       // Check for Elasticsearch-specific features
       const esSpecific = query.dbSpecific?.elasticsearch;
-      
+
       // Handle nested queries
       if (esSpecific?.nested) {
         esQuery.body.query = {
@@ -404,10 +405,10 @@ export class QueryTranslator {
             }
           };
         });
-        
+
         // Start with JOIN queries  
         const mustConditions: any[] = [...joinQueries];
-        
+
         // Add WHERE conditions to the main bool query
         if (query.where && query.where.length > 0) {
           for (const condition of query.where) {
@@ -417,7 +418,7 @@ export class QueryTranslator {
             }
           }
         }
-        
+
         // Always use bool query structure when we have joins + where conditions
         esQuery.body.query = {
           bool: {
@@ -429,7 +430,7 @@ export class QueryTranslator {
       else if (query.where && query.where.length > 0) {
         const mustConditions: any[] = [];
         const mustNotConditions: any[] = [];
-        
+
         for (const condition of query.where) {
           const esCondition = this.sqlToESCondition(condition);
           if (esCondition) {
@@ -441,34 +442,34 @@ export class QueryTranslator {
             }
           }
         }
-        
+
         // Build query structure based on what conditions we have
         if (mustConditions.length > 0 || mustNotConditions.length > 0) {
           const boolQuery: any = { bool: {} };
-          
+
           if (mustConditions.length > 0) {
             boolQuery.bool.must = mustConditions;
           }
-          
+
           if (mustNotConditions.length > 0) {
             boolQuery.bool.must_not = mustNotConditions;
           }
-          
+
           esQuery.body.query = boolQuery;
         }
       } else {
         // Default to match_all if no conditions
         esQuery.body.query = { match_all: {} };
       }
-      
+
       // Add aggregations with nested support
       if (query.aggregate && query.aggregate.length > 0) {
         esQuery.body.aggs = {};
-        
+
         if (query.groupBy && query.groupBy.length > 0) {
           const groupField = query.groupBy[0];
           const groupName = `${groupField}_group`;
-          
+
           // Check if grouping on nested field
           if (groupField.includes('.')) {
             const [nestedPath, nestedField] = groupField.split('.', 2);
@@ -481,7 +482,7 @@ export class QueryTranslator {
                 }
               }
             };
-            
+
             for (const agg of query.aggregate) {
               const esAggFunc = this.sqlToESAggregateFunction(agg.function);
               const aggName = agg.alias || `${agg.function.toLowerCase()}_${agg.field}`;
@@ -494,7 +495,7 @@ export class QueryTranslator {
               terms: { field: groupField },
               aggs: {},
             };
-            
+
             for (const agg of query.aggregate) {
               const esAggFunc = this.sqlToESAggregateFunction(agg.function);
               const aggName = agg.alias || `${agg.function.toLowerCase()}_${agg.field}`;
@@ -503,7 +504,7 @@ export class QueryTranslator {
               };
             }
           }
-          
+
           // Set size to 0 for aggregation-only queries
           esQuery.body.size = 0;
         } else {
@@ -515,33 +516,33 @@ export class QueryTranslator {
               [esAggFunc]: { field: agg.field },
             };
           }
-          
+
           // Set size to 0 for aggregation-only queries
           esQuery.body.size = 0;
         }
       }
-      
+
       // Add sorting
       if (query.orderBy && query.orderBy.length > 0) {
         esQuery.body.sort = query.orderBy.map(order => ({
           [order.field]: { order: order.direction.toLowerCase() },
         }));
       }
-      
+
       // Add size (limit) and from (offset)
       if (query.limit) {
         esQuery.body.size = query.limit;
       }
-      
+
       if (query.offset) {
         esQuery.body.from = query.offset;
       }
-      
+
       // Add source filtering for field selection
       if (query.fields && query.fields.length > 0) {
         esQuery.body._source = query.fields;
       }
-      
+
       // Add Elasticsearch-specific features
       if (esSpecific) {
         // Add boost scoring
@@ -562,7 +563,7 @@ export class QueryTranslator {
             }
           }
         }
-        
+
         // Add fuzzy matching
         if (esSpecific.fuzzy && esQuery.body.query.bool?.must) {
           for (let i = 0; i < esQuery.body.query.bool.must.length; i++) {
@@ -570,10 +571,10 @@ export class QueryTranslator {
             if (mustCondition.match) {
               const fieldName = Object.keys(mustCondition.match)[0];
               if (esSpecific.fuzzy[fieldName]) {
-                const value = typeof mustCondition.match[fieldName] === 'string' 
-                  ? mustCondition.match[fieldName] 
+                const value = typeof mustCondition.match[fieldName] === 'string'
+                  ? mustCondition.match[fieldName]
                   : mustCondition.match[fieldName].query;
-                
+
                 esQuery.body.query.bool.must[i] = {
                   fuzzy: {
                     [fieldName]: {
@@ -586,17 +587,17 @@ export class QueryTranslator {
             }
           }
         }
-        
+
         // Add highlighting
         if (esSpecific.highlight) {
           esQuery.body.highlight = esSpecific.highlight;
         }
       }
     }
-    
+
     return esQuery;
   }
-  
+
   static toDynamoDB(query: QueryLanguage, schemaConfig?: { partitionKey?: string; sortKey?: string; globalSecondaryIndexes?: Array<{ name: string; partitionKey: string; sortKey?: string; }>; }): object {
     if (query.operation !== 'FIND') {
       return { TableName: query.table };
@@ -607,13 +608,13 @@ export class QueryTranslator {
     };
 
     // Handle DB_SPECIFIC for advanced DynamoDB features
-    if (query.dbSpecific?.partition_key || query.dbSpecific?.sort_key || 
-        query.dbSpecific?.partition_key_attribute || query.dbSpecific?.sort_key_attribute) {
+    if (query.dbSpecific?.partition_key || query.dbSpecific?.sort_key ||
+      query.dbSpecific?.partition_key_attribute || query.dbSpecific?.sort_key_attribute) {
       return this.buildDBSpecificDynamoQuery(query, dynamoQuery, schemaConfig);
     }
 
     // Check if this is a primary key query (efficient Query operation)
-    const primaryKeyCondition = query.where?.find(w => 
+    const primaryKeyCondition = query.where?.find(w =>
       (w.field === 'id' || w.field.endsWith('_id')) && w.operator === '='
     );
 
@@ -625,7 +626,7 @@ export class QueryTranslator {
     // Default to Scan operation with filters
     return this.buildDynamoScanOperation(query, dynamoQuery);
   }
-  
+
   private static buildDBSpecificDynamoQuery(query: QueryLanguage, dynamoQuery: any, schemaConfig?: { partitionKey?: string; sortKey?: string; globalSecondaryIndexes?: Array<{ name: string; partitionKey: string; sortKey?: string; }>; }): object {
     // Handle explicit DB_SPECIFIC parameters for single-table design
     const expressionAttributeNames: any = {};
@@ -666,7 +667,7 @@ export class QueryTranslator {
     // Add projection and limits
     return this.addDynamoProjectionAndLimits(query, dynamoQuery);
   }
-  
+
   private static buildDynamoQueryOperation(query: QueryLanguage, dynamoQuery: any, primaryKeyCondition: any, schemaConfig?: { partitionKey?: string; sortKey?: string; globalSecondaryIndexes?: Array<{ name: string; partitionKey: string; sortKey?: string; }>; }): object {
     // Use Query operation for efficient primary key lookups
     const expressionAttributeNames: any = {};
@@ -691,7 +692,7 @@ export class QueryTranslator {
 
     return this.addDynamoProjectionAndLimits(query, dynamoQuery);
   }
-  
+
   private static buildDynamoScanOperation(query: QueryLanguage, dynamoQuery: any): object {
     // Use Scan operation for non-primary key queries
     this.addDynamoFilters(query, dynamoQuery);
@@ -707,14 +708,14 @@ export class QueryTranslator {
 
     for (let i = 0; i < query.where.length; i++) {
       const condition: any = query.where[i];
-      
+
       // Create consistent, unique placeholders
       const placeholder = `:val${i}`;
       const namePlaceholder = `#${condition.field}`;
 
       // Use clean field names for ExpressionAttributeNames
       expressionAttributeNames[namePlaceholder] = condition.field;
-      
+
       if (condition.operator === 'IN') {
         // Handle IN operator with array values
         let values = condition.value;
@@ -749,7 +750,7 @@ export class QueryTranslator {
       if (!dynamoQuery.ExpressionAttributeNames) {
         dynamoQuery.ExpressionAttributeNames = {};
       }
-      
+
       dynamoQuery.ProjectionExpression = query.fields.map((field, index) => {
         const namePlaceholder = `#field${index}`;
         dynamoQuery.ExpressionAttributeNames[namePlaceholder] = field;
@@ -766,14 +767,14 @@ export class QueryTranslator {
     if (query.aggregate && query.aggregate.length > 0) {
       throw new Error('DynamoDB does not support native aggregations (COUNT, SUM, AVG, etc.). Consider using application-level processing or switch to a different database type.');
     }
-    
+
     if (query.groupBy && query.groupBy.length > 0) {
       throw new Error('DynamoDB does not support GROUP BY operations. Consider using application-level processing or switch to a different database type.');
     }
 
     return dynamoQuery;
   }
-  
+
   private static sqlToMongoOperator(sqlOp: string): string | null {
     const mapping: Record<string, string> = {
       '=': '$eq',
@@ -787,22 +788,22 @@ export class QueryTranslator {
     };
     return mapping[sqlOp] || null;
   }
-  
+
   private static sqlToMongoAggregateFunction(sqlFunc: string): string {
     const mapping: Record<string, string> = {
       'COUNT': '$sum',
-      'SUM': '$sum', 
+      'SUM': '$sum',
       'AVG': '$avg',
       'MIN': '$min',
       'MAX': '$max',
     };
     return mapping[sqlFunc] || '$sum';
   }
-  
+
   private static sqlToESCondition(condition: any): object | null {
     const field = condition.field;
     let value = condition.value;
-    
+
     // Process array values for IN operations
     if (condition.operator === 'IN' || condition.operator === 'NOT IN') {
       if (typeof value === 'string') {
@@ -811,7 +812,7 @@ export class QueryTranslator {
         value = [value];
       }
     }
-    
+
     switch (condition.operator) {
       case '=':
         return { term: { [field]: value } };
@@ -850,12 +851,12 @@ export class QueryTranslator {
       'MIN': 'min',
       'MAX': 'max'
     };
-    
+
     return mapping[sqlFunction] || 'value_count';
   }
-  
 
-  
+
+
   private static sqlToDynamoOperator(sqlOp: string): string {
     const mapping: Record<string, string> = {
       '=': '=',
@@ -869,10 +870,10 @@ export class QueryTranslator {
     };
     return mapping[sqlOp] || '=';
   }
-  
+
   static toRedis(query: QueryLanguage): object {
     const dbSpecific = query.dbSpecific?.redis;
-    
+
     // Handle specific Redis operations from DB_SPECIFIC
     if (dbSpecific) {
       if (dbSpecific.operation === 'subscribe') {
@@ -881,30 +882,30 @@ export class QueryTranslator {
           channels: query.where?.map(w => w.value) || []
         };
       }
-      
+
       if (dbSpecific.operation === 'psubscribe') {
         return {
           operation: 'PSUBSCRIBE',
           patterns: query.where?.map(w => w.value) || []
         };
       }
-      
+
       if (dbSpecific.search_index) {
         return this.toRedisSearch(query);
       }
-      
+
       if (dbSpecific.graph_name) {
         return this.toRedisGraph(query, dbSpecific.graph_name);
       }
-      
+
       if (dbSpecific.data_type) {
         return this.toRedisDataStructure(query, dbSpecific);
       }
     }
-    
+
     // Check for specific key lookup (more flexible field matching)
-    const keyCondition = query.where?.find(w => 
-      (w.field === 'key' || w.field === 'id' || w.field.includes('_id') || w.field.includes('key')) && 
+    const keyCondition = query.where?.find(w =>
+      (w.field === 'key' || w.field === 'id' || w.field.includes('_id') || w.field.includes('key')) &&
       w.operator === '='
     );
     if (keyCondition) {
@@ -920,7 +921,7 @@ export class QueryTranslator {
         key: keyCondition.value
       };
     }
-    
+
     // Check for batch key lookup  
     const inCondition = query.where?.find(w => w.field === 'id' && w.operator === 'IN');
     if (inCondition) {
@@ -934,7 +935,7 @@ export class QueryTranslator {
           values = [];
         }
       }
-      
+
       if (Array.isArray(values) && values.length > 0) {
         return {
           operation: 'MGET',
@@ -942,7 +943,7 @@ export class QueryTranslator {
         };
       }
     }
-    
+
     // Check if query has complex features that require Redis Search
     const hasComplexFeatures = (
       (query.where && query.where.length > 1) ||  // Multiple conditions
@@ -971,7 +972,7 @@ export class QueryTranslator {
       count: query.limit || 1000
     };
   }
-  
+
   private static toRedisSearch(query: QueryLanguage): object {
     const dbSpecific = query.dbSpecific?.redis;
     const searchQuery: any = {
@@ -980,7 +981,7 @@ export class QueryTranslator {
       query: '*',
       limit: { offset: 0, num: query.limit || 10 }
     };
-    
+
     // Build search query string  
     if (query.where && query.where.length > 0) {
       // Handle range queries specially - combine >= and <= for same field
@@ -989,8 +990,8 @@ export class QueryTranslator {
       const nonRangeConditions = [];
 
       for (const condition of conditions) {
-        if ((condition.operator === '>=' || condition.operator === '>') && 
-            conditions.some(c => c.field === condition.field && (c.operator === '<=' || c.operator === '<'))) {
+        if ((condition.operator === '>=' || condition.operator === '>') &&
+          conditions.some(c => c.field === condition.field && (c.operator === '<=' || c.operator === '<'))) {
           // This is part of a range query
           if (!rangeMap.has(condition.field)) {
             rangeMap.set(condition.field, {});
@@ -998,7 +999,7 @@ export class QueryTranslator {
           const range = rangeMap.get(condition.field)!;
           range.min = condition.value;
         } else if ((condition.operator === '<=' || condition.operator === '<') &&
-                   conditions.some(c => c.field === condition.field && (c.operator === '>=' || c.operator === '>'))) {
+          conditions.some(c => c.field === condition.field && (c.operator === '>=' || c.operator === '>'))) {
           // This is part of a range query
           if (!rangeMap.has(condition.field)) {
             rangeMap.set(condition.field, {});
@@ -1026,7 +1027,7 @@ export class QueryTranslator {
       // Handle non-range conditions
       for (const condition of nonRangeConditions) {
         if (rangeMap.has(condition.field)) continue; // Skip - already handled as range
-        
+
         switch (condition.operator) {
           case '=':
             queryParts.push(`@${condition.field}:{${condition.value}}`);
@@ -1063,20 +1064,20 @@ export class QueryTranslator {
             queryParts.push(`@${condition.field}:{${condition.value}}`);
         }
       }
-      
+
       searchQuery.query = queryParts.join(' ');
     }
-    
+
     // Handle aggregation
     if (query.aggregate && query.aggregate.length > 0) {
       searchQuery.operation = 'FT.AGGREGATE';
     }
-    
+
     // Update limit for specific cases
     if (query.limit) {
       searchQuery.limit = { offset: 0, num: query.limit };
     }
-    
+
     return searchQuery;
   }
 
@@ -1086,15 +1087,15 @@ export class QueryTranslator {
     }
 
     const queryParts = [];
-    
+
     // Handle range queries specially - combine >= and <= for same field
     const conditions = [...query.where];
     const rangeMap = new Map<string, { min?: any, max?: any }>();
     const nonRangeConditions = [];
 
     for (const condition of conditions) {
-      if ((condition.operator === '>=' || condition.operator === '>') && 
-          conditions.some(c => c.field === condition.field && (c.operator === '<=' || c.operator === '<'))) {
+      if ((condition.operator === '>=' || condition.operator === '>') &&
+        conditions.some(c => c.field === condition.field && (c.operator === '<=' || c.operator === '<'))) {
         // This is part of a range query
         if (!rangeMap.has(condition.field)) {
           rangeMap.set(condition.field, {});
@@ -1102,7 +1103,7 @@ export class QueryTranslator {
         const range = rangeMap.get(condition.field)!;
         range.min = condition.value;
       } else if ((condition.operator === '<=' || condition.operator === '<') &&
-                 conditions.some(c => c.field === condition.field && (c.operator === '>=' || c.operator === '>'))) {
+        conditions.some(c => c.field === condition.field && (c.operator === '>=' || c.operator === '>'))) {
         // This is part of a range query
         if (!rangeMap.has(condition.field)) {
           rangeMap.set(condition.field, {});
@@ -1128,7 +1129,7 @@ export class QueryTranslator {
     // Handle non-range conditions
     for (const condition of nonRangeConditions) {
       if (rangeMap.has(condition.field)) continue; // Skip - already handled as range
-      
+
       switch (condition.operator) {
         case '=':
           queryParts.push(`@${condition.field}:{${condition.value}}`);
@@ -1225,17 +1226,17 @@ export class QueryTranslator {
       }
     });
   }
-  
+
   private static toRedisGraph(query: QueryLanguage, graphName?: string): object {
     const graphQuery: any = {
       operation: 'GRAPH.QUERY',
       graph: graphName || query.table,
       cypher: ''
     };
-    
+
     // Build Cypher-like query
     let cypherQuery = `MATCH (${query.table}:${query.table.charAt(0).toUpperCase() + query.table.slice(1).slice(0, -1)})`;
-    
+
     // WHERE clause
     if (query.where && query.where.length > 0) {
       const whereConditions = query.where.map(condition => {
@@ -1243,7 +1244,7 @@ export class QueryTranslator {
         if (typeof value === 'string') {
           value = `"${value}"`;
         }
-        
+
         switch (condition.operator) {
           case '=': return `${query.table}.${condition.field} = ${value}`;
           case '!=': return `${query.table}.${condition.field} <> ${value}`;
@@ -1255,7 +1256,7 @@ export class QueryTranslator {
           default: return `${query.table}.${condition.field} = ${value}`;
         }
       });
-      
+
       cypherQuery += ` WHERE ${whereConditions.join(' AND ')}`;
     }
 
@@ -1269,18 +1270,18 @@ export class QueryTranslator {
         } else if (joinClause.table === 'friends') {
           relationshipType = 'FRIENDS_WITH';
         }
-        
+
         cypherQuery += ` OPTIONAL MATCH (${query.table})-[:${relationshipType}]->(${joinClause.table})`;
       }
     }
-    
+
     // RETURN clause with aggregation
     if (query.aggregate && query.aggregate.length > 0) {
       const aggregations = query.aggregate.map(agg => {
         const func = agg.function.toUpperCase(); // Use uppercase for Cypher
         return `${func}(${query.table}.${agg.field}) AS ${agg.alias || agg.field}`;
       });
-      
+
       if (query.groupBy && query.groupBy.length > 0) {
         const groupFields = query.groupBy.map(field => `${query.table}.${field}`);
         cypherQuery += ` RETURN ${groupFields.join(', ')}, ${aggregations.join(', ')}`;
@@ -1297,25 +1298,25 @@ export class QueryTranslator {
     } else {
       cypherQuery += ` RETURN ${query.table}`;
     }
-    
+
     // ORDER BY clause
     if (query.orderBy && query.orderBy.length > 0) {
       const orderFields = query.orderBy.map(order => `n.${order.field} ${order.direction}`);
       cypherQuery += ` ORDER BY ${orderFields.join(', ')}`;
     }
-    
+
     // LIMIT clause
     if (query.limit) {
       cypherQuery += ` LIMIT ${query.limit}`;
     }
-    
+
     graphQuery.cypher = cypherQuery;
     return graphQuery;
   }
-  
+
   private static toRedisDataStructure(query: QueryLanguage, dbSpecific: any): object {
     const dataType = dbSpecific.data_type;
-    
+
     switch (dataType) {
       case 'hash': {
         const keyCondition = query.where?.find(w => w.field.includes('id'));
@@ -1327,7 +1328,7 @@ export class QueryTranslator {
         }
         break;
       }
-      
+
       case 'set': {
         const keyCondition = query.where?.find(w => w.field.includes('id'));
         if (keyCondition) {
@@ -1338,7 +1339,7 @@ export class QueryTranslator {
         }
         break;
       }
-      
+
       case 'zset': {
         const scoreCondition = query.where?.find(w => w.field === 'score');
         if (scoreCondition) {
@@ -1352,7 +1353,7 @@ export class QueryTranslator {
         }
         break;
       }
-      
+
       case 'list': {
         const keyCondition = query.where?.find(w => w.field.includes('id'));
         if (keyCondition) {
@@ -1365,7 +1366,7 @@ export class QueryTranslator {
         }
         break;
       }
-      
+
       case 'stream': {
         const streamIdCondition = query.where?.find(w => w.field === 'stream_id');
         if (streamIdCondition) {
@@ -1377,7 +1378,7 @@ export class QueryTranslator {
             count: query.limit || 100
           };
         }
-        
+
         if (dbSpecific.consumer && dbSpecific.group) {
           return {
             operation: 'XREADGROUP',
@@ -1389,12 +1390,12 @@ export class QueryTranslator {
         }
         break;
       }
-      
+
       case 'geo': {
         const latCondition = query.where?.find(w => w.field === 'lat');
         const lonCondition = query.where?.find(w => w.field === 'lon');
         const radiusCondition = query.where?.find(w => w.field === 'radius');
-        
+
         if (latCondition && lonCondition && radiusCondition) {
           return {
             operation: 'GEORADIUS',
@@ -1407,7 +1408,7 @@ export class QueryTranslator {
         }
         break;
       }
-      
+
       case 'hyperloglog': {
         const dateCondition = query.where?.find(w => w.field === 'date');
         if (dateCondition) {
@@ -1419,7 +1420,7 @@ export class QueryTranslator {
         break;
       }
     }
-    
+
     // Fallback to basic operations
     return {
       operation: 'SCAN',
