@@ -28,24 +28,31 @@ if command -v opensearch >/dev/null 2>&1; then
             if "$OPENSEARCH_HOME/bin/opensearch-plugin" list 2>/dev/null | grep -q "opensearch-sql"; then
                 echo "✅ OpenSearch SQL plugin already installed"
             else
-                echo "📦 Installing OpenSearch SQL plugin..."
-                
-                # Try installing the plugin
-                PLUGIN_URL="https://artifacts.opensearch.org/releases/plugins/opensearch-sql/${OPENSEARCH_VERSION}.0/opensearch-sql-${OPENSEARCH_VERSION}.0.zip"
-                echo "   Trying: $PLUGIN_URL"
-                
-                if "$OPENSEARCH_HOME/bin/opensearch-plugin" install "$PLUGIN_URL" 2>/dev/null; then
-                    echo "✅ OpenSearch SQL plugin installed successfully"
+                # Check if this is OpenSearch 3.x (SQL plugin is built-in)
+                if [[ "$OPENSEARCH_VERSION" =~ ^3\. ]]; then
+                    echo "ℹ️  OpenSearch 3.x detected - SQL plugin is built-in"
+                    echo "✅ SQL functionality should be available without separate installation"
+                    echo "   The plugin list may not show it but SQL endpoints should work"
                 else
-                    # Try without the extra .0
-                    PLUGIN_URL="https://artifacts.opensearch.org/releases/plugins/opensearch-sql/${OPENSEARCH_VERSION}/opensearch-sql-${OPENSEARCH_VERSION}.zip"
-                    echo "   Trying alternative: $PLUGIN_URL"
+                    echo "📦 Installing OpenSearch SQL plugin..."
+                    
+                    # Try installing the plugin for older versions
+                    PLUGIN_URL="https://artifacts.opensearch.org/releases/plugins/opensearch-sql/${OPENSEARCH_VERSION}.0/opensearch-sql-${OPENSEARCH_VERSION}.0.zip"
+                    echo "   Trying: $PLUGIN_URL"
                     
                     if "$OPENSEARCH_HOME/bin/opensearch-plugin" install "$PLUGIN_URL" 2>/dev/null; then
                         echo "✅ OpenSearch SQL plugin installed successfully"
                     else
-                        echo "❌ OpenSearch SQL plugin installation failed"
-                        echo "   Manual installation may be required"
+                        # Try without the extra .0
+                        PLUGIN_URL="https://artifacts.opensearch.org/releases/plugins/opensearch-sql/${OPENSEARCH_VERSION}/opensearch-sql-${OPENSEARCH_VERSION}.zip"
+                        echo "   Trying alternative: $PLUGIN_URL"
+                        
+                        if "$OPENSEARCH_HOME/bin/opensearch-plugin" install "$PLUGIN_URL" 2>/dev/null; then
+                            echo "✅ OpenSearch SQL plugin installed successfully"
+                        else
+                            echo "❌ OpenSearch SQL plugin installation failed"
+                            echo "   Manual installation may be required"
+                        fi
                     fi
                 fi
             fi

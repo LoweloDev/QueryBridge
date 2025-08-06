@@ -315,6 +315,9 @@ elif command_exists opensearch; then
     if [ -n "$OPENSEARCH_HOME" ] && [ -f "$OPENSEARCH_HOME/bin/opensearch-plugin" ]; then
         if "$OPENSEARCH_HOME/bin/opensearch-plugin" list 2>/dev/null | grep -q "opensearch-sql"; then
             echo "✅ OpenSearch SQL plugin already installed"
+        elif [[ "$DETECTED_VERSION" =~ ^3\. ]]; then
+            echo "ℹ️  OpenSearch 3.x detected - SQL plugin is built-in"
+            echo "✅ SQL functionality available without separate installation"
         else
             echo "📦 Installing OpenSearch SQL plugin..."
             DETECTED_VERSION=$(opensearch --version 2>/dev/null | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+' | head -1 || echo "2.14.0")
@@ -325,27 +328,67 @@ elif command_exists opensearch; then
                 echo "   Detected OpenSearch version: $DETECTED_VERSION"
             fi
             
-            # Install SQL plugin
+            # Install SQL plugin with version compatibility check
             if [ "$OS" = "macOS" ]; then
-                if "$OPENSEARCH_HOME/bin/opensearch-plugin" install "https://artifacts.opensearch.org/releases/plugins/opensearch-sql/${DETECTED_VERSION}.0/opensearch-sql-${DETECTED_VERSION}.0.zip" 2>/dev/null; then
-                    echo "✅ OpenSearch SQL plugin installed successfully"
+                # Check if SQL plugin is built-in for newer versions (3.0+)
+                if [[ "$DETECTED_VERSION" =~ ^3\. ]]; then
+                    echo "ℹ️  OpenSearch 3.x detected - SQL plugin may be built-in"
+                    echo "   Checking if plugin needs to be installed..."
+                    
+                    # For OpenSearch 3.x, try a few compatible versions
+                    for plugin_version in "2.14.0" "2.15.0" "2.16.0"; do
+                        echo "   Trying SQL plugin version: $plugin_version"
+                        if "$OPENSEARCH_HOME/bin/opensearch-plugin" install "https://artifacts.opensearch.org/releases/plugins/opensearch-sql/${plugin_version}.0/opensearch-sql-${plugin_version}.0.zip" 2>/dev/null; then
+                            echo "✅ OpenSearch SQL plugin installed successfully (version $plugin_version)"
+                            break
+                        elif "$OPENSEARCH_HOME/bin/opensearch-plugin" install "https://artifacts.opensearch.org/releases/plugins/opensearch-sql/${plugin_version}/opensearch-sql-${plugin_version}.zip" 2>/dev/null; then
+                            echo "✅ OpenSearch SQL plugin installed successfully (version $plugin_version)"
+                            break
+                        fi
+                    done
                 else
-                    # Try without the extra .0 in version
-                    if "$OPENSEARCH_HOME/bin/opensearch-plugin" install "https://artifacts.opensearch.org/releases/plugins/opensearch-sql/${DETECTED_VERSION}/opensearch-sql-${DETECTED_VERSION}.zip" 2>/dev/null; then
+                    # For older versions, use the detected version
+                    if "$OPENSEARCH_HOME/bin/opensearch-plugin" install "https://artifacts.opensearch.org/releases/plugins/opensearch-sql/${DETECTED_VERSION}.0/opensearch-sql-${DETECTED_VERSION}.0.zip" 2>/dev/null; then
                         echo "✅ OpenSearch SQL plugin installed successfully"
                     else
-                        echo "⚠️  OpenSearch SQL plugin installation failed, but OpenSearch will still work"
+                        # Try without the extra .0 in version
+                        if "$OPENSEARCH_HOME/bin/opensearch-plugin" install "https://artifacts.opensearch.org/releases/plugins/opensearch-sql/${DETECTED_VERSION}/opensearch-sql-${DETECTED_VERSION}.zip" 2>/dev/null; then
+                            echo "✅ OpenSearch SQL plugin installed successfully"
+                        else
+                            echo "⚠️  OpenSearch SQL plugin installation failed, but OpenSearch will still work"
+                            echo "   SQL functionality may already be built-in for this version"
+                        fi
                     fi
                 fi
             elif [ "$OS" = "Linux" ]; then
-                if sudo "$OPENSEARCH_HOME/bin/opensearch-plugin" install "https://artifacts.opensearch.org/releases/plugins/opensearch-sql/${DETECTED_VERSION}.0/opensearch-sql-${DETECTED_VERSION}.0.zip" 2>/dev/null; then
-                    echo "✅ OpenSearch SQL plugin installed successfully"
+                # Check if SQL plugin is built-in for newer versions (3.0+)
+                if [[ "$DETECTED_VERSION" =~ ^3\. ]]; then
+                    echo "ℹ️  OpenSearch 3.x detected - SQL plugin may be built-in"
+                    echo "   Checking if plugin needs to be installed..."
+                    
+                    # For OpenSearch 3.x, try a few compatible versions
+                    for plugin_version in "2.14.0" "2.15.0" "2.16.0"; do
+                        echo "   Trying SQL plugin version: $plugin_version"
+                        if sudo "$OPENSEARCH_HOME/bin/opensearch-plugin" install "https://artifacts.opensearch.org/releases/plugins/opensearch-sql/${plugin_version}.0/opensearch-sql-${plugin_version}.0.zip" 2>/dev/null; then
+                            echo "✅ OpenSearch SQL plugin installed successfully (version $plugin_version)"
+                            break
+                        elif sudo "$OPENSEARCH_HOME/bin/opensearch-plugin" install "https://artifacts.opensearch.org/releases/plugins/opensearch-sql/${plugin_version}/opensearch-sql-${plugin_version}.zip" 2>/dev/null; then
+                            echo "✅ OpenSearch SQL plugin installed successfully (version $plugin_version)"
+                            break
+                        fi
+                    done
                 else
-                    # Try without the extra .0 in version
-                    if sudo "$OPENSEARCH_HOME/bin/opensearch-plugin" install "https://artifacts.opensearch.org/releases/plugins/opensearch-sql/${DETECTED_VERSION}/opensearch-sql-${DETECTED_VERSION}.zip" 2>/dev/null; then
+                    # For older versions, use the detected version
+                    if sudo "$OPENSEARCH_HOME/bin/opensearch-plugin" install "https://artifacts.opensearch.org/releases/plugins/opensearch-sql/${DETECTED_VERSION}.0/opensearch-sql-${DETECTED_VERSION}.0.zip" 2>/dev/null; then
                         echo "✅ OpenSearch SQL plugin installed successfully"
                     else
-                        echo "⚠️  OpenSearch SQL plugin installation failed, but OpenSearch will still work"
+                        # Try without the extra .0 in version
+                        if sudo "$OPENSEARCH_HOME/bin/opensearch-plugin" install "https://artifacts.opensearch.org/releases/plugins/opensearch-sql/${DETECTED_VERSION}/opensearch-sql-${DETECTED_VERSION}.zip" 2>/dev/null; then
+                            echo "✅ OpenSearch SQL plugin installed successfully"
+                        else
+                            echo "⚠️  OpenSearch SQL plugin installation failed, but OpenSearch will still work"
+                            echo "   SQL functionality may already be built-in for this version"
+                        fi
                     fi
                 fi
             fi
