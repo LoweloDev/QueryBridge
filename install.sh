@@ -300,6 +300,59 @@ if command_exists elasticsearch; then
 elif command_exists opensearch; then
     OPENSEARCH_VERSION=$(opensearch --version 2>/dev/null | head -1 || echo "Version unknown")
     echo "✅ OpenSearch found (Elasticsearch alternative): $OPENSEARCH_VERSION"
+    
+    # Check if SQL plugin is already installed
+    echo "📦 Checking OpenSearch SQL plugin installation..."
+    OPENSEARCH_HOME=""
+    if [ -d "/opt/homebrew/opt/opensearch" ]; then
+        OPENSEARCH_HOME="/opt/homebrew/opt/opensearch"
+    elif [ -d "/usr/local/opt/opensearch" ]; then
+        OPENSEARCH_HOME="/usr/local/opt/opensearch"
+    elif [ -d "/usr/share/opensearch" ]; then
+        OPENSEARCH_HOME="/usr/share/opensearch"
+    fi
+    
+    if [ -n "$OPENSEARCH_HOME" ] && [ -f "$OPENSEARCH_HOME/bin/opensearch-plugin" ]; then
+        if "$OPENSEARCH_HOME/bin/opensearch-plugin" list 2>/dev/null | grep -q "opensearch-sql"; then
+            echo "✅ OpenSearch SQL plugin already installed"
+        else
+            echo "📦 Installing OpenSearch SQL plugin..."
+            DETECTED_VERSION=$(opensearch --version 2>/dev/null | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+' | head -1 || echo "2.14.0")
+            if [ -z "$DETECTED_VERSION" ] || [ "$DETECTED_VERSION" = "" ]; then
+                DETECTED_VERSION="2.14.0"
+                echo "   Using default OpenSearch version: $DETECTED_VERSION"
+            else
+                echo "   Detected OpenSearch version: $DETECTED_VERSION"
+            fi
+            
+            # Install SQL plugin
+            if [ "$OS" = "macOS" ]; then
+                if "$OPENSEARCH_HOME/bin/opensearch-plugin" install "https://artifacts.opensearch.org/releases/plugins/opensearch-sql/${DETECTED_VERSION}.0/opensearch-sql-${DETECTED_VERSION}.0.zip" 2>/dev/null; then
+                    echo "✅ OpenSearch SQL plugin installed successfully"
+                else
+                    # Try without the extra .0 in version
+                    if "$OPENSEARCH_HOME/bin/opensearch-plugin" install "https://artifacts.opensearch.org/releases/plugins/opensearch-sql/${DETECTED_VERSION}/opensearch-sql-${DETECTED_VERSION}.zip" 2>/dev/null; then
+                        echo "✅ OpenSearch SQL plugin installed successfully"
+                    else
+                        echo "⚠️  OpenSearch SQL plugin installation failed, but OpenSearch will still work"
+                    fi
+                fi
+            elif [ "$OS" = "Linux" ]; then
+                if sudo "$OPENSEARCH_HOME/bin/opensearch-plugin" install "https://artifacts.opensearch.org/releases/plugins/opensearch-sql/${DETECTED_VERSION}.0/opensearch-sql-${DETECTED_VERSION}.0.zip" 2>/dev/null; then
+                    echo "✅ OpenSearch SQL plugin installed successfully"
+                else
+                    # Try without the extra .0 in version
+                    if sudo "$OPENSEARCH_HOME/bin/opensearch-plugin" install "https://artifacts.opensearch.org/releases/plugins/opensearch-sql/${DETECTED_VERSION}/opensearch-sql-${DETECTED_VERSION}.zip" 2>/dev/null; then
+                        echo "✅ OpenSearch SQL plugin installed successfully"
+                    else
+                        echo "⚠️  OpenSearch SQL plugin installation failed, but OpenSearch will still work"
+                    fi
+                fi
+            fi
+        fi
+    else
+        echo "⚠️  OpenSearch plugin installer not found"
+    fi
 else
     echo "📦 Installing Elasticsearch..."
     if [ "$OS" = "macOS" ]; then
