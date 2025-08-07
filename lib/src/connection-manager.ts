@@ -53,7 +53,9 @@ export class ConnectionManager {
         break;
       case 'mongodb':
         // Use @synatic/noql for MongoDB translation
-        translatedQuery = SQLParser.parseSQL(queryString);
+        // First convert universal query to SQL, then parse with @synatic/noql
+        const sqlQuery = QueryTranslator.toSQL(parsedQuery);
+        translatedQuery = SQLParser.parseSQL(sqlQuery);
         break;
       case 'elasticsearch':
         // Use SQL for Elasticsearch SQL endpoint
@@ -117,7 +119,9 @@ export class ConnectionManager {
         return QueryTranslator.toSQL(parsedQuery);
       case 'mongodb':
         // Use @synatic/noql for MongoDB translation
-        return SQLParser.parseSQL(queryString);
+        // First convert universal query to SQL, then parse with @synatic/noql
+        const sqlQuery = QueryTranslator.toSQL(parsedQuery);
+        return SQLParser.parseSQL(sqlQuery);
       case 'elasticsearch':
         // Use SQL for Elasticsearch SQL endpoint
         return QueryTranslator.toSQL(parsedQuery);
@@ -222,9 +226,9 @@ export class ConnectionManager {
           // If connection has a default index configured, use it
           // parse sql query and extend where condition to restrict to scope given scope variable
 
-        console.log("PARSED QUERY EXTENDED", sqlQuery);
+          console.log("PARSED QUERY EXTENDED", sqlQuery);
 
-          let finalQuery =  sqlQuery;
+          let finalQuery = sqlQuery;
           if (config.indexName && !sqlQuery.includes('FROM')) {
             // Extract the table name and replace with index
             const tableMatch = sqlQuery.match(/FROM\s+(\w+)/);
