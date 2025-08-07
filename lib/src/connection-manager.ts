@@ -9,6 +9,7 @@ import { QueryLanguage, DatabaseConnection, DatabaseType, ActiveConnection, Quer
 import { QueryParser } from "./query-parser";
 import { QueryTranslator } from "./query-translator";
 import { ExecuteStatementCommand } from "@aws-sdk/lib-dynamodb";
+import SQLParser from "@synatic/noql";
 
 export class ConnectionManager {
   private activeConnections: Map<string, ActiveConnection> = new Map();
@@ -51,12 +52,15 @@ export class ConnectionManager {
         translatedQuery = QueryTranslator.toSQL(parsedQuery);
         break;
       case 'mongodb':
-        translatedQuery = QueryTranslator.toMongoDB(parsedQuery);
+        // Use @synatic/noql for MongoDB translation
+        translatedQuery = SQLParser.parseSQL(queryString);
         break;
       case 'elasticsearch':
+        // Use SQL for Elasticsearch SQL endpoint
         translatedQuery = QueryTranslator.toSQL(parsedQuery);
         break;
       case 'dynamodb':
+        // Use SQL for DynamoDB PartiQL
         translatedQuery = QueryTranslator.toSQL(parsedQuery);
         break;
       case 'redis':
@@ -112,10 +116,13 @@ export class ConnectionManager {
       case 'postgresql':
         return QueryTranslator.toSQL(parsedQuery);
       case 'mongodb':
-        return QueryTranslator.toMongoDB(parsedQuery);
+        // Use @synatic/noql for MongoDB translation
+        return SQLParser.parseSQL(queryString);
       case 'elasticsearch':
+        // Use SQL for Elasticsearch SQL endpoint
         return QueryTranslator.toSQL(parsedQuery);
       case 'dynamodb':
+        // Use SQL for DynamoDB PartiQL
         return QueryTranslator.toSQL(parsedQuery);
       case 'redis':
         return QueryTranslator.toRedis(parsedQuery);
@@ -147,16 +154,34 @@ export class ConnectionManager {
     return connection ? connection.isConnected : false;
   }
 
+  private restrictQueryToScope(query: string, scope?: { [key: string]: any }): string {
+    if (!scope) return query;
+
+    const parsedQuery = QueryParser.parse(query);
+    if (scope) {
+      parsedQuery.where = parsedQuery.where?.map((condition: any) => {
+        if (condition.column in scope) {
+          return {
+            ...condition,
+            value: scope[condition.column]
+          };
+        }
+        return condition;
+      });
+    }
+    return QueryTranslator.toSQL(parsedQuery);
+  }
+
   /**
    * Execute translated query against the database client
    */
-  private async executeTranslatedQuery(connection: ActiveConnection, query: string | object): Promise<QueryResult> {
+  private async executeTranslatedQuery(connection: ActiveConnection, query: string | object, scope?: { [key: string]: any }): Promise<QueryResult> {
     const { client, config } = connection;
 
     try {
       switch (config.type) {
         case 'postgresql':
-          const pgResult = await client.query(query as string);
+          const pgResult = await client.query(this.restrictQueryToScope(query as string, scope));
           return {
             rows: pgResult.rows,
             count: pgResult.rowCount,
@@ -164,43 +189,24 @@ export class ConnectionManager {
           };
 
         case 'mongodb':
-          // Execute MongoDB query
+          // Execute MongoDB query using @synatic/noql
           const mongoQuery = query as any;
           let mongoResult: any;
 
           // Get the database and collection using proper MongoDB driver pattern
-          const db = client.db(mongoQuery.database || config.database || 'test');
-          const collection = db.collection(mongoQuery.collection);
+          const db = client.db(config.database || 'test');
 
-          if (mongoQuery.operation === 'find') {
-            const findOptions: any = {};
-            if (mongoQuery.sort) findOptions.sort = mongoQuery.sort;
-            if (mongoQuery.limit) findOptions.limit = mongoQuery.limit;
-            if (mongoQuery.skip) findOptions.skip = mongoQuery.skip;
-            if (mongoQuery.projection) findOptions.projection = mongoQuery.projection;
-
-            const cursor = collection.find(mongoQuery.filter || {}, findOptions);
-            mongoResult = await cursor.toArray();
-          } else if (mongoQuery.operation === 'aggregate') {
+          if (mongoQuery.type === 'query') {
+            const collection = db.collection(mongoQuery.collection);
+            mongoResult = await collection
+              .find(mongoQuery.query || {}, mongoQuery.projection || {})
+              .limit(mongoQuery.limit || 50)
+              .toArray();
+          } else if (mongoQuery.type === 'aggregate') {
+            const collection = db.collection(mongoQuery.collections[0]);
             mongoResult = await collection.aggregate(mongoQuery.pipeline).toArray();
-          } else if (mongoQuery.operation === 'findOne') {
-            mongoResult = await collection.findOne(mongoQuery.filter || {}, { projection: mongoQuery.projection });
-            mongoResult = mongoResult ? [mongoResult] : [];
-          } else if (mongoQuery.operation === 'insertOne') {
-            const result = await collection.insertOne(mongoQuery.document);
-            mongoResult = [{ insertedId: result.insertedId, acknowledged: result.acknowledged }];
-          } else if (mongoQuery.operation === 'updateOne') {
-            const result = await collection.updateOne(mongoQuery.filter, mongoQuery.update);
-            mongoResult = [{
-              matchedCount: result.matchedCount,
-              modifiedCount: result.modifiedCount,
-              acknowledged: result.acknowledged
-            }];
-          } else if (mongoQuery.operation === 'deleteOne') {
-            const result = await collection.deleteOne(mongoQuery.filter);
-            mongoResult = [{ deletedCount: result.deletedCount, acknowledged: result.acknowledged }];
           } else {
-            throw new Error(`Unsupported MongoDB operation: ${mongoQuery.operation}`);
+            throw new Error(`Unsupported MongoDB query type: ${mongoQuery.type}`);
           }
 
           return {
@@ -211,10 +217,14 @@ export class ConnectionManager {
 
         case 'elasticsearch':
           // Execute SQL query using Elasticsearch SQL translate and execute
-          const sqlQuery = query as string;
+          const sqlQuery = this.restrictQueryToScope(query as string, scope);
 
           // If connection has a default index configured, use it
-          let finalQuery = sqlQuery;
+          // parse sql query and extend where condition to restrict to scope given scope variable
+
+        console.log("PARSED QUERY EXTENDED", sqlQuery);
+
+          let finalQuery =  sqlQuery;
           if (config.indexName && !sqlQuery.includes('FROM')) {
             // Extract the table name and replace with index
             const tableMatch = sqlQuery.match(/FROM\s+(\w+)/);
@@ -241,7 +251,7 @@ export class ConnectionManager {
         case 'dynamodb':
           // Execute SQL query using DynamoDB PartiQL
           const dynamoResult = await client.send(new ExecuteStatementCommand({
-            Statement: query as string,
+            Statement: this.restrictQueryToScope(query as string, scope),
           }));
 
           return {
