@@ -44,8 +44,8 @@ export class DatabaseSetup {
         host: process.env.MONGO_HOST || 'localhost',
         port: parseInt(process.env.MONGO_PORT || '27017'),
         database: 'main',
-        username: process.env.MONGO_USER || '',
-        password: process.env.MONGO_PASSWORD || ''
+        username: process.env.MONGO_USER || 'admin',
+        password: process.env.MONGO_PASSWORD || 'password'
       },
       {
         id: 'elasticsearch-main',
@@ -253,7 +253,20 @@ export class DatabaseSetup {
       });
 
       await client.connect();
-      await client.db().admin().ping();
+
+      // Test the connection with a simple operation
+      try {
+        await client.db().admin().ping();
+      } catch (authError: any) {
+        if (authError.message.includes('authentication') || authError.message.includes('auth')) {
+          console.warn(`MongoDB authentication required. To fix this, either:`);
+          console.warn(`1. Start MongoDB without auth: mongod --noauth`);
+          console.warn(`2. Set MONGO_USER and MONGO_PASSWORD environment variables`);
+          console.warn(`3. Create a MongoDB user with proper permissions`);
+          throw new Error(`MongoDB authentication failed: ${authError.message}`);
+        }
+        throw authError;
+      }
 
       this.connections.set(config.id, {
         client,
