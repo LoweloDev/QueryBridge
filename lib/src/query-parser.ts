@@ -29,22 +29,31 @@ export class QueryParser {
         result.operation = 'FIND';
         const tablePart = line.substring(5).trim();
 
-        // Check for field selection in parentheses: FIND users (name, email)
-        const parenMatch = tablePart.match(/^(\w+)\s*\(([^)]+)\)/);
+        // Check for field selection in parentheses: FIND users (name, email) or FIND public.users (name, email)
+        const parenMatch = tablePart.match(/^([\w.]+)\s*\(([^)]+)\)/);
         if (parenMatch) {
-          result.table = parenMatch[1];
+          const tableIdentifier = parenMatch[1];
           result.fields = parenMatch[2].split(',').map(field => field.trim());
-        } else {
-          // Extract just the table name, not everything after FIND
-          const firstSpace = tablePart.indexOf(' ');
-          result.table = firstSpace > 0 ? tablePart.substring(0, firstSpace) : tablePart;
-        }
 
-        // Check for explicit index specification: FIND users FROM users_index
-        const fromMatch = tablePart.match(/^(\w+)\s+FROM\s+(\w+)/);
-        if (fromMatch) {
-          result.table = fromMatch[1];
-          result.index = fromMatch[2];
+          // Check if tableIdentifier contains a dot (subTable.table)
+          const dotMatch = tableIdentifier.match(/^(\w+)\.(\w+)/);
+          if (dotMatch) {
+            result.subTable = dotMatch[1];
+            result.table = dotMatch[2];
+          } else {
+            result.table = tableIdentifier;
+          }
+        } else {
+          // Extract table and subTable: FIND public.users or FIND test.users or FIND users.user_id_idx
+          const dotMatch = tablePart.match(/^(\w+)\.(\w+)/);
+          if (dotMatch) {
+            result.subTable = dotMatch[1];
+            result.table = dotMatch[2];
+          } else {
+            // Extract just the table name, not everything after FIND
+            const firstSpace = tablePart.indexOf(' ');
+            result.table = firstSpace > 0 ? tablePart.substring(0, firstSpace) : tablePart;
+          }
         }
       } else if (upperLine.includes('JOIN')) {
         // Parse JOIN clauses (handle both "JOIN" and "LEFT JOIN", "RIGHT JOIN", etc.)
@@ -97,58 +106,36 @@ export class QueryParser {
       } else if (upperLine.startsWith('HAVING')) {
         const havingClause = line.substring(6).trim();
         result.having = this.parseWhere(havingClause);
-      } else if (upperLine.startsWith('DB_SPECIFIC:')) {
-        // Process any buffered WHERE clause first
-        if (whereBuffer) {
-          result.where = this.parseWhere(whereBuffer);
-          whereBuffer = '';
-        }
-        // Parse database-specific configurations
-        currentSection = 'DB_SPECIFIC';
-        const dbSpecificClause = line.substring(12).trim();
-        if (dbSpecificClause) {
-          // Try parsing as JSON first
-          try {
-            result.dbSpecific = JSON.parse(dbSpecificClause);
-          } catch {
-            // Fallback to key-value parsing
-            result.dbSpecific = this.parseDbSpecific(dbSpecificClause);
-          }
-        } else {
-          // Initialize empty object for multi-line parsing
-          result.dbSpecific = {};
-        }
-      } else if (currentSection === 'DB_SPECIFIC' && line.includes('=')) {
-        // Continue parsing DB_SPECIFIC configurations on subsequent lines
-        if (!result.dbSpecific) result.dbSpecific = {};
-        const additionalConfig = this.parseDbSpecific(line);
-        // Deep merge the configurations
-        this.mergeDbSpecific(result.dbSpecific, additionalConfig);
       } else if (currentSection === 'WHERE') {
         // Check if this line starts a new section
-        if (upperLine.startsWith('DB_SPECIFIC:') || upperLine.startsWith('ORDER BY') ||
-          upperLine.startsWith('LIMIT') || upperLine.startsWith('AGGREGATE') ||
-          upperLine.startsWith('GROUP BY') || upperLine.startsWith('HAVING')) {
+        if (upperLine.startsWith('ORDER BY') || upperLine.startsWith('LIMIT') ||
+          upperLine.startsWith('AGGREGATE') || upperLine.startsWith('GROUP BY') ||
+          upperLine.startsWith('HAVING')) {
           // Process buffered WHERE and start new section
           result.where = this.parseWhere(whereBuffer);
           whereBuffer = '';
           currentSection = '';
 
           // Re-process this line
-          if (upperLine.startsWith('DB_SPECIFIC:')) {
-            currentSection = 'DB_SPECIFIC';
-            const dbSpecificClause = line.substring(12).trim();
-            if (dbSpecificClause) {
-              try {
-                result.dbSpecific = JSON.parse(dbSpecificClause);
-              } catch {
-                result.dbSpecific = this.parseDbSpecific(dbSpecificClause);
-              }
-            } else {
-              result.dbSpecific = {};
-            }
+          if (upperLine.startsWith('ORDER BY')) {
+            currentSection = 'ORDER_BY';
+            const orderClause = line.substring(8).trim();
+            result.orderBy = this.parseOrderBy(orderClause);
+          } else if (upperLine.startsWith('LIMIT')) {
+            currentSection = 'LIMIT';
+            const limitValue = line.substring(5).trim();
+            result.limit = parseInt(limitValue, 10);
+          } else if (upperLine.startsWith('AGGREGATE')) {
+            currentSection = 'AGGREGATE';
+            aggregateBuffer = line.substring(9).trim();
+          } else if (upperLine.startsWith('GROUP BY')) {
+            currentSection = 'GROUP_BY';
+            const groupClause = line.substring(8).trim();
+            result.groupBy = groupClause.split(',').map(field => field.trim());
+          } else if (upperLine.startsWith('HAVING')) {
+            const havingClause = line.substring(6).trim();
+            result.having = this.parseWhere(havingClause);
           }
-          // Add other section handlers here if needed
         } else {
           // Continue building WHERE buffer
           whereBuffer += ' ' + line;
@@ -390,95 +377,7 @@ export class QueryParser {
     };
   }
 
-  private static parseDbSpecific(dbSpecificClause: string) {
-    // Parse database-specific configurations
-    // Example: "partition_key=TENANT#123, sort_key=USER#456, gsi_name=GSI1"
-    // or individual lines like "partition_key=\"TENANT#123\""
-    const dbSpecific: any = {};
 
-    // Handle both comma-separated and individual key=value pairs
-    const pairs = dbSpecificClause.includes(',')
-      ? dbSpecificClause.split(',')
-      : [dbSpecificClause];
-
-    for (const pair of pairs) {
-      const trimmedPair = pair.trim();
-      if (!trimmedPair.includes('=')) continue;
-
-      const equalIndex = trimmedPair.indexOf('=');
-      const key = trimmedPair.substring(0, equalIndex).trim();
-      const value = trimmedPair.substring(equalIndex + 1).trim();
-
-      if (key && value) {
-        const cleanKey = key.trim();
-        const cleanValue = value.replace(/^["']|["']$/g, ''); // Remove quotes
-
-        // Handle DynamoDB patterns
-        if (cleanKey === 'partition_key_attribute') {
-          // Inline attribute name override
-          dbSpecific.partition_key_attribute = cleanValue;
-        } else if (cleanKey === 'sort_key_attribute') {
-          // Inline attribute name override
-          dbSpecific.sort_key_attribute = cleanValue;
-        } else if (cleanKey.includes('partition_key') || cleanKey.includes('pk')) {
-          // Support both legacy format and new structured format
-          dbSpecific.partition_key = cleanValue; // Legacy format
-          if (!dbSpecific.dynamodb) dbSpecific.dynamodb = {};
-          if (!dbSpecific.dynamodb.keyCondition) dbSpecific.dynamodb.keyCondition = {};
-          dbSpecific.dynamodb.keyCondition.pk = cleanValue;
-          dbSpecific.dynamodb.partitionKey = 'PK';
-        } else if (cleanKey.includes('sort_key_prefix') || cleanKey.includes('sk_prefix')) {
-          // Handle sort key prefix for begins_with queries
-          dbSpecific.sort_key_prefix = cleanValue;
-        } else if (cleanKey.includes('sort_key') || cleanKey.includes('sk')) {
-          // Support both legacy format and new structured format
-          dbSpecific.sort_key = cleanValue; // Legacy format
-          if (!dbSpecific.dynamodb) dbSpecific.dynamodb = {};
-          if (!dbSpecific.dynamodb.keyCondition) dbSpecific.dynamodb.keyCondition = {};
-          dbSpecific.dynamodb.keyCondition.sk = cleanValue;
-          dbSpecific.dynamodb.sortKey = 'SK';
-        } else if (cleanKey.includes('gsi_name') || cleanKey.includes('gsi')) {
-          if (!dbSpecific.dynamodb) dbSpecific.dynamodb = {};
-          dbSpecific.dynamodb.gsiName = cleanValue;
-        }
-        // Handle MongoDB patterns
-        else if (cleanKey.includes('collection')) {
-          if (!dbSpecific.mongodb) dbSpecific.mongodb = {};
-          dbSpecific.mongodb.collection = cleanValue;
-        }
-        // Handle Elasticsearch patterns
-        else if (cleanKey.includes('nested_path')) {
-          if (!dbSpecific.elasticsearch) dbSpecific.elasticsearch = {};
-          if (!dbSpecific.elasticsearch.nested) dbSpecific.elasticsearch.nested = { path: '', query: {} };
-          dbSpecific.elasticsearch.nested.path = cleanValue;
-        }
-      }
-    }
-
-    return dbSpecific;
-  }
-
-  private static mergeDbSpecific(target: any, source: any) {
-    Object.keys(source).forEach(dbType => {
-      if (!target[dbType]) {
-        target[dbType] = {};
-      }
-
-      if (source[dbType].keyCondition) {
-        if (!target[dbType].keyCondition) {
-          target[dbType].keyCondition = {};
-        }
-        Object.assign(target[dbType].keyCondition, source[dbType].keyCondition);
-      }
-
-      // Merge other properties
-      Object.keys(source[dbType]).forEach(key => {
-        if (key !== 'keyCondition') {
-          target[dbType][key] = source[dbType][key];
-        }
-      });
-    });
-  }
 
   static validate(queryString: string): { valid: boolean; errors: string[] } {
     try {
