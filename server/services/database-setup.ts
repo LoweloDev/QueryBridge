@@ -25,39 +25,41 @@ export class DatabaseSetup {
   async setupRealDatabases(): Promise<void> {
     // Check if running in Docker mode
     const isDockerMode = process.env.DOCKER_MODE === 'true';
-    
+
     const configs: DatabaseConnection[] = [
       {
-        id: '943e7415-b1fb-4090-8645-3698be872423',
-        name: 'PostgreSQL - Production',
+        id: 'postgresql-main',
+        name: 'PostgreSQL - Main',
         type: 'postgresql',
-        host: process.env.POSTGRES_HOST || process.env.PGHOST || 'localhost',
-        port: parseInt(process.env.POSTGRES_PORT || process.env.PGPORT || '5432'),
-        database: process.env.POSTGRES_DB || process.env.PGDATABASE || (isDockerMode ? 'querybridge_dev' : 'postgres'),
-        username: process.env.POSTGRES_USER || process.env.PGUSER || process.env.USER || 'postgres',
-        password: process.env.POSTGRES_PASSWORD || process.env.PGPASSWORD
+        host: process.env.POSTGRES_HOST || 'localhost',
+        port: parseInt(process.env.POSTGRES_PORT || '5432'),
+        database: 'main',
+        username: process.env.POSTGRES_USER || 'postgres',
+        password: process.env.POSTGRES_PASSWORD || 'postgres'
       },
       {
-        id: 'mongodb-analytics',
-        name: 'MongoDB - Analytics',
+        id: 'mongodb-main',
+        name: 'MongoDB - Main',
         type: 'mongodb',
-        host: process.env.MONGODB_HOST || 'localhost',
-        port: parseInt(process.env.MONGODB_PORT || '27017'),
-        database: process.env.MONGODB_DB || 'analytics',
-        username: process.env.MONGODB_USER || (isDockerMode ? 'admin' : undefined),
-        password: process.env.MONGODB_PASSWORD || (isDockerMode ? 'password' : undefined)
+        host: process.env.MONGO_HOST || 'localhost',
+        port: parseInt(process.env.MONGO_PORT || '27017'),
+        database: 'main',
+        username: process.env.MONGO_USER || '',
+        password: process.env.MONGO_PASSWORD || ''
       },
       {
-        id: 'redis-cache',
-        name: 'Redis - Cache',
-        type: 'redis',
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379'),
-        database: '0'
+        id: 'elasticsearch-main',
+        name: 'Elasticsearch - Main',
+        type: 'elasticsearch',
+        host: process.env.ELASTICSEARCH_HOST || 'localhost',
+        port: parseInt(process.env.ELASTICSEARCH_PORT || '9200'),
+        database: 'main',
+        username: process.env.ELASTICSEARCH_USER || '',
+        password: process.env.ELASTICSEARCH_PASSWORD || ''
       },
       {
-        id: 'dynamodb-users',
-        name: 'DynamoDB - Users',
+        id: 'dynamodb-main',
+        name: 'DynamoDB - Main',
         type: 'dynamodb',
         host: process.env.DYNAMODB_HOST || 'localhost',
         port: parseInt(process.env.DYNAMODB_PORT || '8000'),
@@ -65,20 +67,14 @@ export class DatabaseSetup {
         region: 'us-east-1'
       },
       {
-        id: 'elasticsearch-postgresql',
-        name: 'Elasticsearch - PostgreSQL Layer',
-        type: 'elasticsearch',
-        host: process.env.ELASTICSEARCH_HOST || 'localhost',
-        port: parseInt(process.env.ELASTICSEARCH_PORT || '9200'),
-        database: 'postgresql-search'
-      },
-      {
-        id: 'elasticsearch-dynamodb',
-        name: 'Elasticsearch - DynamoDB Layer',
-        type: 'elasticsearch',
-        host: process.env.ELASTICSEARCH_HOST || 'localhost',
-        port: parseInt(process.env.ELASTICSEARCH_SECONDARY_PORT || '9201'),
-        database: 'dynamodb-search'
+        id: 'redis-main',
+        name: 'Redis - Main',
+        type: 'redis',
+        host: process.env.REDIS_HOST || 'localhost',
+        port: parseInt(process.env.REDIS_PORT || '6379'),
+        database: 'main',
+        username: process.env.REDIS_USER || '',
+        password: process.env.REDIS_PASSWORD || ''
       }
     ];
 
@@ -110,7 +106,7 @@ export class DatabaseSetup {
         await this.setupElasticsearch(config);
         break;
       default:
-        console.warn(`Unknown database type: ${config.type}`);
+        console.warn(`Unsupported database type: ${config.type}`);
     }
   }
 
@@ -241,7 +237,7 @@ export class DatabaseSetup {
   private async setupMongoDB(config: DatabaseConnection): Promise<void> {
     try {
       console.log(`Attempting MongoDB connection to ${config.host}:${config.port}`);
-      
+
       // Build connection URL with optional authentication
       let connectionUrl: string;
       if (config.username && config.password) {
@@ -249,13 +245,13 @@ export class DatabaseSetup {
       } else {
         connectionUrl = `mongodb://${config.host}:${config.port}/${config.database}`;
       }
-      
+
       const client = new MongoClient(connectionUrl, {
         serverSelectionTimeoutMS: 5000,
         connectTimeoutMS: 5000,
         socketTimeoutMS: 5000,
       });
-      
+
       await client.connect();
       await client.db().admin().ping();
 

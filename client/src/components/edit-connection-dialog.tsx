@@ -20,13 +20,13 @@ interface EditConnectionDialogProps {
   onSave: (connection: DatabaseConnection) => void;
 }
 
-export function EditConnectionDialog({ 
-  connection, 
-  isOpen, 
-  onClose, 
-  onSave 
+export function EditConnectionDialog({
+  connection,
+  isOpen,
+  onClose,
+  onSave
 }: EditConnectionDialogProps) {
-  const [editedConnection, setEditedConnection] = useState<DatabaseConnection>(() => 
+  const [editedConnection, setEditedConnection] = useState<DatabaseConnection>(() =>
     connection || {
       id: '',
       name: '',
@@ -64,7 +64,7 @@ export function EditConnectionDialog({
             Update the connection details. Changes will take effect after reconnection.
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="name" className="text-right">
@@ -77,13 +77,13 @@ export function EditConnectionDialog({
               className="col-span-3"
             />
           </div>
-          
+
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="type" className="text-right">
               Type
             </Label>
-            <Select 
-              value={editedConnection.type} 
+            <Select
+              value={editedConnection.type}
               onValueChange={(value) => updateField('type', value)}
             >
               <SelectTrigger className="col-span-3">
@@ -92,13 +92,13 @@ export function EditConnectionDialog({
               <SelectContent>
                 <SelectItem value="postgresql">PostgreSQL</SelectItem>
                 <SelectItem value="mongodb">MongoDB</SelectItem>
-                <SelectItem value="redis">Redis</SelectItem>
                 <SelectItem value="dynamodb">DynamoDB</SelectItem>
                 <SelectItem value="elasticsearch">Elasticsearch</SelectItem>
+                <SelectItem value="redis">Redis</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          
+
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="host" className="text-right">
               Host
@@ -110,7 +110,7 @@ export function EditConnectionDialog({
               className="col-span-3"
             />
           </div>
-          
+
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="port" className="text-right">
               Port
@@ -123,7 +123,7 @@ export function EditConnectionDialog({
               className="col-span-3"
             />
           </div>
-          
+
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="database" className="text-right">
               Database
@@ -135,7 +135,7 @@ export function EditConnectionDialog({
               className="col-span-3"
             />
           </div>
-          
+
           {editedConnection.type === 'postgresql' && (
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="username" className="text-right">
@@ -149,22 +149,15 @@ export function EditConnectionDialog({
               />
             </div>
           )}
-          
-          {editedConnection.type === 'dynamodb' && (
+
+          {(editedConnection.type === 'dynamodb') && (
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="region" className="text-right">
-                Region
-              </Label>
-              <Input
-                id="region"
-                value={editedConnection.region || 'us-east-1'}
-                onChange={(e) => updateField('region', e.target.value)}
-                className="col-span-3"
-              />
+              <Label htmlFor="region" className="text-right">Region</Label>
+              <Input id="region" value={editedConnection.region || 'us-east-1'} onChange={(e) => updateField('region', e.target.value)} className="col-span-3" />
             </div>
           )}
         </div>
-        
+
         <DialogFooter>
           <Button type="button" variant="outline" onClick={onClose}>
             Cancel

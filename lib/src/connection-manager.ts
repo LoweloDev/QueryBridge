@@ -56,6 +56,8 @@ export class ConnectionManager {
         // First convert universal query to SQL, then parse with @synatic/noql
         const sqlQuery = QueryTranslator.toSQL(parsedQuery);
         translatedQuery = SQLParser.parseSQL(sqlQuery);
+
+        console.log("MONGO QUERY", translatedQuery);
         break;
       case 'elasticsearch':
         // Use SQL for Elasticsearch SQL endpoint
@@ -229,13 +231,13 @@ export class ConnectionManager {
           console.log("PARSED QUERY EXTENDED", sqlQuery);
 
           let finalQuery = sqlQuery;
-          if (config.indexName && !sqlQuery.includes('FROM')) {
-            // Extract the table name and replace with index
-            const tableMatch = sqlQuery.match(/FROM\s+(\w+)/);
-            if (tableMatch) {
-              finalQuery = sqlQuery.replace(tableMatch[1], config.indexName);
-            }
-          }
+          // if (config.indexName && !sqlQuery.includes('FROM')) {
+          //   // Extract the table name and replace with index
+          //   const tableMatch = sqlQuery.match(/FROM\s+(\w+)/);
+          //   if (tableMatch) {
+          //     finalQuery = sqlQuery.replace(tableMatch[1], config.indexName);
+          //   }
+          // }
 
           // Execute the query
           const esResult = await client.transport.request({
@@ -254,8 +256,22 @@ export class ConnectionManager {
 
         case 'dynamodb':
           // Execute SQL query using DynamoDB PartiQL
+          let dynamoQuery = this.restrictQueryToScope(query as string, scope);
+
+          // If connection has a default table configured and query doesn't specify a table, use the configured table
+          if (config.database && !dynamoQuery.includes('FROM')) {
+            // This means the query is something like "SELECT * WHERE ..." without a FROM clause
+            // We need to add the default table
+            const whereMatch = dynamoQuery.match(/WHERE\s+(.+)/);
+            if (whereMatch) {
+              dynamoQuery = `SELECT * FROM ${config.database} WHERE ${whereMatch[1]}`;
+            } else {
+              dynamoQuery = `SELECT * FROM ${config.database}`;
+            }
+          }
+
           const dynamoResult = await client.send(new ExecuteStatementCommand({
-            Statement: this.restrictQueryToScope(query as string, scope),
+            Statement: dynamoQuery,
           }));
 
           return {

@@ -48,7 +48,7 @@ export function ConnectionSidebar() {
   });
 
   const resetDatabaseMutation = useMutation({
-    mutationFn: (id: string) => 
+    mutationFn: (id: string) =>
       fetch(`/api/connections/${id}/reset`, { method: 'POST' }).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/connections"] });
@@ -67,7 +67,7 @@ export function ConnectionSidebar() {
   });
 
   const deleteConnectionMutation = useMutation({
-    mutationFn: (id: string) => 
+    mutationFn: (id: string) =>
       fetch(`/api/connections/${id}`, { method: 'DELETE' }).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/connections"] });
@@ -86,7 +86,7 @@ export function ConnectionSidebar() {
   });
 
   const loadDatasetMutation = useMutation({
-    mutationFn: (id: string) => 
+    mutationFn: (id: string) =>
       fetch(`/api/connections/${id}/load-dataset`, { method: 'POST' }).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/connections"] });
@@ -105,7 +105,7 @@ export function ConnectionSidebar() {
   });
 
   const updateConnectionMutation = useMutation({
-    mutationFn: (connection: DatabaseConnection) => 
+    mutationFn: (connection: DatabaseConnection) =>
       fetch(`/api/connections/${connection.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -120,7 +120,7 @@ export function ConnectionSidebar() {
     },
     onError: (error: any) => {
       toast({
-        title: "Update failed", 
+        title: "Update failed",
         description: error.message || "Failed to update connection.",
         variant: "destructive",
       });
@@ -133,8 +133,7 @@ export function ConnectionSidebar() {
 
   const getConnectionIcon = (type: string) => {
     const icons: Record<string, string> = {
-      postgresql: "🐘",
-      mysql: "🐬", 
+      postgresql: "🗄️",
       mongodb: "🍃",
       elasticsearch: "🔍",
       dynamodb: "⚡",
@@ -174,9 +173,9 @@ export function ConnectionSidebar() {
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-semibold text-primary">Available Connections</h2>
           <div className="flex items-center gap-2">
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setShowSettings(true)}
               className="h-8 w-8 p-0"
             >
@@ -209,16 +208,16 @@ export function ConnectionSidebar() {
             <CardContent className="p-3">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center space-x-2">
-                  <div 
+                  <div
                     className={`w-3 h-3 rounded-full border ${getStatusColor(connection.id, connection.isActive)}`}
-                    title={connectionStatus[connection.id] !== undefined 
+                    title={connectionStatus[connection.id] !== undefined
                       ? (connectionStatus[connection.id] ? "Connection successful" : "Connection failed")
                       : "Click to test connection"
                     }
                   />
                   <span className="font-medium text-sm">{connection.name}</span>
                 </div>
-                <ConnectionDropdownMenu 
+                <ConnectionDropdownMenu
                   connection={connection}
                   onEdit={setEditingConnection}
                   onReset={(conn) => resetDatabaseMutation.mutate(conn.id)}

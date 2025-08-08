@@ -356,8 +356,8 @@ export class QueryParser {
       joinType = 'FULL';
     }
 
-    // Extract table name and ON condition - handle table aliases like "orders o"
-    const joinMatch = joinClause.match(/(?:(?:INNER|LEFT|RIGHT|FULL(?:\s+OUTER)?)\s+)?JOIN\s+(\w+)(?:\s+(\w+))?\s+ON\s+([^=]+)\s*=\s*(.+)/i);
+    // Extract table name and ON condition - handle table aliases like "orders o" and dot notation like "public.orders"
+    const joinMatch = joinClause.match(/(?:(?:INNER|LEFT|RIGHT|FULL(?:\s+OUTER)?)\s+)?JOIN\s+([\w.]+)(?:\s+(\w+))?\s+ON\s+([^=]+)\s*=\s*(.+)/i);
 
     if (!joinMatch) {
       throw new Error(`Invalid JOIN syntax: ${joinClause}`);

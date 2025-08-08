@@ -86,7 +86,6 @@ export interface DatabaseConnection {
   database: string;
   username?: string;
   password?: string;
-  ssl?: boolean;
   region?: string; // For DynamoDB
   accessKeyId?: string; // For DynamoDB
   secretAccessKey?: string; // For DynamoDB
@@ -98,7 +97,7 @@ export interface DatabaseConnection {
     // Add GSI configuration if needed in future
     globalSecondaryIndexes?: Array<{
       name: string;
-      partitionKey: string;
+      partitionKey?: string;
       sortKey?: string;
     }>;
   };

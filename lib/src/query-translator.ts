@@ -101,8 +101,8 @@ export class QueryTranslator {
         sql += ` LIMIT ${query.limit}`;
       }
 
-      // Add semicolon for SQL compatibility
-      sql += ';';
+      // // Add semicolon for SQL compatibility
+      // sql += ';';
     }
 
     return sql;
@@ -129,81 +129,6 @@ export class QueryTranslator {
       operation: 'GET',
       key: query.table,
       error: 'Redis support will be implemented separately'
-    };
-  }
-
-  private static toRedisSearch(query: QueryLanguage): object {
-    // For now, Redis will be handled separately as mentioned by the user
-    // This is a placeholder for future Redis-specific implementation
-    return {
-      operation: 'FT.SEARCH',
-      index: `${query.table}_idx`,
-      query: '*',
-      error: 'Redis support will be implemented separately'
-    };
-  }
-
-  private static buildRedisSearchQuery(query: QueryLanguage): string {
-    // For now, Redis will be handled separately as mentioned by the user
-    // This is a placeholder for future Redis-specific implementation
-    return '*';
-  }
-
-  private static buildRedisAggregations(aggregations: any[]): any[] {
-    // For now, Redis will be handled separately as mentioned by the user
-    // This is a placeholder for future Redis-specific implementation
-    return [];
-  }
-
-  private static toRedisGraph(query: QueryLanguage, graphName?: string): object {
-    // For now, Redis will be handled separately as mentioned by the user
-    // This is a placeholder for future Redis-specific implementation
-    return {
-      operation: 'GRAPH.QUERY',
-      graph: graphName || query.table,
-      cypher: 'MATCH (n) RETURN n LIMIT 10',
-      error: 'Redis support will be implemented separately'
-    };
-  }
-
-  private static toRedisDataStructure(query: QueryLanguage, dbSpecific: any): object {
-    // For now, Redis will be handled separately as mentioned by the user
-    // This is a placeholder for future Redis-specific implementation
-    return {
-      operation: 'GET',
-      key: query.table,
-      error: 'Redis support will be implemented separately'
-    };
-  }
-
-  // Database-specific translators - placeholders for future implementation
-  static toDynamoDB(query: QueryLanguage, schemaConfig?: any): object {
-    // For now, DynamoDB will use SQL translation as mentioned by the user
-    // This is a placeholder for future DynamoDB-specific implementation
-    return {
-      operation: 'QUERY',
-      table: query.table,
-      error: 'DynamoDB support will be implemented separately'
-    };
-  }
-
-  static toMongoDB(query: QueryLanguage): object {
-    // For now, MongoDB will use SQL translation as mentioned by the user
-    // This is a placeholder for future MongoDB-specific implementation
-    return {
-      operation: 'FIND',
-      collection: query.table,
-      error: 'MongoDB support will be implemented separately'
-    };
-  }
-
-  static toElasticsearch(query: QueryLanguage): object {
-    // For now, Elasticsearch will use SQL translation as mentioned by the user
-    // This is a placeholder for future Elasticsearch-specific implementation
-    return {
-      operation: 'SEARCH',
-      index: query.table,
-      error: 'Elasticsearch support will be implemented separately'
     };
   }
 }

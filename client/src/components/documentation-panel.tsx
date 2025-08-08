@@ -112,7 +112,7 @@ WHERE name ILIKE '%laptop%'
     mongodb: {
       name: "MongoDB",
       icon: "🍃",
-      description: "Document database with powerful aggregation pipelines",
+      description: "Document database with SQL API support",
       features: {
         basicQueries: true,
         whereConditions: true,
@@ -131,10 +131,11 @@ WHERE name ILIKE '%laptop%'
 WHERE status = "active"
 ORDER BY created_at DESC
 LIMIT 5`,
-          native: `// MongoDB Translation
-db.users.find(
-  { "status": "active" }
-).sort({ "created_at": -1 }).limit(5)`
+          native: `-- SQL Translation (via MongoDB SQL API)
+SELECT * FROM users 
+WHERE status = 'active' 
+ORDER BY created_at DESC 
+LIMIT 5;`
         },
         joins: {
           universal: `FIND users
@@ -142,19 +143,12 @@ JOIN orders ON users.id = orders.user_id
 WHERE users.status = "active"
 FIELDS users.name, users.email, orders.amount
 ORDER BY orders.amount DESC`,
-          native: `// MongoDB Translation
-db.users.aggregate([
-  { $match: { "status": "active" } },
-  { $lookup: {
-      from: "orders",
-      localField: "id", 
-      foreignField: "user_id",
-      as: "orders"
-    }},
-  { $unwind: "$orders" },
-  { $project: { "name": 1, "email": 1, "amount": "$orders.amount" } },
-  { $sort: { "amount": -1 } }
-])`
+          native: `-- SQL Translation (via MongoDB SQL API)
+SELECT u.name, u.email, o.amount 
+FROM users u
+JOIN orders o ON u.id = o.user_id 
+WHERE u.status = 'active' 
+ORDER BY o.amount DESC;`
         },
         aggregations: {
           universal: `FIND products
@@ -163,39 +157,36 @@ GROUP BY category
 AGGREGATE COUNT(*) as product_count, AVG(price) as avg_price, SUM(stock) as total_stock
 HAVING product_count > 5
 ORDER BY avg_price DESC`,
-          native: `// MongoDB Translation
-db.products.aggregate([
-  { $match: { "active": true } },
-  { $group: {
-      _id: "$category",
-      product_count: { $sum: 1 },
-      avg_price: { $avg: "$price" },
-      total_stock: { $sum: "$stock" }
-    }},
-  { $match: { product_count: { $gt: 5 } } },
-  { $sort: { avg_price: -1 } }
-])`
+          native: `-- SQL Translation (via MongoDB SQL API)
+SELECT 
+  category,
+  COUNT(*) as product_count,
+  AVG(price) as avg_price,
+  SUM(stock) as total_stock
+FROM products 
+WHERE active = true
+GROUP BY category
+HAVING COUNT(*) > 5
+ORDER BY avg_price DESC;`
         },
         fullText: {
           universal: `FIND products
-WHERE name LIKE "%laptop%" AND description LIKE "%gaming%"
-WHERE active = true`,
-          native: `// MongoDB Translation
-db.products.find({
-  $text: { $search: "laptop gaming" },
-  "active": true
-}).sort({ score: { $meta: "textScore" } })`
+WHERE name LIKE "%laptop%" AND description LIKE "%gaming%"`,
+          native: `-- SQL Translation (via MongoDB SQL API)
+SELECT * FROM products 
+WHERE name LIKE '%laptop%' 
+  AND description LIKE '%gaming%';`
         }
       }
     },
     elasticsearch: {
       name: "Elasticsearch",
       icon: "🔍",
-      description: "Search engine with advanced text analysis and aggregations",
+      description: "Search engine with SQL API support",
       features: {
         basicQueries: true,
         whereConditions: true,
-        joins: false, // Parent-child relationships only
+        joins: true, // Via SQL API
         aggregations: true,
         groupBy: true,
         orderBy: true,
@@ -210,69 +201,63 @@ db.products.find({
 WHERE status = "active"
 ORDER BY created_at DESC
 LIMIT 5`,
-          native: `// Elasticsearch Translation
-{
-  "query": { "term": { "status": "active" } },
-  "sort": [{ "created_at": { "order": "desc" } }],
-  "size": 5
-}`
+          native: `-- SQL Translation (via Elasticsearch SQL API)
+SELECT * FROM users 
+WHERE status = 'active' 
+ORDER BY created_at DESC 
+LIMIT 5;`
+        },
+        joins: {
+          universal: `FIND users
+JOIN orders ON users.id = orders.user_id
+WHERE users.status = "active"
+FIELDS users.name, users.email, orders.amount
+ORDER BY orders.amount DESC`,
+          native: `-- SQL Translation (via Elasticsearch SQL API)
+SELECT u.name, u.email, o.amount 
+FROM users u
+JOIN orders o ON u.id = o.user_id 
+WHERE u.status = 'active' 
+ORDER BY o.amount DESC;`
         },
         aggregations: {
           universal: `FIND products
 WHERE active = true
 GROUP BY category
 AGGREGATE COUNT(*) as product_count, AVG(price) as avg_price, SUM(stock) as total_stock`,
-          native: `// Elasticsearch Translation
-{
-  "query": { "term": { "active": true } },
-  "aggs": {
-    "by_category": {
-      "terms": { "field": "category" },
-      "aggs": {
-        "product_count": { "value_count": { "field": "_id" } },
-        "avg_price": { "avg": { "field": "price" } },
-        "total_stock": { "sum": { "field": "stock" } }
-      }
-    }
-  },
-  "size": 0
-}`
+          native: `-- SQL Translation (via Elasticsearch SQL API)
+SELECT 
+  category,
+  COUNT(*) as product_count,
+  AVG(price) as avg_price,
+  SUM(stock) as total_stock
+FROM products 
+WHERE active = true
+GROUP BY category;`
         },
         fullText: {
           universal: `FIND products
 WHERE name LIKE "%laptop%" AND description LIKE "%gaming%"
 WHERE active = true`,
-          native: `// Elasticsearch Translation
-{
-  "query": {
-    "bool": {
-      "must": [
-        { "match": { "name": "laptop" } },
-        { "match": { "description": "gaming" } }
-      ],
-      "filter": [
-        { "term": { "active": true } }
-      ]
-    }
-  },
-  "highlight": {
-    "fields": { "name": {}, "description": {} }
-  }
-}`
+          native: `-- SQL Translation (via Elasticsearch SQL API)
+SELECT * FROM products 
+WHERE name LIKE '%laptop%' 
+  AND description LIKE '%gaming%'
+  AND active = true;`
         }
       }
     },
     dynamodb: {
       name: "DynamoDB",
       icon: "⚡",
-      description: "NoSQL database optimized for high performance and scalability",
+      description: "NoSQL database with PartiQL support",
       features: {
         basicQueries: true,
         whereConditions: true,
-        joins: false, // No native joins
-        aggregations: false, // No native aggregations - WILL THROW ERROR
-        groupBy: false, // No native GROUP BY - WILL THROW ERROR
-        orderBy: true, // Via sort key only
+        joins: true, // Via PartiQL
+        aggregations: true, // Via PartiQL
+        groupBy: true, // Via PartiQL
+        orderBy: true,
         limit: true,
         fullTextSearch: false, // Basic contains() only
         transactions: true,
@@ -282,161 +267,76 @@ WHERE active = true`,
         basic: {
           universal: `FIND users
 WHERE id = 1`,
-          native: `// DynamoDB Translation (Query)
-{
-  "TableName": "users",
-  "KeyConditionExpression": "id = :id",
-  "ExpressionAttributeValues": { ":id": 1 }
-}`
+          native: `-- SQL Translation (via DynamoDB PartiQL)
+SELECT * FROM users WHERE id = 1;`
         },
         scan: {
           universal: `FIND users
 WHERE status = "active"
 LIMIT 5`,
-          native: `// DynamoDB Translation (Scan)
-{
-  "TableName": "users", 
-  "FilterExpression": "#status = :status",
-  "ExpressionAttributeNames": { "#status": "status" },
-  "ExpressionAttributeValues": { ":status": "active" },
-  "Limit": 5
-}`
+          native: `-- SQL Translation (via DynamoDB PartiQL)
+SELECT * FROM users 
+WHERE status = 'active' 
+LIMIT 5;`
         },
         gsi: {
           universal: `FIND orders
 WHERE status = "completed"
 ORDER BY created_at DESC`,
-          native: `// DynamoDB Translation (GSI Query)
-{
-  "TableName": "orders",
-  "IndexName": "StatusIndex",
-  "KeyConditionExpression": "#status = :status",
-  "ExpressionAttributeNames": { "#status": "status" },
-  "ExpressionAttributeValues": { ":status": "completed" },
-  "ScanIndexForward": false
-}`
+          native: `-- SQL Translation (via DynamoDB PartiQL)
+SELECT * FROM orders 
+WHERE status = 'completed' 
+ORDER BY created_at DESC;`
         },
-        singleTableDefault: {
-          universal: `// Single Table Design - Default PK/SK (fallback)
-// No configuration needed - uses default PK/SK when schema not configured
-FIND users
-DB_SPECIFIC: partition_key="USER#123", sort_key="PROFILE"`,
-          native: `// DynamoDB Translation (Default Keys)
-{
-  "TableName": "users",
-  "KeyConditionExpression": "#pk = :pk AND #sk = :sk",
-  "ExpressionAttributeNames": {
-    "#pk": "PK",
-    "#sk": "SK"
-  },
-  "ExpressionAttributeValues": {
-    ":pk": "USER#123",
-    ":sk": "PROFILE"
-  }
-}`
+        joins: {
+          universal: `FIND users
+JOIN orders ON users.id = orders.user_id
+WHERE users.status = "active"
+FIELDS users.name, users.email, orders.amount`,
+          native: `-- SQL Translation (via DynamoDB PartiQL)
+SELECT u.name, u.email, o.amount 
+FROM users u
+JOIN orders o ON u.id = o.user_id 
+WHERE u.status = 'active';`
         },
-        singleTableConfigured: {
-          universal: `// Single Table Design - Custom Key Names
-// Connection registered with: { partitionKey: "userId", sortKey: "timestamp" }
-
-FIND orders
-DB_SPECIFIC: partition_key="CUSTOMER#456", sort_key="ORDER#789"`,
-          native: `// DynamoDB Translation (Custom Key Names)
-{
-  "TableName": "orders",
-  "KeyConditionExpression": "#pk = :pk AND #sk = :sk",
-  "ExpressionAttributeNames": {
-    "#pk": "userId",
-    "#sk": "timestamp"
-  },
-  "ExpressionAttributeValues": {
-    ":pk": "CUSTOMER#456",
-    ":sk": "ORDER#789"
-  }
-}`
-        },
-        inlineAttributes: {
-          universal: `// Single Table Design - Inline Attribute Override
-// Overrides connection config with inline attribute names
-
-FIND entities
-DB_SPECIFIC: partition_key="ENTITY#123", sort_key="META#456", partition_key_attribute="entity_id", sort_key_attribute="entity_type"`,
-          native: `// DynamoDB Translation (Inline Attributes)
-{
-  "TableName": "entities",
-  "KeyConditionExpression": "#pk = :pk AND #sk = :sk",
-  "ExpressionAttributeNames": {
-    "#pk": "entity_id",
-    "#sk": "entity_type"
-  },
-  "ExpressionAttributeValues": {
-    ":pk": "ENTITY#123",
-    ":sk": "META#456"
-  }
-}`
-        },
-        singleTablePrefix: {
-          universal: `// Single Table Design - Sort Key Prefix
-FIND items
-DB_SPECIFIC: partition_key="STORE#789", sort_key_prefix="PRODUCT#"`,
-          native: `// DynamoDB Translation (Sort Key Prefix)
-{
-  "TableName": "items",
-  "KeyConditionExpression": "#pk = :pk AND begins_with(#sk, :sk_prefix)",
-  "ExpressionAttributeNames": {
-    "#pk": "PK",
-    "#sk": "SK"
-  },
-  "ExpressionAttributeValues": {
-    ":pk": "STORE#789",
-    ":sk_prefix": "PRODUCT#"
-  }
-}`
-        },
-        connectionConfig: {
-          universal: `// Connection Registration Example
-import { QueryTranslator } from 'universal-query-translator';
-
-// Register DynamoDB with custom schema
-QueryTranslator.registerConnection('my-dynamodb', dynamoClient, {
-  partitionKey: 'entity_id',
-  sortKey: 'entity_type',
-  globalSecondaryIndexes: [
-    { 
-      name: 'StatusIndex', 
-      partitionKey: 'status', 
-      sortKey: 'created_at' 
-    }
-  ]
-});`,
-          native: `// Usage with Registered Configuration
-const result = QueryTranslator.translate(
-  'FIND entities DB_SPECIFIC: partition_key="USER#123"',
-  'my-dynamodb'
-);
-
-// Produces query using 'entity_id' instead of 'PK'`
-        },
-        limitations: {
-          universal: `// ❌ THESE WILL THROW ERRORS:
-
-FIND products 
-AGGREGATE COUNT(*) as total, AVG(price) as avg_price
-
-FIND sales
+        aggregations: {
+          universal: `FIND products
+WHERE active = true
 GROUP BY category
-AGGREGATE COUNT(*) as count`,
-          native: `// DynamoDB Error Response
-{
-  "error": "DynamoDB does not support native aggregations (COUNT, SUM, AVG, etc.). Consider using application-level processing or switch to a different database type."
-}`
+AGGREGATE COUNT(*) as product_count, AVG(price) as avg_price`,
+          native: `-- SQL Translation (via DynamoDB PartiQL)
+SELECT 
+  category,
+  COUNT(*) as product_count,
+  AVG(price) as avg_price
+FROM products 
+WHERE active = true
+GROUP BY category;`
+        },
+        databaseConcepts: {
+          universal: `-- Database Concept Mappings
+FIND public.users          -- PostgreSQL: schema.table
+FIND test.users            -- MongoDB: database.collection  
+FIND logs.2024             -- Elasticsearch: alias.index
+FIND users.user_id_idx     -- DynamoDB: table.index
+
+-- Field selection with any concept
+FIND public.users (name, email)
+FIND test.users (name, email)
+FIND logs.2024 (timestamp, level)
+FIND users.user_id_idx (id, status)`,
+          native: `-- SQL Translation (Consistent across all databases)
+SELECT name, email FROM public.users;
+SELECT name, email FROM test.users;
+SELECT timestamp, level FROM logs.2024;
+SELECT id, status FROM users.user_id_idx;`
         }
       }
     },
     redis: {
       name: "Redis",
       icon: "🔴",
-      description: "In-memory data store with optional RediSearch modules",
+      description: "In-memory data store (handled separately)",
       features: {
         basicQueries: true,
         whereConditions: true, // With RediSearch
@@ -455,45 +355,31 @@ AGGREGATE COUNT(*) as count`,
 WHERE status = "active"
 ORDER BY created_at DESC
 LIMIT 5`,
-          native: `// Redis Translation (RediSearch)
-FT.SEARCH users_idx "@status:{active}" SORTBY created_at DESC LIMIT 0 5
-
-// Or Hash Operations
-HGETALL user:1
-HMGET user:1 name email status`
+          native: `-- Redis Translation (Placeholder)
+-- Redis support will be implemented separately
+-- Using RediSearch for complex queries
+FT.SEARCH users_idx "@status:{active}" SORTBY created_at DESC LIMIT 0 5`
         },
         search: {
           universal: `FIND products
 WHERE price > 100 AND price < 500
 WHERE category = "Electronics"`,
-          native: `// Redis Translation (RediSearch)
-FT.SEARCH products_idx "@price:[100 500] @category:{Electronics}"
-
-// Range Queries
-FT.SEARCH products_idx "@price:[100 500]"`
+          native: `-- Redis Translation (Placeholder)
+-- Redis support will be implemented separately
+FT.SEARCH products_idx "@price:[100 500] @category:{Electronics}"`
         },
         aggregations: {
           universal: `FIND orders
 GROUP BY category
 AGGREGATE COUNT(*) as product_count, AVG(price) as avg_price
 ORDER BY avg_price DESC`,
-          native: `// Redis Translation (RediSearch Aggregations)
+          native: `-- Redis Translation (Placeholder)
+-- Redis support will be implemented separately
 FT.AGGREGATE orders_idx "*" 
   GROUPBY 1 @category 
   REDUCE COUNT 0 AS product_count
   REDUCE AVG 1 @price AS avg_price
   SORTBY 2 @avg_price DESC`
-        },
-        sortedSets: {
-          universal: `FIND user_scores
-WHERE score > 1000
-ORDER BY score DESC
-LIMIT 10`,
-          native: `// Redis Translation (Sorted Sets)
-ZREVRANGEBYSCORE user_scores +inf 1000 LIMIT 0 10
-
-// Range by score
-ZRANGEBYSCORE orders:by_amount 100 500`
         }
       }
     }
@@ -523,11 +409,10 @@ ZRANGEBYSCORE orders:by_amount 100 500`
                 <button
                   key={dbKey}
                   onClick={() => setSelectedDatabase(dbKey)}
-                  className={`p-3 rounded-lg border text-sm font-medium transition-colors ${
-                    selectedDatabase === dbKey 
-                      ? 'bg-accent text-accent-foreground border-accent' 
-                      : 'bg-background hover:bg-muted border-border'
-                  }`}
+                  className={`p-3 rounded-lg border text-sm font-medium transition-colors ${selectedDatabase === dbKey
+                    ? 'bg-accent text-accent-foreground border-accent'
+                    : 'bg-background hover:bg-muted border-border'
+                    }`}
                 >
                   <div className="text-lg mb-1">{db.icon}</div>
                   <div className="text-xs">{db.name}</div>
@@ -544,7 +429,7 @@ ZRANGEBYSCORE orders:by_amount 100 500`
                 {currentDb.name}
               </h2>
               <p className="text-muted-foreground mb-4">{currentDb.description}</p>
-              
+
               {/* Feature Support Matrix */}
               <div className="bg-muted/30 rounded-lg p-4 mb-6">
                 <h3 className="font-semibold mb-3 flex items-center">
@@ -598,7 +483,7 @@ ZRANGEBYSCORE orders:by_amount 100 500`
               {/* Code Examples */}
               <div className="space-y-4">
                 {Object.entries(currentDb.examples).map(([exampleKey, example]) => (
-                  <ExampleCard 
+                  <ExampleCard
                     key={exampleKey}
                     title={exampleKey.charAt(0).toUpperCase() + exampleKey.slice(1).replace(/([A-Z])/g, ' $1')}
                     onCopy={() => copyToClipboard(example.universal + '\n\n' + example.native)}
@@ -614,7 +499,7 @@ ZRANGEBYSCORE orders:by_amount 100 500`
                           <code className="text-blue-800 dark:text-blue-200">{example.universal}</code>
                         </pre>
                       </div>
-                      
+
                       {/* Native Translation */}
                       <div>
                         <div className="text-xs font-medium text-foreground mb-1 flex items-center">
