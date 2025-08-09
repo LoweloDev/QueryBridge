@@ -18,12 +18,9 @@ interface QueryEditorProps {
 export function QueryEditor({ onQueryExecuted, onQueryHistoryAdd }: QueryEditorProps) {
   const [activeTab, setActiveTab] = useState("sql");
   const [query, setQuery] = useState(`FIND users
-JOIN orders ON users.id = orders.user_id
-WHERE 
-  users.age > 25 AND
-  orders.status = "completed"
-ORDER BY orders.created_at DESC
-LIMIT 10`);
+WHERE status = "active"
+ORDER BY created_at DESC
+LIMIT 5`);
 
   const [translatedQuery, setTranslatedQuery] = useState("");
   const [selectedConnection, setSelectedConnection] = useState("");

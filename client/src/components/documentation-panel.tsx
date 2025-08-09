@@ -42,7 +42,7 @@ export function DocumentationPanel({ onClose }: DocumentationPanelProps) {
     sql: {
       name: "SQL (PostgreSQL)",
       icon: "🐘",
-      description: "Full relational database with comprehensive query support",
+      description: "Primary target with full translation implemented.",
       features: {
         basicQueries: true,
         whereConditions: true,
@@ -51,9 +51,9 @@ export function DocumentationPanel({ onClose }: DocumentationPanelProps) {
         groupBy: true,
         orderBy: true,
         limit: true,
-        fullTextSearch: true,
-        transactions: true,
-        indexOptimization: true
+        fullTextSearch: false,
+        transactions: false,
+        indexOptimization: false
       },
       examples: {
         basic: {
@@ -61,139 +61,38 @@ export function DocumentationPanel({ onClose }: DocumentationPanelProps) {
 WHERE status = "active"
 ORDER BY created_at DESC
 LIMIT 5`,
-          native: `-- PostgreSQL Translation
-SELECT * FROM users 
-WHERE status = 'active' 
-ORDER BY created_at DESC 
-LIMIT 5;`
+          native: `-- SQL Translation
+SELECT * FROM users WHERE status = 'active' ORDER BY created_at DESC LIMIT 5;`
         },
-        joins: {
-          universal: `FIND users
-JOIN orders ON users.id = orders.user_id
-WHERE users.status = "active"
-FIELDS users.name, users.email, orders.amount
-ORDER BY orders.amount DESC`,
-          native: `-- PostgreSQL Translation
-SELECT u.name, u.email, o.amount 
-FROM users u
-JOIN orders o ON u.id = o.user_id 
-WHERE u.status = 'active' 
-ORDER BY o.amount DESC;`
+        fields: {
+          universal: `FIND public.users (name, email)`,
+          native: `-- SQL Translation
+SELECT name, email FROM public.users;`
         },
-        aggregations: {
-          universal: `FIND products
-WHERE active = true
-GROUP BY category
-AGGREGATE COUNT(*) as product_count, AVG(price) as avg_price, SUM(stock) as total_stock
-HAVING product_count > 5
-ORDER BY avg_price DESC`,
-          native: `-- PostgreSQL Translation
-SELECT 
-  category,
-  COUNT(*) as product_count,
-  AVG(price) as avg_price,
-  SUM(stock) as total_stock
-FROM products 
-WHERE active = true
-GROUP BY category
-HAVING COUNT(*) > 5
-ORDER BY avg_price DESC;`
-        },
-        fullText: {
-          universal: `FIND products
-WHERE name LIKE "%laptop%" AND description LIKE "%gaming%"`,
-          native: `-- PostgreSQL Translation  
-SELECT * FROM products 
-WHERE name ILIKE '%laptop%' 
-  AND description @@ to_tsquery('gaming');`
+        groupBy: {
+          universal: `FIND orders
+AGGREGATE COUNT(id) AS total_orders, SUM(amount) AS total_amount
+GROUP BY customer_id`,
+          native: `-- SQL Translation
+SELECT customer_id, COUNT(id) AS total_orders, SUM(amount) AS total_amount FROM orders GROUP BY customer_id;`
         }
       }
     },
     mongodb: {
       name: "MongoDB",
       icon: "🍃",
-      description: "Document database with SQL API support",
+      description: "Translation planned. Use the universal syntax; output will be a placeholder.",
       features: {
         basicQueries: true,
         whereConditions: true,
-        joins: true,
-        aggregations: true,
-        groupBy: true,
-        orderBy: true,
-        limit: true,
-        fullTextSearch: true,
-        transactions: true,
-        indexOptimization: true
-      },
-      examples: {
-        basic: {
-          universal: `FIND users
-WHERE status = "active"
-ORDER BY created_at DESC
-LIMIT 5`,
-          native: `-- SQL Translation (via MongoDB SQL API)
-SELECT * FROM users 
-WHERE status = 'active' 
-ORDER BY created_at DESC 
-LIMIT 5;`
-        },
-        joins: {
-          universal: `FIND users
-JOIN orders ON users.id = orders.user_id
-WHERE users.status = "active"
-FIELDS users.name, users.email, orders.amount
-ORDER BY orders.amount DESC`,
-          native: `-- SQL Translation (via MongoDB SQL API)
-SELECT u.name, u.email, o.amount 
-FROM users u
-JOIN orders o ON u.id = o.user_id 
-WHERE u.status = 'active' 
-ORDER BY o.amount DESC;`
-        },
-        aggregations: {
-          universal: `FIND products
-WHERE active = true
-GROUP BY category
-AGGREGATE COUNT(*) as product_count, AVG(price) as avg_price, SUM(stock) as total_stock
-HAVING product_count > 5
-ORDER BY avg_price DESC`,
-          native: `-- SQL Translation (via MongoDB SQL API)
-SELECT 
-  category,
-  COUNT(*) as product_count,
-  AVG(price) as avg_price,
-  SUM(stock) as total_stock
-FROM products 
-WHERE active = true
-GROUP BY category
-HAVING COUNT(*) > 5
-ORDER BY avg_price DESC;`
-        },
-        fullText: {
-          universal: `FIND products
-WHERE name LIKE "%laptop%" AND description LIKE "%gaming%"`,
-          native: `-- SQL Translation (via MongoDB SQL API)
-SELECT * FROM products 
-WHERE name LIKE '%laptop%' 
-  AND description LIKE '%gaming%';`
-        }
-      }
-    },
-    elasticsearch: {
-      name: "Elasticsearch",
-      icon: "🔍",
-      description: "Search engine with SQL API support",
-      features: {
-        basicQueries: true,
-        whereConditions: true,
-        joins: true, // Via SQL API
+        joins: false,
         aggregations: true,
         groupBy: true,
         orderBy: true,
         limit: true,
         fullTextSearch: true,
         transactions: false,
-        indexOptimization: true
+        indexOptimization: false
       },
       examples: {
         basic: {
@@ -201,185 +100,94 @@ WHERE name LIKE '%laptop%'
 WHERE status = "active"
 ORDER BY created_at DESC
 LIMIT 5`,
-          native: `-- SQL Translation (via Elasticsearch SQL API)
-SELECT * FROM users 
-WHERE status = 'active' 
-ORDER BY created_at DESC 
-LIMIT 5;`
-        },
-        joins: {
-          universal: `FIND users
-JOIN orders ON users.id = orders.user_id
-WHERE users.status = "active"
-FIELDS users.name, users.email, orders.amount
-ORDER BY orders.amount DESC`,
-          native: `-- SQL Translation (via Elasticsearch SQL API)
-SELECT u.name, u.email, o.amount 
-FROM users u
-JOIN orders o ON u.id = o.user_id 
-WHERE u.status = 'active' 
-ORDER BY o.amount DESC;`
-        },
-        aggregations: {
+          native: `-- MongoDB Translation
+-- Support will be implemented separately`
+        }
+      }
+    },
+    elasticsearch: {
+      name: "Elasticsearch",
+      icon: "🔍",
+      description: "Translation planned. Use universal syntax; output will be a placeholder.",
+      features: {
+        basicQueries: true,
+        whereConditions: true,
+        joins: false,
+        aggregations: true,
+        groupBy: true,
+        orderBy: true,
+        limit: true,
+        fullTextSearch: true,
+        transactions: false,
+        indexOptimization: false
+      },
+      examples: {
+        basic: {
           universal: `FIND products
 WHERE active = true
-GROUP BY category
-AGGREGATE COUNT(*) as product_count, AVG(price) as avg_price, SUM(stock) as total_stock`,
-          native: `-- SQL Translation (via Elasticsearch SQL API)
-SELECT 
-  category,
-  COUNT(*) as product_count,
-  AVG(price) as avg_price,
-  SUM(stock) as total_stock
-FROM products 
-WHERE active = true
-GROUP BY category;`
-        },
-        fullText: {
-          universal: `FIND products
-WHERE name LIKE "%laptop%" AND description LIKE "%gaming%"
-WHERE active = true`,
-          native: `-- SQL Translation (via Elasticsearch SQL API)
-SELECT * FROM products 
-WHERE name LIKE '%laptop%' 
-  AND description LIKE '%gaming%'
-  AND active = true;`
+ORDER BY created_at DESC
+LIMIT 5`,
+          native: `-- Elasticsearch Translation
+-- Support will be implemented separately`
         }
       }
     },
     dynamodb: {
       name: "DynamoDB",
       icon: "⚡",
-      description: "NoSQL database with PartiQL support",
+      description: "Translation planned. Use universal syntax; output will be a placeholder.",
       features: {
         basicQueries: true,
         whereConditions: true,
-        joins: true, // Via PartiQL
-        aggregations: true, // Via PartiQL
-        groupBy: true, // Via PartiQL
+        joins: false,
+        aggregations: false,
+        groupBy: false,
         orderBy: true,
         limit: true,
-        fullTextSearch: false, // Basic contains() only
-        transactions: true,
-        indexOptimization: true
+        fullTextSearch: false,
+        transactions: false,
+        indexOptimization: false
       },
       examples: {
         basic: {
           universal: `FIND users
-WHERE id = 1`,
-          native: `-- SQL Translation (via DynamoDB PartiQL)
-SELECT * FROM users WHERE id = 1;`
-        },
-        scan: {
-          universal: `FIND users
 WHERE status = "active"
 LIMIT 5`,
-          native: `-- SQL Translation (via DynamoDB PartiQL)
-SELECT * FROM users 
-WHERE status = 'active' 
-LIMIT 5;`
-        },
-        gsi: {
-          universal: `FIND orders
-WHERE status = "completed"
-ORDER BY created_at DESC`,
-          native: `-- SQL Translation (via DynamoDB PartiQL)
-SELECT * FROM orders 
-WHERE status = 'completed' 
-ORDER BY created_at DESC;`
-        },
-        joins: {
-          universal: `FIND users
-JOIN orders ON users.id = orders.user_id
-WHERE users.status = "active"
-FIELDS users.name, users.email, orders.amount`,
-          native: `-- SQL Translation (via DynamoDB PartiQL)
-SELECT u.name, u.email, o.amount 
-FROM users u
-JOIN orders o ON u.id = o.user_id 
-WHERE u.status = 'active';`
-        },
-        aggregations: {
-          universal: `FIND products
-WHERE active = true
-GROUP BY category
-AGGREGATE COUNT(*) as product_count, AVG(price) as avg_price`,
-          native: `-- SQL Translation (via DynamoDB PartiQL)
-SELECT 
-  category,
-  COUNT(*) as product_count,
-  AVG(price) as avg_price
-FROM products 
-WHERE active = true
-GROUP BY category;`
+          native: `-- DynamoDB Translation
+-- Support will be implemented separately`
         },
         databaseConcepts: {
-          universal: `-- Database Concept Mappings
-FIND public.users          -- PostgreSQL: schema.table
-FIND test.users            -- MongoDB: database.collection  
-FIND logs.2024             -- Elasticsearch: alias.index
-FIND users.user_id_idx     -- DynamoDB: table.index
-
--- Field selection with any concept
-FIND public.users (name, email)
-FIND test.users (name, email)
-FIND logs.2024 (timestamp, level)
-FIND users.user_id_idx (id, status)`,
-          native: `-- SQL Translation (Consistent across all databases)
-SELECT name, email FROM public.users;
-SELECT name, email FROM test.users;
-SELECT timestamp, level FROM logs.2024;
-SELECT id, status FROM users.user_id_idx;`
+          universal: `FIND public.users
+FIND test.users
+FIND logs.2024
+FIND users.user_id_idx`,
+          native: `-- Concept mapping only; translation planned`
         }
       }
     },
     redis: {
       name: "Redis",
       icon: "🔴",
-      description: "In-memory data store (handled separately)",
+      description: "Translation planned. Use universal syntax; output will be a placeholder.",
       features: {
         basicQueries: true,
-        whereConditions: true, // With RediSearch
-        joins: false, // Manual key relationships only
-        aggregations: true, // With RediSearch FT.AGGREGATE
-        groupBy: true, // With RediSearch
-        orderBy: true, // With RediSearch or sorted sets
+        whereConditions: true,
+        joins: false,
+        aggregations: true,
+        groupBy: true,
+        orderBy: true,
         limit: true,
-        fullTextSearch: true, // With RediSearch
-        transactions: true, // Via Lua scripts
-        indexOptimization: true // Via RediSearch indexes
+        fullTextSearch: true,
+        transactions: false,
+        indexOptimization: false
       },
       examples: {
         basic: {
           universal: `FIND users
 WHERE status = "active"
-ORDER BY created_at DESC
 LIMIT 5`,
-          native: `-- Redis Translation (Placeholder)
--- Redis support will be implemented separately
--- Using RediSearch for complex queries
-FT.SEARCH users_idx "@status:{active}" SORTBY created_at DESC LIMIT 0 5`
-        },
-        search: {
-          universal: `FIND products
-WHERE price > 100 AND price < 500
-WHERE category = "Electronics"`,
-          native: `-- Redis Translation (Placeholder)
--- Redis support will be implemented separately
-FT.SEARCH products_idx "@price:[100 500] @category:{Electronics}"`
-        },
-        aggregations: {
-          universal: `FIND orders
-GROUP BY category
-AGGREGATE COUNT(*) as product_count, AVG(price) as avg_price
-ORDER BY avg_price DESC`,
-          native: `-- Redis Translation (Placeholder)
--- Redis support will be implemented separately
-FT.AGGREGATE orders_idx "*" 
-  GROUPBY 1 @category 
-  REDUCE COUNT 0 AS product_count
-  REDUCE AVG 1 @price AS avg_price
-  SORTBY 2 @avg_price DESC`
+          native: `-- Redis Translation
+-- Support will be implemented separately`
         }
       }
     }
