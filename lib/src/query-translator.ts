@@ -123,12 +123,67 @@ export class QueryTranslator {
 
 
   static toRedis(query: QueryLanguage): object {
-    // For now, Redis will be handled separately as mentioned by the user
-    // This is a placeholder for future Redis-specific implementation
-    return {
-      operation: 'GET',
-      key: query.table,
-      error: 'Redis support will be implemented separately'
+    // Redis is a key-value store, so we need to handle queries differently
+    const operation = query.operation;
+    const key = query.table;
+
+    // Normalize namespace for common entity collections (users -> user:*)
+    const singularFromPlural = (name: string): string => {
+      if (!name) return name;
+      if (name.endsWith('ies')) return name.slice(0, -3) + 'y';
+      if (name.endsWith('ses')) return name.slice(0, -2); // e.g., classes -> class
+      if (name.endsWith('s')) return name.slice(0, -1);
+      return name;
     };
+
+    if (operation === 'FIND') {
+      // If table looks like a concrete key (contains ':'), handle hash immediately
+      if (key && key.includes(':') && (!query.where || query.where.length === 0)) {
+        return { operation: 'HGETALL', key };
+      }
+
+      // If querying a collection (e.g., users) with conditions, emit a SCAN_FILTER plan
+      if (query.where && query.where.length > 0 && key && !key.includes(':')) {
+        const namespace = singularFromPlural(key);
+        return {
+          operation: 'SCAN_FILTER',
+          pattern: `${namespace}:*`,
+          count: query.limit || 100,
+          filters: query.where.map(w => ({ field: w.field, operator: w.operator, value: w.value }))
+        };
+      }
+
+      // No WHERE clause
+      if (!query.where || query.where.length === 0) {
+        // If key is a collection name, list keys under its namespace
+        if (key && !key.includes(':')) {
+          const namespace = singularFromPlural(key);
+          return { operation: 'SCAN', pattern: `${namespace}:*`, count: query.limit || 100 };
+        }
+        // Otherwise treat as direct key
+        return { operation: 'GET', key };
+      }
+
+      // Fallbacks for other cases
+      const conditions = query.where;
+      const likeCondition = conditions.find(c => c.operator === 'LIKE');
+      if (likeCondition) {
+        return { operation: 'SCAN', pattern: likeCondition.value.replace(/%/g, '*'), count: query.limit || 100 };
+      }
+
+      const rangeConditions = conditions.filter(c => ['>', '>=', '<', '<='].includes(c.operator));
+      if (rangeConditions.length > 0) {
+        return { operation: 'SCAN', pattern: '*', count: query.limit || 100 };
+      }
+
+      if (conditions.length === 1 && conditions[0].operator === '=') {
+        return { operation: 'GET', key: conditions[0].value };
+      }
+
+      return { operation: 'GET', key };
+    }
+
+    // Default fallback
+    return { operation: 'GET', key };
   }
 }

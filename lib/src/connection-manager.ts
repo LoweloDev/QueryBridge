@@ -290,6 +290,65 @@ export class ConnectionManager {
               redisResult = await client.scan(0, 'MATCH', redisQuery.pattern, 'COUNT', redisQuery.count || 1000);
               return { rows: redisResult[1], count: redisResult[1].length, data: redisResult[1] };
 
+            case 'SCAN_FILTER': {
+              // 1) Scan keys by pattern
+              const count = redisQuery.count || 100;
+              const scanRes = await client.scan(0, 'MATCH', redisQuery.pattern || '*', 'COUNT', count);
+              const keys: string[] = scanRes[1] || [];
+
+              // 2) Fetch hashes for keys
+              const pipeline = client.multi();
+              keys.forEach((k: string) => pipeline.hgetall(k));
+              const hashResults = await pipeline.exec();
+              const items: any[] = [];
+              for (let i = 0; i < keys.length; i++) {
+                const entry = hashResults[i]?.[1] || {};
+                // Append key for reference
+                items.push({ __key: keys[i], ...entry });
+              }
+
+              // 3) Apply filters server-side
+              const filters = redisQuery.filters || [];
+              const toComparable = (v: any) => {
+                if (v === null || v === undefined) return v;
+                const asNum = Number(v);
+                return isNaN(asNum) ? v : asNum;
+              };
+              const likeToRegex = (pattern: string) => {
+                // Convert %pattern% to regex
+                const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const regexStr = '^' + escaped.replace(/%/g, '.*') + '$';
+                return new RegExp(regexStr, 'i');
+              };
+
+              const passed = items.filter((item) => {
+                return filters.every((f: any) => {
+                  const leftRaw = item[f.field];
+                  const rightRaw = f.value;
+                  const left = toComparable(leftRaw);
+                  const right = toComparable(rightRaw);
+
+                  switch (f.operator) {
+                    case '=': return String(left) === String(right);
+                    case '!=': return String(left) !== String(right);
+                    case '>': return Number(left) > Number(right);
+                    case '>=': return Number(left) >= Number(right);
+                    case '<': return Number(left) < Number(right);
+                    case '<=': return Number(left) <= Number(right);
+                    case 'LIKE': {
+                      const re = likeToRegex(String(right));
+                      return re.test(String(left));
+                    }
+                    default:
+                      return false;
+                  }
+                });
+              });
+
+              const limited = passed.slice(0, count);
+              return { rows: limited, count: limited.length, data: limited };
+            }
+
             case 'GET':
               redisResult = await client.get(redisQuery.key);
               return { rows: redisResult ? [redisResult] : [], count: redisResult ? 1 : 0, data: redisResult ? [redisResult] : [] };
