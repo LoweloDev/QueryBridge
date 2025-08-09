@@ -10,6 +10,7 @@ import { QueryParser } from "./query-parser";
 import { QueryTranslator } from "./query-translator";
 import { ExecuteStatementCommand } from "@aws-sdk/lib-dynamodb";
 import SQLParser from "@synatic/noql";
+import LZString from "lz-string";
 
 export class ConnectionManager {
   private activeConnections: Map<string, ActiveConnection> = new Map();
@@ -35,6 +36,10 @@ export class ConnectionManager {
    * Execute a universal query against a registered connection
    */
   async executeQuery(connectionId: string, queryString: string): Promise<QueryResult> {
+    if (this.isEncoded(queryString)) {
+      queryString = this.decode(queryString);
+    }
+
     const connection = this.activeConnections.get(connectionId);
 
     if (!connection) {
@@ -142,6 +147,29 @@ export class ConnectionManager {
    */
   listConnections(): DatabaseConnection[] {
     return Array.from(this.connectionConfigs.values());
+  }
+
+  /**
+   * Encode a query string to an obfuscated string
+   */
+  encode(query: string): string {
+    return LZString.compressToEncodedURIComponent(query)
+  }
+
+  /**
+   * Decode an obfuscated string to a query string
+   */
+  decode(query: string): string {
+    return LZString.decompressFromEncodedURIComponent(query)
+  }
+
+  /**
+   * Check if a string is encoded
+   */
+  isEncoded(str: string): boolean {
+    if (typeof str !== "string" || !str.trim()) return false;
+    const decoded = LZString.decompressFromEncodedURIComponent(str);
+    return decoded !== null;
   }
 
   /**
