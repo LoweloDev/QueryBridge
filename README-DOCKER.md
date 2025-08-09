@@ -15,12 +15,7 @@ This guide helps you set up the Universal Query Translator with Docker for clean
    ./install-docker.sh
    ```
 
-2. **Start databases:**
-   ```bash
-   ./start-databases.sh
-   ```
-
-3. **Start development server:**
+2. **Start development server:**
    ```bash
    ./start-dev-docker.sh
    ```
@@ -73,13 +68,9 @@ docker-compose restart postgresql
 docker-compose down -v && docker-compose up -d
 ```
 
-### Development Commands
+### Development Command
 ```bash
-# Start development with Docker databases
 ./start-dev-docker.sh
-
-# Use original development script (requires local databases)
-./start-dev.sh
 ```
 
 ## Configuration

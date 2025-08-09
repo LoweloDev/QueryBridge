@@ -16,9 +16,10 @@ interface DatabaseStatus {
 
 export default function DatabaseSetup() {
   const queryClient = useQueryClient();
-  
+
   const { data: status, isLoading, error, refetch } = useQuery<DatabaseStatus>({
     queryKey: ['/api/real-databases/status'],
+    enabled: false
   });
 
   const initializeMutation = useMutation({
@@ -66,7 +67,7 @@ export default function DatabaseSetup() {
             <RefreshCw className="w-4 h-4 mr-2" />
             Refresh Status
           </Button>
-          <Button 
+          <Button
             onClick={() => initializeMutation.mutate()}
             disabled={initializeMutation.isPending}
           >
@@ -126,37 +127,27 @@ export default function DatabaseSetup() {
       {/* Setup Instructions */}
       <Card>
         <CardHeader>
-          <CardTitle>Setup Instructions</CardTitle>
+          <CardTitle>Docker Setup</CardTitle>
           <CardDescription>
-            Start local databases for testing real connections
+            All databases are managed via Docker. No local installations required.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <h4 className="font-semibold">Quick Start Commands</h4>
+            <h4 className="font-semibold">Start services</h4>
             <pre className="bg-muted p-3 rounded text-sm overflow-x-auto">
-              <code>{`# Start MongoDB
-mongod --dbpath ./data/mongodb --port 27017
-
-# Start Redis
-redis-server --port 6379
-
-# Start DynamoDB Local
-npx dynamodb-local -port 8000 -dbPath ./data/dynamodb
-
-# Check status
-curl http://localhost:5000/api/real-databases/status`}</code>
+              <code>{`./install-docker.sh
+./start-dev-docker.sh`}</code>
             </pre>
           </div>
-          
           <div className="space-y-2">
-            <h4 className="font-semibold">Current Configuration</h4>
+            <h4 className="font-semibold">Service Ports</h4>
             <div className="grid grid-cols-2 gap-2 text-sm">
-              <div>PostgreSQL: Port 5432 (Configured)</div>
-              <div>MongoDB: Port 27017</div>
-              <div>Redis: Port 6379</div>
-              <div>DynamoDB: Port 8000</div>
-              <div>Elasticsearch: Port 9200</div>
+              <div>PostgreSQL: 5432</div>
+              <div>MongoDB: 27017</div>
+              <div>Redis: 6379</div>
+              <div>DynamoDB: 8000</div>
+              <div>OpenSearch: 9200</div>
             </div>
           </div>
         </CardContent>

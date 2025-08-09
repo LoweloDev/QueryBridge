@@ -99,8 +99,8 @@ This architectural shift significantly simplifies the query translation layer by
 - **Testing Strategy**: Comprehensive test suite with external library validation
 
 ### Data Storage Solutions
-- **Primary Database**: PostgreSQL via Neon serverless with connection pooling
-- **Development Databases**: Local instances of MongoDB, Redis, DynamoDB, and Elasticsearch
+- **Primary Database**: PostgreSQL via Docker (containerized) or Neon serverless
+- **Development Databases**: All databases run via Docker; no local installations required
 - **Schema Management**: Drizzle migrations with shared schema definitions
 - **Connection Strategy**: Connection manager accepts external database clients by reference
 

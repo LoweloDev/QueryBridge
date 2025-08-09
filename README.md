@@ -154,50 +154,28 @@ npm install universal-query-translator
 **📚 [Library Documentation →](./lib/README.md)**  
 **🛠️ [Developer Guide →](./lib/DEVELOPER_GUIDE.md)**
 
-### 2. Running the Testing Platform
+### 2. Running the Testing Platform (Docker)
 
 For testing and validating query translations:
 
 ```bash
-# Set up environment variables
-cp .env.example .env
-# Edit .env with your database credentials (especially DATABASE_URL for PostgreSQL)
+# Install Docker prerequisites
+./install-docker.sh
 
-# Quick setup (recommended - handles path issues automatically)
-./install-simple.sh
-
-# OR comprehensive installation (installs all database prerequisites)
-./install.sh
-
-# Start the development server (builds and installs local npm package)
-./start-dev.sh
+# Start databases and app using Docker
+./start-dev-docker.sh
 ```
 
-> **Note**: The `start-dev.sh` script automatically:
-> - Builds and installs the local npm package so the testing platform imports from `universal-query-translator`
-> - Cleans up any existing database processes to avoid port conflicts
-> - Checks if databases are already running to avoid duplicate startups
-> - Uses proper host bindings for different operating systems (localhost on macOS, 0.0.0.0 on Linux)
+> Note: The Docker-based startup builds the local library and brings up all databases via docker-compose.
 
-#### Troubleshooting Database Issues
+#### Troubleshooting
 
-If you encounter port conflicts or database startup issues:
+If you encounter port conflicts or container issues:
 
 ```bash
-# Stop all database services and clean ports
-./server/scripts/stop-all-databases.sh
-
-# Clean up ports manually if needed
-./server/scripts/cleanup-ports.sh
-
-# Test individual database startup
-./server/scripts/start-mongodb.sh
-./server/scripts/start-redis.sh
-./server/scripts/start-dynamodb.sh
-./server/scripts/start-elasticsearch.sh
-
-# Restart the development server
-./start-dev.sh
+docker compose ps
+docker compose logs -f
+docker compose restart <service>
 ```
 
 **Common Issues:**
@@ -224,17 +202,7 @@ If you encounter port conflicts or database startup issues:
 
 ---------------------------------------------------------------------------
 
-```bash
-# With manual database setup 
-
-# Install dependencies
-npm install
-
-# Start the development server
-npm run dev
-```
-
-The platform will be available at `http://localhost:5000`
+The platform will be available at `http://localhost:5000`.
 
 ### 3. Database Setup
 

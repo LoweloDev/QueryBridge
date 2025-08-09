@@ -13,9 +13,9 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./server/data/postgresql:/docker-entrypoint-initdb.d
+      - ./server/data/postgresql-init:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -33,9 +33,9 @@ services:
       - "27017:27017"
     volumes:
       - mongodb_data:/data/db
-      - ./server/data/mongodb:/docker-entrypoint-initdb.d
+      - ./server/data/mongodb-init:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -46,14 +46,14 @@ services:
     image: redis/redis-stack:latest
     container_name: querybridge-redis
     ports:
-      - "6379:6379"      # Redis
-      - "8001:8001"      # RedisInsight web UI
+      - "6379:6379" # Redis
+      - "8001:8001" # RedisInsight web UI
     volumes:
       - redis_data:/data
     environment:
       REDIS_ARGS: "--save 60 1 --loglevel warning"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -65,9 +65,9 @@ services:
     container_name: querybridge-dynamodb
     ports:
       - "8000:8000"
-    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-inMemory"]
+    command: [ "-jar", "DynamoDBLocal.jar", "-sharedDb", "-inMemory" ]
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/ || exit 1"]
+      test: [ "CMD-SHELL", "curl -f http://localhost:8000/ || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -99,7 +99,7 @@ services:
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      test: [ "CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -124,6 +124,7 @@ volumes:
   mongodb_data:
   redis_data:
   elasticsearch_data:
+
 
 networks:
   default:
