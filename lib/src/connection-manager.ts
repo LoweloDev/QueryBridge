@@ -33,9 +33,27 @@ export class ConnectionManager {
   }
 
   /**
+   * Unregister a connection
+   */
+  unregisterConnection(connectionId: string): void {
+    this.activeConnections.delete(connectionId);
+    this.connectionConfigs.delete(connectionId);
+  }
+
+  /**
+   * Execute a universal query against the first active connection
+   */
+  async executeQuery(queryString: string, scope?: { [key: string]: any }): Promise<QueryResult> {
+    const connection = this.activeConnections.values().next().value;
+    if (this.activeConnections.size > 1) throw new Error("Multiple active connections found, please use executeQueryForConnection instead");
+    if (!connection) throw new Error("No active connection found");
+    return this.executeQueryForConnection(connection.config.id, queryString, scope);
+  }
+
+  /**
    * Execute a universal query against a registered connection
    */
-  async executeQuery(connectionId: string, queryString: string): Promise<QueryResult> {
+  async executeQueryForConnection(connectionId: string, queryString: string, scope?: { [key: string]: any }): Promise<QueryResult> {
     if (this.isEncoded(queryString)) {
       queryString = this.decode(queryString);
     }

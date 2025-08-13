@@ -68,7 +68,7 @@ export async function registerRoutes(app: Express, connectionManager: Connection
 
       // This is the clean library interface - just pass the query and connection ID
       // The library handles all parsing, translation, and execution internally
-      const results = await connectionManager.executeQuery(connectionId, query);
+      const results = await connectionManager.executeQueryForConnection(connectionId, query);
       
       const executionTime = Date.now() - startTime;
 
