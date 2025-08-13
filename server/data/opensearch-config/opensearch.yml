@@ -1,0 +1,13 @@
+# OpenSearch Configuration - Security Disabled
+cluster.name: universal-query-postgresql
+node.name: postgresql-layer
+network.host: 127.0.0.1
+http.port: 9200
+discovery.type: single-node
+path.data: ./server/data/elasticsearch/postgresql-layer
+path.logs: ./server/data/elasticsearch/logs
+action.auto_create_index: true
+cluster.routing.allocation.disk.threshold_enabled: false
+
+# Disable security plugin
+plugins.security.disabled: true

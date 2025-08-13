@@ -18,23 +18,15 @@ interface QueryEditorProps {
 export function QueryEditor({ onQueryExecuted, onQueryHistoryAdd }: QueryEditorProps) {
   const [activeTab, setActiveTab] = useState("sql");
   const [query, setQuery] = useState(`FIND users
-WHERE 
-  age > 25 AND
-  status = "active" AND
-  created_at > "2023-01-01"
+WHERE status = "active"
 ORDER BY created_at DESC
-LIMIT 50
-AGGREGATE
-  count: COUNT(*),
-  avg_age: AVG(age),
-  total_orders: SUM(order_count)
-GROUP BY status`);
-  
+LIMIT 5`);
+
   const [translatedQuery, setTranslatedQuery] = useState("");
   const [selectedConnection, setSelectedConnection] = useState("");
   const [showExecutionPlan, setShowExecutionPlan] = useState(false);
   const [showTiming, setShowTiming] = useState(false);
-  
+
   const { toast } = useToast();
 
   const { data: connections } = useQuery({
@@ -70,10 +62,10 @@ GROUP BY status`);
         rowCount: data.rowCount,
         translatedQuery: data.translatedQuery,
       });
-      
+
       // Add to history
       onQueryHistoryAdd(query, activeTab, data.results, data.executionTime);
-      
+
       toast({
         title: "Query executed successfully",
         description: `${data.rowCount} rows returned in ${data.executionTime}`,
@@ -108,21 +100,25 @@ GROUP BY status`);
 
   // Auto-select connection based on active tab
   useEffect(() => {
-    if (connections && connections.length > 0) {
-      const matchingConnection = connections.find((conn: any) => {
-        const connType = conn.type.toLowerCase();
-        if (activeTab === 'sql') return connType === 'postgresql';
-        return connType === activeTab;
-      });
-      
-      if (matchingConnection) {
-        setSelectedConnection(matchingConnection.id);
-      } else {
-        // Fallback to first connection if no exact match
-        setSelectedConnection(connections[0].id);
-      }
+    if (!connections) return; // Add null check
+
+    console.log('Active tab:', activeTab);
+    console.log('Available connections:', connections);
+
+    const matchingConnection = connections.find((conn: any) => {
+      const connType = conn.type.toLowerCase();
+      console.log('Checking connection:', conn.name, 'type:', connType, 'against activeTab:', activeTab);
+      if (activeTab === 'sql') return connType === 'postgresql';
+      return connType === activeTab;
+    });
+
+    console.log('Selected connection:', matchingConnection);
+
+    // Force selection when tab changes, even if a connection is already selected
+    if (matchingConnection) {
+      setSelectedConnection(matchingConnection.id);
     }
-  }, [connections, activeTab]);
+  }, [activeTab, connections]);
 
   useEffect(() => {
     if (query.trim()) {
@@ -133,25 +129,21 @@ GROUP BY status`);
   const handleExecuteQuery = () => {
     if (!selectedConnection) {
       toast({
-        title: "No connection available",
-        description: `No ${activeTab.toUpperCase()} connection found`,
+        title: "No connection selected",
+        description: "Please select a database connection first.",
         variant: "destructive",
       });
       return;
     }
 
-    executeMutation.mutate({
-      query,
-      connectionId: selectedConnection,
-      targetType: activeTab,
-    });
+    executeMutation.mutate({ query, connectionId: selectedConnection, targetType: activeTab });
   };
 
   const formatGeneratedQuery = (query: string) => {
     if (activeTab === "sql") {
       return query;
     }
-    
+
     try {
       const parsed = JSON.parse(query);
       return JSON.stringify(parsed, null, 2);
@@ -162,7 +154,7 @@ GROUP BY status`);
 
   const getTabIcon = (type: string) => {
     const icons: Record<string, string> = {
-      sql: "💾",
+      sql: "🗄️",
       mongodb: "🍃",
       elasticsearch: "🔍",
       dynamodb: "⚡",
@@ -177,16 +169,11 @@ GROUP BY status`);
       <div className="border-b border-border px-6 py-3">
         <div className="flex space-x-6">
           {["sql", "mongodb", "elasticsearch", "dynamodb", "redis"].map((type) => (
-            <Button
-              key={type}
-              variant="ghost"
+            <Button key={type}
+              variant={activeTab === type ? "default" : "outline"}
               size="sm"
-              className={`px-3 py-2 text-sm font-medium transition-colors ${
-                activeTab === type
-                  ? "tab-active text-accent border-b-2 border-accent"
-                  : "text-muted-foreground hover:text-accent"
-              }`}
               onClick={() => setActiveTab(type)}
+              className="flex items-center gap-2"
             >
               <span className="mr-2">{getTabIcon(type)}</span>
               {type.toUpperCase()}
@@ -241,25 +228,13 @@ GROUP BY status`);
               <h3 className="text-sm font-medium text-primary">
                 Generated {activeTab.toUpperCase()} Query
               </h3>
-              <div className="flex items-center space-x-2">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="text-xs text-muted-foreground hover:text-accent"
-                  onClick={() => navigator.clipboard.writeText(translatedQuery)}
-                >
-                  <Copy className="mr-1" size={12} />
-                  Copy
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="text-xs text-muted-foreground hover:text-accent"
-                >
-                  <ExternalLink className="mr-1" size={12} />
-                  Export
-                </Button>
-              </div>
+              <Badge variant="secondary" className="text-xs">
+                <span className="mr-1">{getTabIcon(activeTab)}</span>
+                {activeTab.toUpperCase()}
+                {connections?.find((c: any) => c.id === selectedConnection)?.name &&
+                  ` - ${connections.find((c: any) => c.id === selectedConnection)?.name}`
+                }
+              </Badge>
             </div>
           </div>
           <div className="flex-1 p-6">
@@ -295,19 +270,19 @@ GROUP BY status`);
                 </>
               )}
             </Button>
-            
+
             {/* Auto-selected Connection Display */}
             <div className="flex items-center space-x-2">
               <span className="text-sm font-medium text-primary">Target:</span>
               <Badge variant="secondary" className="text-xs">
                 <span className="mr-1">{getTabIcon(activeTab)}</span>
-                {activeTab.toUpperCase()} 
-                {connections?.find((c: any) => c.id === selectedConnection)?.name && 
+                {activeTab.toUpperCase()}
+                {connections?.find((c: any) => c.id === selectedConnection)?.name &&
                   ` - ${connections.find((c: any) => c.id === selectedConnection)?.name}`
                 }
               </Badge>
             </div>
-            
+
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="explain"

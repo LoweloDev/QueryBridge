@@ -1,9 +1,39 @@
 import { z } from 'zod';
 
-// Core query language schema
+// Database concept mappings based on the standardized table
+export const DATABASE_CONCEPT_MAPPINGS = {
+  postgresql: {
+    table: 'table',
+    subTable: 'schema',
+    example: 'FIND public.users'
+  },
+  mongodb: {
+    table: 'collection',
+    subTable: 'database',
+    example: 'FIND test.users'
+  },
+  elasticsearch: {
+    table: 'index',
+    subTable: 'alias',
+    example: 'FIND logs.2024'
+  },
+  dynamodb: {
+    table: 'table',
+    subTable: 'index',
+    example: 'FIND users.user_id_idx'
+  },
+  redis: {
+    table: 'key',
+    subTable: 'database',
+    example: 'FIND user:123'
+  }
+} as const;
+
+// Core query language schema - simplified without dbSpecific
 export const QueryLanguageSchema = z.object({
   operation: z.enum(['FIND', 'INSERT', 'UPDATE', 'DELETE']),
   table: z.string(),
+  subTable: z.string().optional(), // For schema/database/alias/index specification
   fields: z.array(z.string()).optional(),
   where: z.array(z.object({
     field: z.string(),
@@ -39,7 +69,7 @@ export const QueryLanguageSchema = z.object({
     field: z.string(),
     alias: z.string().optional(),
   })).optional(),
-  dbSpecific: z.record(z.any()).optional(),
+  // Removed dbSpecific field - no longer needed for SQL-based databases
 });
 
 export type QueryLanguage = z.infer<typeof QueryLanguageSchema>;
@@ -56,7 +86,6 @@ export interface DatabaseConnection {
   database: string;
   username?: string;
   password?: string;
-  ssl?: boolean;
   region?: string; // For DynamoDB
   accessKeyId?: string; // For DynamoDB
   secretAccessKey?: string; // For DynamoDB
@@ -68,7 +97,7 @@ export interface DatabaseConnection {
     // Add GSI configuration if needed in future
     globalSecondaryIndexes?: Array<{
       name: string;
-      partitionKey: string;
+      partitionKey?: string;
       sortKey?: string;
     }>;
   };

@@ -1,4 +1,4 @@
-# Universal Query Translator
+# QueryBridge Monorepo
 
 A comprehensive database query translation platform that intelligently transforms queries across multiple database technologies with advanced multi-database compatibility.
 
@@ -18,57 +18,17 @@ This project provides both a **standalone NPM library** and a **visual testing p
 
 ## 🗂️ Project Structure
 
-This repository contains two main components:
-
 ```
-├── lib/                          # 📦 NPM Library
-│   ├── src/                      # Library source code
-│   ├── __tests__/               # Comprehensive test suite
-│   ├── README.md                # Library usage documentation
-│   └── DEVELOPER_GUIDE.md       # Development & publishing guide
-├── client/                       # 🎮 React Frontend (Testing Platform)
-├── server/                       # 🖥️ Express Backend (Example utilizing the lib)
-└── README.md                     # This file
+├── lib/            # Isolated library (npm package)
+├── client/         # Playground UI
+├── server/         # Playground backend
+└── README.md       # Monorepo overview
 ```
 
-## 📦 NPM Library
+## 📦 Library Docs
 
-The core library (`universal-query-translator`) is a standalone package that provides query translation capabilities for Node.js applications.
-
-### Installation
-
-```bash
-npm install universal-query-translator
-```
-
-### Quick Example
-
-```javascript
-import { ConnectionManager } from 'universal-query-translator';
-
-const connectionManager = new ConnectionManager();
-
-// Register your database connections
-connectionManager.registerConnection('postgres', pgClient, {
-  id: 'postgres',
-  name: 'Main Database',
-  type: 'postgresql',
-  host: 'localhost',
-  port: 5432,
-  database: 'myapp'
-});
-
-// Execute universal queries
-const results = await connectionManager.executeQuery(
-  'postgres',
-  `FIND users 
-   WHERE age > 25 AND status = "active"
-   ORDER BY created_at DESC 
-   LIMIT 10`
-);
-```
-
-**📚 [Complete Library Documentation →](./lib/README.md)**
+- Usage: see `lib/README.md`
+- Developer guide: see `lib/DEVELOPER_GUIDE.md`
 
 ## 🎮 Interactive Testing Platform
 
@@ -93,15 +53,13 @@ The platform provides a comprehensive interface for:
 4. **Execution Testing** - Run queries against live databases to validate results
 5. **Result Visualization** - Formatted display of query results and metadata
 
-## 🔧 Supported Databases
+## 🔧 Current backend targets (library)
 
-| Database | Library Support | Platform Support | Key Features |
-|----------|----------------|------------------|--------------|
-| **PostgreSQL** | ✅ Complete | ✅ Full Integration | SQL queries, JOINs, transactions, aggregations |
-| **MongoDB** | ✅ Complete | ✅ Full Integration | Collections, aggregation pipelines, complex queries |
-| **Elasticsearch** | ✅ Complete | ✅ Full Integration | Full-text search, aggregations, nested queries |
-| **DynamoDB** | ✅ Complete | ✅ Full Integration | Single-table design, GSI queries, intelligent mapping |
-| **Redis** | ✅ Complete | ✅ Full Integration | RediSearch, RedisGraph, geospatial queries |
+- PostgreSQL: emits SQL
+- MongoDB: via SQL parsed by `@synatic/noql`
+- OpenSearch/Elasticsearch: SQL endpoint
+- DynamoDB: PartiQL-compatible SQL subset
+- Redis: structured SCAN/GET plans
 
 ## 🌐 Universal Query Language
 
@@ -117,7 +75,7 @@ ORDER BY created_at DESC
 LIMIT 50
 ```
 
-### Advanced Features
+### Advanced Features (SQL primary)
 
 ```sql
 -- JOINs across databases
@@ -154,50 +112,28 @@ npm install universal-query-translator
 **📚 [Library Documentation →](./lib/README.md)**  
 **🛠️ [Developer Guide →](./lib/DEVELOPER_GUIDE.md)**
 
-### 2. Running the Testing Platform
+### 2. Run the playground (Docker)
 
 For testing and validating query translations:
 
 ```bash
-# Set up environment variables
-cp .env.example .env
-# Edit .env with your database credentials (especially DATABASE_URL for PostgreSQL)
+# Install Docker prerequisites
+./install-docker.sh
 
-# Quick setup (recommended - handles path issues automatically)
-./install-simple.sh
-
-# OR comprehensive installation (installs all database prerequisites)
-./install.sh
-
-# Start the development server (builds and installs local npm package)
-./start-dev.sh
+# Start databases and app using Docker
+./start-dev-docker.sh
 ```
 
-> **Note**: The `start-dev.sh` script automatically:
-> - Builds and installs the local npm package so the testing platform imports from `universal-query-translator`
-> - Cleans up any existing database processes to avoid port conflicts
-> - Checks if databases are already running to avoid duplicate startups
-> - Uses proper host bindings for different operating systems (localhost on macOS, 0.0.0.0 on Linux)
+> Note: The Docker-based startup builds the local library and brings up all databases via docker-compose.
 
-#### Troubleshooting Database Issues
+#### Troubleshooting (Docker)
 
-If you encounter port conflicts or database startup issues:
+If you encounter port conflicts or container issues:
 
 ```bash
-# Stop all database services and clean ports
-./server/scripts/stop-all-databases.sh
-
-# Clean up ports manually if needed
-./server/scripts/cleanup-ports.sh
-
-# Test individual database startup
-./server/scripts/start-mongodb.sh
-./server/scripts/start-redis.sh
-./server/scripts/start-dynamodb.sh
-./server/scripts/start-elasticsearch.sh
-
-# Restart the development server
-./start-dev.sh
+docker compose ps
+docker compose logs -f
+docker compose restart <service>
 ```
 
 **Common Issues:**
@@ -224,27 +160,11 @@ If you encounter port conflicts or database startup issues:
 
 ---------------------------------------------------------------------------
 
-```bash
-# With manual database setup 
-
-# Install dependencies
-npm install
-
-# Start the development server
-npm run dev
-```
-
-The platform will be available at `http://localhost:5000`
+The platform will be available at `http://localhost:5000`.
 
 ### 3. Database Setup
 
-The platform supports multiple database connections. Configure your databases:
-
-- **PostgreSQL**: Standard connection with host, port, database
-- **MongoDB**: Connection string or host/port configuration
-- **Elasticsearch**: HTTP endpoint with optional authentication
-- **DynamoDB**: AWS credentials and region configuration
-- **Redis**: Host, port, and optional authentication
+The playground uses Docker; connection details are shown in `start-dev-docker.sh`.
 
 ## 🌟 Use Cases
 

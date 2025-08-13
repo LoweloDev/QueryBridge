@@ -6,6 +6,8 @@ import { setupVite, serveStatic, log } from "./vite";
 // Import from the published npm package
 import { ConnectionManager, QueryParser, QueryTranslator } from 'universal-query-translator';
 import { DatabaseSetup } from "./services/database-setup";
+import { datasetManager } from './services/dataset-manager';
+import { settingsManager } from './services/settings-manager';
 
 const app = express();
 app.use(express.json());
@@ -57,6 +59,28 @@ async function setupDatabaseConnections() {
     for (const [connectionId, connection] of Array.from(connections)) {
       if (connection.client) {
         connectionManager.registerConnection(connectionId, connection.client, connection.config);
+      }
+    }
+    
+    // Load datasets if configured to do so
+    if (settingsManager.shouldAutoLoadDataset()) {
+      log('Auto-loading example datasets...');
+      for (const [connectionId, connection] of Array.from(connections)) {
+        if (connection.client) {
+          try {
+            const activeConnection = { config: connection.config, client: connection.client };
+            
+            if (settingsManager.shouldResetOnStartup()) {
+              await datasetManager.resetDatabase(activeConnection);
+              log(`Reset and loaded dataset for ${connection.config.name}`);
+            } else {
+              await datasetManager.loadDataset(activeConnection);
+              log(`Loaded dataset for ${connection.config.name}`);
+            }
+          } catch (error: any) {
+            log(`Failed to load dataset for ${connection.config.name}: ${error.message}`);
+          }
+        }
       }
     }
     

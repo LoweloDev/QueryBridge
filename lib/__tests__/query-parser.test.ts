@@ -6,7 +6,7 @@ describe('QueryParser', () => {
     it('should parse a simple FIND query', () => {
       const query = 'FIND users';
       const result = QueryParser.parse(query);
-      
+
       expect(result.operation).toBe('FIND');
       expect(result.table).toBe('users');
     });
@@ -15,7 +15,7 @@ describe('QueryParser', () => {
       const query = `FIND users
 WHERE age > 25 AND status = 'active'`;
       const result = QueryParser.parse(query);
-      
+
       expect(result.operation).toBe('FIND');
       expect(result.table).toBe('users');
       expect(result.where).toHaveLength(2);
@@ -36,7 +36,7 @@ WHERE age > 25 AND status = 'active'`;
       const query = `FIND users
 FIELDS name, email, age`;
       const result = QueryParser.parse(query);
-      
+
       expect(result.fields).toEqual(['name', 'email', 'age']);
     });
 
@@ -44,7 +44,7 @@ FIELDS name, email, age`;
       const query = `FIND users
 ORDER BY created_at DESC, name ASC`;
       const result = QueryParser.parse(query);
-      
+
       expect(result.orderBy).toEqual([
         { field: 'created_at', direction: 'DESC' },
         { field: 'name', direction: 'ASC' }
@@ -56,9 +56,66 @@ ORDER BY created_at DESC, name ASC`;
 LIMIT 10
 OFFSET 20`;
       const result = QueryParser.parse(query);
-      
+
       expect(result.limit).toBe(10);
       expect(result.offset).toBe(20);
+    });
+  });
+
+  describe('Standardized Database Concept Mappings', () => {
+    it('should parse PostgreSQL schema.table syntax', () => {
+      const query = 'FIND public.users';
+      const result = QueryParser.parse(query);
+
+      expect(result.operation).toBe('FIND');
+      expect(result.subTable).toBe('public');
+      expect(result.table).toBe('users');
+    });
+
+    it('should parse MongoDB database.collection syntax', () => {
+      const query = 'FIND test.users';
+      const result = QueryParser.parse(query);
+
+      expect(result.operation).toBe('FIND');
+      expect(result.subTable).toBe('test');
+      expect(result.table).toBe('users');
+    });
+
+    it('should parse Elasticsearch alias.index syntax', () => {
+      const query = 'FIND logs.2024';
+      const result = QueryParser.parse(query);
+
+      expect(result.operation).toBe('FIND');
+      expect(result.subTable).toBe('logs');
+      expect(result.table).toBe('2024');
+    });
+
+    it('should parse DynamoDB table.index syntax', () => {
+      const query = 'FIND users.user_id_idx';
+      const result = QueryParser.parse(query);
+
+      expect(result.operation).toBe('FIND');
+      expect(result.subTable).toBe('users');
+      expect(result.table).toBe('user_id_idx');
+    });
+
+    it('should handle field selection with subTable', () => {
+      const query = 'FIND public.users (name, email)';
+      const result = QueryParser.parse(query);
+
+      expect(result.operation).toBe('FIND');
+      expect(result.subTable).toBe('public');
+      expect(result.table).toBe('users');
+      expect(result.fields).toEqual(['name', 'email']);
+    });
+
+    it('should handle DynamoDB table.index syntax', () => {
+      const query = 'FIND users.user_id_idx';
+      const result = QueryParser.parse(query);
+
+      expect(result.operation).toBe('FIND');
+      expect(result.subTable).toBe('users');
+      expect(result.table).toBe('user_id_idx');
     });
   });
 
@@ -68,7 +125,7 @@ OFFSET 20`;
 AGGREGATE COUNT(id) AS total_orders, SUM(amount) AS total_amount
 GROUP BY customer_id`;
       const result = QueryParser.parse(query);
-      
+
       expect(result.aggregate).toEqual([
         { function: 'COUNT', field: 'id', alias: 'total_orders' },
         { function: 'SUM', field: 'amount', alias: 'total_amount' }
@@ -81,7 +138,7 @@ GROUP BY customer_id`;
 LEFT JOIN orders ON users.id = orders.user_id
 INNER JOIN products ON orders.product_id = products.id`;
       const result = QueryParser.parse(query);
-      
+
       expect(result.joins).toHaveLength(2);
       expect(result.joins![0]).toEqual({
         type: 'LEFT',
@@ -103,32 +160,40 @@ INNER JOIN products ON orders.product_id = products.id`;
       });
     });
 
-    it('should parse HAVING clause', () => {
-      const query = `FIND orders
-AGGREGATE COUNT(id) AS order_count
-GROUP BY customer_id
-HAVING order_count > 5`;
+    it('should parse complex queries with all features', () => {
+      const query = `FIND public.users
+FIELDS name, email, age
+LEFT JOIN public.orders ON users.id = orders.user_id
+WHERE age > 25 AND status = 'active'
+ORDER BY created_at DESC
+LIMIT 50`;
       const result = QueryParser.parse(query);
-      
-      expect(result.having).toEqual([{
-        field: 'order_count',
-        operator: '>',
-        value: 5
-      }]);
-    });
 
-    it('should parse database-specific configurations', () => {
+      expect(result.operation).toBe('FIND');
+      expect(result.subTable).toBe('public');
+      expect(result.table).toBe('users');
+      expect(result.fields).toEqual(['name', 'email', 'age']);
+      expect(result.joins).toHaveLength(1);
+      expect(result.where).toHaveLength(2);
+      expect(result.orderBy).toEqual([
+        { field: 'created_at', direction: 'DESC' }
+      ]);
+      expect(result.limit).toBe(50);
+    });
+  });
+
+  describe('DB_SPECIFIC Removal', () => {
+    it('should not parse DB_SPECIFIC clauses anymore', () => {
       const query = `FIND users
-WHERE id = 123
-DB_SPECIFIC: {"dynamodb": {"gsiName": "user-status-index", "partition_key": "TENANT#123"}}`;
+WHERE status = 'active'
+DB_SPECIFIC: partition_key="USER#123"`;
       const result = QueryParser.parse(query);
-      
-      expect(result.dbSpecific).toEqual({
-        dynamodb: {
-          gsiName: "user-status-index",
-          partition_key: "TENANT#123"
-        }
-      });
+
+      expect(result.operation).toBe('FIND');
+      expect(result.table).toBe('users');
+      expect(result.where).toHaveLength(1);
+      // dbSpecific should not exist in the result
+      expect(result).not.toHaveProperty('dbSpecific');
     });
   });
 
@@ -144,9 +209,9 @@ HAVING total_orders > 3
 ORDER BY avg_amount DESC
 LIMIT 50
 OFFSET 10`;
-      
+
       const result = QueryParser.parse(query);
-      
+
       expect(result.operation).toBe('FIND');
       expect(result.table).toBe('orders');
       expect(result.fields).toEqual(['customer_id', 'status', 'amount']);
@@ -166,7 +231,7 @@ OFFSET 10`;
       const query = `   FIND    users   
       WHERE    name   =   'john'    `;
       const result = QueryParser.parse(query);
-      
+
       expect(result.operation).toBe('FIND');
       expect(result.table).toBe('users');
       expect(result.where![0].field).toBe('name');
@@ -176,7 +241,7 @@ OFFSET 10`;
     it('should handle empty sections gracefully', () => {
       const query = 'FIND users';
       const result = QueryParser.parse(query);
-      
+
       expect(result.operation).toBe('FIND');
       expect(result.table).toBe('users');
       expect(result.where).toBeUndefined();

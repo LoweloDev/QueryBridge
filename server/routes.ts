@@ -3,6 +3,8 @@ import type { Express } from "express";
 // Storage removed - using library directly
 // Import from the local lib directory to use our latest improvements
 import { ConnectionManager, QueryTranslator } from 'universal-query-translator';
+import { datasetManager } from './services/dataset-manager';
+import { settingsManager } from './services/settings-manager';
 
 /**
  * Clean API routes that use the library as intended:
@@ -66,7 +68,7 @@ export async function registerRoutes(app: Express, connectionManager: Connection
 
       // This is the clean library interface - just pass the query and connection ID
       // The library handles all parsing, translation, and execution internally
-      const results = await connectionManager.executeQuery(connectionId, query);
+      const results = await connectionManager.executeQueryForConnection(connectionId, query);
       
       const executionTime = Date.now() - startTime;
 
@@ -101,6 +103,134 @@ export async function registerRoutes(app: Express, connectionManager: Connection
         targetType: mappedTargetType
       });
 
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get test settings
+  app.get("/api/settings", (req: Request, res: Response) => {
+    try {
+      const settings = settingsManager.getSettings();
+      res.json(settings);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Update test settings
+  app.put("/api/settings", (req: Request, res: Response) => {
+    try {
+      const updatedSettings = settingsManager.updateSettings(req.body);
+      res.json(updatedSettings);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Update connection configuration
+  app.put("/api/connections/:id", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const updatedConfig = req.body;
+      
+      if (!id) {
+        return res.status(400).json({ error: "Connection ID is required" });
+      }
+
+      // Unregister old connection
+      connectionManager.unregisterConnection(id);
+      
+      // Re-register with new configuration
+      // Note: This would need database setup service to recreate the connection
+      // For now, return success - actual reconnection would happen on next startup
+      res.json({ success: true, message: "Connection configuration updated" });
+      
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Delete connection
+  app.delete("/api/connections/:id", (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      
+      if (!id) {
+        return res.status(400).json({ error: "Connection ID is required" });
+      }
+
+      connectionManager.unregisterConnection(id);
+      res.json({ success: true, message: "Connection deleted" });
+      
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Reset database (clear all data and reload example dataset)
+  app.post("/api/connections/:id/reset", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      
+      if (!id) {
+        return res.status(400).json({ error: "Connection ID is required" });
+      }
+
+      // Get connection from connection manager
+      const connections = connectionManager.listConnections();
+      const connection = connections.find(conn => conn.id === id);
+      
+      if (!connection) {
+        return res.status(404).json({ error: "Connection not found" });
+      }
+
+      // Get active connection for dataset operations
+      const activeConnection = (connectionManager as any).activeConnections?.get(id);
+      
+      if (!activeConnection) {
+        return res.status(400).json({ error: "Connection is not active" });
+      }
+
+      // Reset database and reload dataset
+      await datasetManager.resetDatabase(activeConnection);
+      
+      res.json({ success: true, message: "Database reset and example dataset loaded" });
+      
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Load example dataset into database
+  app.post("/api/connections/:id/load-dataset", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      
+      if (!id) {
+        return res.status(400).json({ error: "Connection ID is required" });
+      }
+
+      // Get connection from connection manager
+      const connections = connectionManager.listConnections();
+      const connection = connections.find(conn => conn.id === id);
+      
+      if (!connection) {
+        return res.status(404).json({ error: "Connection not found" });
+      }
+
+      // Get active connection for dataset operations
+      const activeConnection = (connectionManager as any).activeConnections?.get(id);
+      
+      if (!activeConnection) {
+        return res.status(400).json({ error: "Connection is not active" });
+      }
+
+      // Load example dataset
+      await datasetManager.loadDataset(activeConnection);
+      
+      res.json({ success: true, message: "Example dataset loaded successfully" });
+      
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

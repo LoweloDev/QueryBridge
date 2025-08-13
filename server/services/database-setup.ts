@@ -8,7 +8,7 @@
 import { Pool as NeonPool, neonConfig } from '@neondatabase/serverless';
 import { Pool as PgPool } from 'pg';
 import { MongoClient } from 'mongodb';
-import { Client as OpenSearchClient } from '@opensearch-project/opensearch';
+import { Client as ElasticsearchClient } from '@elastic/elasticsearch';
 import { DynamoDBClient, ListTablesCommand } from '@aws-sdk/client-dynamodb';
 import Redis from 'ioredis';
 import type { DatabaseConnection, ActiveConnection } from "universal-query-translator";
@@ -23,56 +23,58 @@ export class DatabaseSetup {
    * Setup real database connections for testing
    */
   async setupRealDatabases(): Promise<void> {
+    // Check if running in Docker mode
+    const isDockerMode = process.env.DOCKER_MODE === 'true';
+
     const configs: DatabaseConnection[] = [
       {
-        id: '943e7415-b1fb-4090-8645-3698be872423',
-        name: 'PostgreSQL - Production',
+        id: 'postgresql-main',
+        name: 'PostgreSQL - Main',
         type: 'postgresql',
-        host: process.env.PGHOST || 'localhost',
-        port: parseInt(process.env.PGPORT || '5432'),
-        database: process.env.PGDATABASE || 'postgres',
-        username: process.env.PGUSER || process.env.USER || 'postgres'
+        host: process.env.POSTGRES_HOST || 'localhost',
+        port: parseInt(process.env.POSTGRES_PORT || '5432'),
+        database: 'main',
+        username: process.env.POSTGRES_USER || 'postgres',
+        password: process.env.POSTGRES_PASSWORD || 'postgres'
       },
       {
-        id: 'mongodb-analytics',
-        name: 'MongoDB - Analytics',
+        id: 'mongodb-main',
+        name: 'MongoDB - Main',
         type: 'mongodb',
-        host: 'localhost',
-        port: 27017,
-        database: 'analytics'
+        host: process.env.MONGO_HOST || 'localhost',
+        port: parseInt(process.env.MONGO_PORT || '27017'),
+        database: 'main',
+        username: process.env.MONGO_USER || 'admin',
+        password: process.env.MONGO_PASSWORD || 'password'
       },
       {
-        id: 'redis-cache',
-        name: 'Redis - Cache',
-        type: 'redis',
-        host: 'localhost',
-        port: 6379,
-        database: '0'
+        id: 'elasticsearch-main',
+        name: 'Elasticsearch - Main',
+        type: 'elasticsearch',
+        host: process.env.ELASTICSEARCH_HOST || 'localhost',
+        port: parseInt(process.env.ELASTICSEARCH_PORT || '9200'),
+        database: 'main',
+        username: process.env.ELASTICSEARCH_USER || '',
+        password: process.env.ELASTICSEARCH_PASSWORD || ''
       },
       {
-        id: 'dynamodb-users',
-        name: 'DynamoDB - Users',
+        id: 'dynamodb-main',
+        name: 'DynamoDB - Main',
         type: 'dynamodb',
-        host: 'localhost',
-        port: 8000,
-        database: 'users',
+        host: process.env.DYNAMODB_HOST || 'localhost',
+        port: parseInt(process.env.DYNAMODB_PORT || '8000'),
+        database: 'main',
         region: 'us-east-1'
       },
       {
-        id: 'elasticsearch-postgresql',
-        name: 'Elasticsearch - PostgreSQL Layer',
-        type: 'elasticsearch',
-        host: 'localhost',
-        port: 9200,
-        database: 'postgresql-search'
-      },
-      {
-        id: 'elasticsearch-dynamodb',
-        name: 'Elasticsearch - DynamoDB Layer',
-        type: 'elasticsearch',
-        host: 'localhost',
-        port: 9201,
-        database: 'dynamodb-search'
+        id: 'redis-main',
+        name: 'Redis - Main',
+        type: 'redis',
+        host: process.env.REDIS_HOST || 'localhost',
+        port: parseInt(process.env.REDIS_PORT || '6379'),
+        database: 'main',
+        username: process.env.REDIS_USER || '',
+        password: process.env.REDIS_PASSWORD || ''
       }
     ];
 
@@ -104,7 +106,7 @@ export class DatabaseSetup {
         await this.setupElasticsearch(config);
         break;
       default:
-        console.warn(`Unknown database type: ${config.type}`);
+        console.warn(`Unsupported database type: ${config.type}`);
     }
   }
 
@@ -132,14 +134,22 @@ export class DatabaseSetup {
           ...(process.env.DATABASE_URL && process.env.DATABASE_URL !== 'postgresql://user:password@host:port/database' ? [{
             connectionString: process.env.DATABASE_URL
           }] : []),
-          // Primary: Match the exact working CLI connection (tobiasbarthold@localhost:5432/querybridge_dev)
+          // Primary: Docker environment configuration
+          ...(process.env.DOCKER_MODE === 'true' ? [{
+            host: process.env.POSTGRES_HOST || 'localhost',
+            port: parseInt(process.env.POSTGRES_PORT || '5432'),
+            user: process.env.POSTGRES_USER || 'postgres',
+            password: process.env.POSTGRES_PASSWORD || 'password',
+            database: process.env.POSTGRES_DB || 'querybridge_dev'
+          }] : []),
+          // Local development: Match the exact working CLI connection
           {
             host: 'localhost',
             port: 5432,
-            user: 'tobiasbarthold',
+            user: process.env.USER || 'postgres',
             database: 'querybridge_dev'
           },
-          // Secondary: Use actual USER environment variable
+          // Fallback: Use actual USER environment variable
           {
             host: 'localhost',
             port: 5432,
@@ -226,9 +236,37 @@ export class DatabaseSetup {
 
   private async setupMongoDB(config: DatabaseConnection): Promise<void> {
     try {
-      const client = new MongoClient(`mongodb://${config.host}:${config.port}/${config.database}`);
+      console.log(`Attempting MongoDB connection to ${config.host}:${config.port}`);
+
+      // Build connection URL with optional authentication
+      let connectionUrl: string;
+      if (config.username && config.password) {
+        connectionUrl = `mongodb://${config.username}:${config.password}@${config.host}:${config.port}/${config.database}?authSource=admin`;
+      } else {
+        connectionUrl = `mongodb://${config.host}:${config.port}/${config.database}`;
+      }
+
+      const client = new MongoClient(connectionUrl, {
+        serverSelectionTimeoutMS: 5000,
+        connectTimeoutMS: 5000,
+        socketTimeoutMS: 5000,
+      });
+
       await client.connect();
-      await client.db().admin().ping();
+
+      // Test the connection with a simple operation
+      try {
+        await client.db().admin().ping();
+      } catch (authError: any) {
+        if (authError.message.includes('authentication') || authError.message.includes('auth')) {
+          console.warn(`MongoDB authentication required. To fix this, either:`);
+          console.warn(`1. Start MongoDB without auth: mongod --noauth`);
+          console.warn(`2. Set MONGO_USER and MONGO_PASSWORD environment variables`);
+          console.warn(`3. Create a MongoDB user with proper permissions`);
+          throw new Error(`MongoDB authentication failed: ${authError.message}`);
+        }
+        throw authError;
+      }
 
       this.connections.set(config.id, {
         client,
@@ -295,8 +333,9 @@ export class DatabaseSetup {
 
   private async setupDynamoDB(config: DatabaseConnection): Promise<void> {
     try {
+      const endpoint = process.env.DYNAMODB_ENDPOINT || `http://${config.host}:${config.port}`;
       const client = new DynamoDBClient({
-        endpoint: `http://${config.host}:${config.port}`,
+        endpoint: endpoint,
         region: config.region || 'us-east-1',
         credentials: {
           accessKeyId: 'fake',
@@ -323,8 +362,8 @@ export class DatabaseSetup {
 
   private async setupElasticsearch(config: DatabaseConnection): Promise<void> {
     try {
-      // Use OpenSearch client directly - no more detection issues!
-      const client = new OpenSearchClient({
+      // Use Elasticsearch client
+      const client = new ElasticsearchClient({
         node: `http://${config.host}:${config.port}`,
         requestTimeout: 5000,
         pingTimeout: 3000,
@@ -342,7 +381,7 @@ export class DatabaseSetup {
         lastUsed: new Date()
       });
 
-      console.log(`Successfully connected to OpenSearch: ${config.name}`);
+      console.log(`Successfully connected to Elasticsearch: ${config.name}`);
     } catch (error: any) {
       throw new Error(`Elasticsearch connection failed: ${error.message}`);
     }
