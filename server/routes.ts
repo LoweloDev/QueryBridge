@@ -38,7 +38,7 @@ export async function registerRoutes(app: Express, connectionManager: Connection
       const testQuery = "FIND users LIMIT 1";
       
       try {
-        await connectionManager.executeQuery(id, testQuery);
+        await connectionManager.executeQueryForConnection(id, testQuery);
         res.json({ success: true, message: "Connection successful" });
       } catch (error: any) {
         // Even if the test query fails due to syntax or data issues, 

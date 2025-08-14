@@ -1,107 +1,55 @@
 # QueryBridge Monorepo
 
-A comprehensive database query translation platform that intelligently transforms queries across multiple database technologies with advanced multi-database compatibility.
+**Universal Database Query Translation Platform**
 
-![Universal Query Translator](https://img.shields.io/badge/databases-5%2B-blue) ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white) ![Node.js](https://img.shields.io/badge/Node.js-43853D?logo=node.js&logoColor=white) ![React](https://img.shields.io/badge/React-20232A?logo=react&logoColor=61DAFB)
+A comprehensive monorepo containing a standalone NPM library and visual testing platform for translating database queries across multiple technologies. Write queries once in Universal Query Language (UQL) and execute them on PostgreSQL, MongoDB, Elasticsearch, DynamoDB, and Redis.
 
-## 🚀 What is Universal Query Translator?
+[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-43853D?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![React](https://img.shields.io/badge/React-20232A?logo=react&logoColor=61DAFB)](https://reactjs.org/)
+[![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
+[![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/)
 
-This project provides both a **standalone NPM library** and a **visual testing platform** for translating database queries across multiple technologies. Write queries once in a universal syntax and execute them on PostgreSQL, MongoDB, Elasticsearch, DynamoDB, and Redis.
+## 🌟 What is QueryBridge?
 
-### Key Features
+QueryBridge is both a **production-ready TypeScript library** and an **interactive testing platform** that enables developers to write database queries once and execute them across multiple database technologies using a universal SQL-like syntax.
 
-- **🔄 Universal Query Language** - Single syntax for all supported databases
-- **📦 Standalone Library** - Production-ready NPM package for Node.js applications
-- **🎮 Interactive Platform** - Visual query playground for testing and validation
-- **🛡️ Type Safety** - Full TypeScript support with comprehensive type definitions
+### 🎯 Key Benefits
+
+- **🔄 Write Once, Run Anywhere** - Single query syntax for all supported databases
+- **📦 Production Ready** - Standalone npm library with full TypeScript support
+- **🎮 Visual Testing** - Interactive playground for testing and validation
+- **🛡️ Type Safe** - Comprehensive TypeScript definitions and runtime validation
 - **🔌 Framework Agnostic** - Works with any Node.js application or framework
+- **🚀 Performance Focused** - Efficient query translation and connection management
 
-## 🗂️ Project Structure
+## 📁 Repository Structure
 
 ```
-├── lib/            # Isolated library (npm package)
-├── client/         # Playground UI
-├── server/         # Playground backend
-└── README.md       # Monorepo overview
+QueryBridge/
+├── 📦 lib/                    # Universal Query Translator Library (NPM Package)
+│   ├── src/                   # TypeScript source code
+│   ├── __tests__/             # Test suites
+│   ├── dist/                  # Compiled output
+│   ├── README.md             # Library usage documentation
+│   ├── DEVELOPER_GUIDE.md    # Library development guide
+│   └── package.json          # Library dependencies
+├── 🖥️ client/                 # Playground Frontend (React + TypeScript)
+│   ├── src/                   # React components and pages
+│   ├── components/            # UI components (shadcn/ui)
+│   └── pages/                 # Application pages
+├── 🔧 server/                 # Playground Backend (Node.js + Express)
+│   ├── routes.ts              # API endpoints
+│   ├── services/              # Business logic
+│   └── data/                  # Database configurations
+├── 🐳 docker-compose.yml      # Database environment setup
+├── 📄 README.md              # This file (monorepo overview)
+└── 🛠️ package.json           # Monorepo dependencies
 ```
 
-## 📦 Library Docs
+## 🚀 Quick Start Options
 
-- Usage: see `lib/README.md`
-- Developer guide: see `lib/DEVELOPER_GUIDE.md`
-
-## 🎮 Interactive Testing Platform
-
-A full-featured web application for testing query translations across multiple databases with real-time feedback.
-
-### Features
-
-- **Visual Query Editor** - Syntax highlighting and auto-completion
-- **Real-time Translation** - See queries translated to all database formats instantly
-- **Multi-Database Execution** - Test queries against actual database connections
-- **Connection Management** - Easily manage multiple database connections
-- **Query History** - Track and reuse previous queries
-- **Export Capabilities** - Export translations for use in applications
-
-### Live Demo
-
-The platform provides a comprehensive interface for:
-
-1. **Database Connections** - Connect to PostgreSQL, MongoDB, Elasticsearch, DynamoDB, Redis
-2. **Query Writing** - Intuitive editor with universal query language support
-3. **Translation Preview** - Real-time translation to all supported database formats
-4. **Execution Testing** - Run queries against live databases to validate results
-5. **Result Visualization** - Formatted display of query results and metadata
-
-## 🔧 Current backend targets (library)
-
-- PostgreSQL: emits SQL
-- MongoDB: via SQL parsed by `@synatic/noql`
-- OpenSearch/Elasticsearch: SQL endpoint
-- DynamoDB: PartiQL-compatible SQL subset
-- Redis: structured SCAN/GET plans
-
-## 🌐 Universal Query Language
-
-### Basic Syntax
-
-```sql
-FIND users
-WHERE 
-  age > 25 AND 
-  status = "active" AND 
-  created_at > "2023-01-01"
-ORDER BY created_at DESC
-LIMIT 50
-```
-
-### Advanced Features (SQL primary)
-
-```sql
--- JOINs across databases
-FIND users
-LEFT JOIN orders ON users.id = orders.user_id
-WHERE orders.total > 100
-
--- Aggregations
-FIND sales
-GROUP BY region, category
-AGGREGATE 
-  total_sales: SUM(amount),
-  avg_order: AVG(order_value),
-  customer_count: COUNT(DISTINCT customer_id)
-
--- Complex conditions
-FIND products
-WHERE 
-  (category IN ["electronics", "computers"]) AND
-  (price BETWEEN 100 AND 1000) AND
-  (rating >= 4.0 OR reviews_count > 50)
-```
-
-## 🚀 Getting Started
-
-### 1. Using the Library
+### Option 1: Use the Library in Your Project
 
 For integrating query translation into your Node.js application:
 
@@ -109,115 +57,507 @@ For integrating query translation into your Node.js application:
 npm install universal-query-translator
 ```
 
-**📚 [Library Documentation →](./lib/README.md)**  
-**🛠️ [Developer Guide →](./lib/DEVELOPER_GUIDE.md)**
+```typescript
+import { ConnectionManager } from 'universal-query-translator'
 
-### 2. Run the playground (Docker)
+const cm = new ConnectionManager()
+cm.registerConnection('db', dbClient, config)
 
-For testing and validating query translations:
+const result = await cm.executeQuery('db', `
+  FIND users 
+  WHERE status = "active" 
+  ORDER BY created_at DESC 
+  LIMIT 10
+`)
+```
+
+**📚 [Complete Library Documentation →](./lib/README.md)**
+
+### Option 2: Run the Interactive Playground
+
+For testing, learning, and validating query translations:
 
 ```bash
-# Install Docker prerequisites
+# Quick start with Docker
+git clone <repository-url>
+cd QueryBridge
+./install-docker.sh          # Install Docker if needed
+./start-dev-docker.sh        # Start everything with Docker
+```
+
+Visit `http://localhost:5000` to access the playground.
+
+## 🗂️ Components Overview
+
+### 📦 Universal Query Translator Library
+
+**Location**: `./lib/`  
+**Purpose**: Production-ready npm package for Node.js applications
+
+**Features**:
+- Universal Query Language (UQL) parser
+- Multi-database query translator
+- Connection management system
+- Full TypeScript support
+- Comprehensive test suite
+
+**Database Support**:
+- ✅ **PostgreSQL** - Direct SQL translation (primary target)
+- ✅ **MongoDB** - Via SQL-to-MongoDB conversion
+- ✅ **Elasticsearch** - SQL endpoint compatibility
+- ✅ **DynamoDB** - PartiQL-compatible subset
+- ✅ **Redis** - Structured command planning
+
+### 🖥️ Playground Frontend
+
+**Location**: `./client/`  
+**Purpose**: Interactive web interface for testing query translations
+
+**Technologies**:
+- **React 18** with TypeScript
+- **Vite** for fast development and building
+- **shadcn/ui** component library (Radix UI + Tailwind)
+- **TanStack Query** for data fetching
+- **Wouter** for routing
+
+**Features**:
+- **Visual Query Editor** - Syntax highlighting and formatting
+- **Real-time Translation** - See queries translated instantly
+- **Multi-Database Execution** - Test against live database connections
+- **Connection Management** - Easy database connection setup
+- **Query History** - Track and reuse previous queries
+- **Result Visualization** - Formatted display of query results
+
+### 🔧 Playground Backend
+
+**Location**: `./server/`  
+**Purpose**: Express.js API server for the playground application
+
+**Technologies**:
+- **Node.js** with **Express.js**
+- **TypeScript** throughout
+- **Drizzle ORM** for PostgreSQL operations
+- Database clients for all supported databases
+
+**Features**:
+- **Query Execution API** - Execute translated queries
+- **Connection Management** - Handle database connections
+- **Dataset Management** - Load example data for testing
+- **Settings Management** - Store user preferences
+- **Development Tools** - Database setup and utilities
+
+## 🌐 Universal Query Language (UQL)
+
+### Basic Syntax
+
+```sql
+FIND users
+WHERE status = "active" AND age > 18
+ORDER BY created_at DESC
+LIMIT 50
+```
+
+### Advanced Features
+
+```sql
+-- Complex filtering and joins
+FIND users u
+LEFT JOIN orders o ON u.id = o.user_id
+WHERE 
+  u.status = "active" AND
+  o.created_at > "2024-01-01"
+GROUP BY u.id, u.name
+AGGREGATE order_count: COUNT(o.id), total_spent: SUM(o.amount)
+ORDER BY total_spent DESC
+LIMIT 100
+```
+
+### Cross-Database Translation
+
+**PostgreSQL** (Direct SQL):
+```sql
+SELECT u.id, u.name, COUNT(o.id) as order_count, SUM(o.amount) as total_spent
+FROM users u
+LEFT JOIN orders o ON u.id = o.user_id  
+WHERE u.status = 'active' AND o.created_at > '2024-01-01'
+GROUP BY u.id, u.name
+ORDER BY total_spent DESC
+LIMIT 100
+```
+
+**MongoDB** (Aggregation Pipeline):
+```javascript
+[
+  { $lookup: { from: "orders", localField: "id", foreignField: "user_id", as: "orders" } },
+  { $match: { status: "active", "orders.created_at": { $gt: "2024-01-01" } } },
+  { $group: { _id: "$id", name: { $first: "$name" }, order_count: { $sum: 1 }, total_spent: { $sum: "$orders.amount" } } },
+  { $sort: { total_spent: -1 } },
+  { $limit: 100 }
+]
+```
+
+**Redis** (Command Sequence):
+```javascript
+[
+  { command: "SCAN", args: ["0", "MATCH", "users:*"] },
+  { command: "HGETALL", args: ["users:{id}"] },
+  // Additional filtering and processing commands
+]
+```
+
+## 🛠️ Development Setup
+
+### Prerequisites
+
+- **Node.js 18+**
+- **Docker & Docker Compose** (for database environment)
+- **Git**
+
+### Full Environment Setup
+
+```bash
+# Clone repository
+git clone <repository-url>
+cd QueryBridge
+
+# Install Docker (if needed)
 ./install-docker.sh
 
-# Start databases and app using Docker
+# Start complete development environment
 ./start-dev-docker.sh
 ```
 
-> Note: The Docker-based startup builds the local library and brings up all databases via docker-compose.
+This will:
+1. Install all dependencies (`npm install`)
+2. Build the library (`cd lib && npm run build`)
+3. Start all databases via Docker Compose
+4. Start the backend server (port 3000)
+5. Start the frontend development server (port 5000)
+6. Open playground at `http://localhost:5000`
 
-#### Troubleshooting (Docker)
-
-If you encounter port conflicts or container issues:
+### Manual Setup (Advanced)
 
 ```bash
-docker compose ps
-docker compose logs -f
-docker compose restart <service>
+# Install dependencies
+npm install
+
+# Build library
+cd lib
+npm install
+npm run build
+cd ..
+
+# Start databases only
+docker compose up -d
+
+# Start backend (separate terminal)
+npm run dev
+
+# Start frontend (separate terminal)
+cd client
+npm run dev
 ```
 
-**Common Issues:**
-- **MongoDB WiredTiger corruption**: Automatically repaired or fresh database created. No manual intervention required.
-- **MongoDB fork error**: Port conflicts or permission issues. Cleanup script resolves this.
-- **Redis Stack configuration errors**: Automatic fallback to basic Redis if Redis Stack fails. Creates proper data directories.
-- **Redis "No such file or directory"**: Fixed by using absolute paths and creating data directories before startup.
-- **DynamoDB "Address already in use"**: Port 8000 conflict. Cleanup script kills existing processes.
-- **Elasticsearch not starting**: Requires significant memory. May not work in constrained environments.
+### Library Development Only
 
-**Database Repair and Configuration:**
+```bash
+cd lib
+npm install
+npm run dev      # Watch mode
+npm run test     # Run tests
+npm run build    # Production build
+```
 
-*MongoDB:*
-1. Automatically detects WiredTiger corruption
-2. Runs `--repair` if corruption found
-3. Creates fresh database if repair fails
-4. Ensures out-of-the-box functionality
+## 🗄️ Database Environment
 
-*Redis Stack:*
-1. Detects paths with spaces and provides solutions
-2. Creates symbolic links automatically when requested
-3. Falls back to basic Redis if Stack modules fail
-4. Forces basic Redis mode if paths cannot be resolved
+### Docker Services
 
----------------------------------------------------------------------------
+The playground uses Docker Compose to provide a complete database testing environment:
 
-The platform will be available at `http://localhost:5000`.
+| Service | Port | Purpose |
+|---------|------|---------|
+| **PostgreSQL** | 5432 | Primary SQL database with example data |
+| **MongoDB** | 27017 | Document database with collections |
+| **Elasticsearch** | 9200 | Search engine with indexed documents |
+| **DynamoDB Local** | 8000 | AWS DynamoDB compatible interface |
+| **Redis** | 6379 | In-memory data store with example keys |
 
-### 3. Database Setup
+### Connection Details
 
-The playground uses Docker; connection details are shown in `start-dev-docker.sh`.
+All databases are pre-configured with example datasets for testing:
 
-## 🌟 Use Cases
+```typescript
+// Example connection configs (used in playground)
+const connections = {
+  postgres: {
+    host: 'localhost',
+    port: 5432,
+    database: 'querybridge',
+    username: 'postgres',
+    password: 'postgres'
+  },
+  mongodb: {
+    host: 'localhost',
+    port: 27017,
+    database: 'querybridge'
+  },
+  redis: {
+    host: 'localhost',
+    port: 6379
+  }
+  // ... other databases
+}
+```
+
+### Sample Data
+
+Each database includes sample datasets:
+- **Users** - Customer/user records
+- **Orders** - E-commerce order data
+- **Products** - Product catalog
+- **Analytics** - Event tracking data
+
+## 🎮 Playground Features
+
+### Query Editor
+- **Syntax Highlighting** for UQL
+- **Auto-completion** for keywords
+- **Multi-line Support** with proper formatting
+- **Query Validation** with error highlighting
+
+### Translation Preview
+- **Real-time Translation** to all database formats
+- **Side-by-side Comparison** of translated queries
+- **Copy-to-clipboard** functionality
+- **Syntax highlighting** for each database type
+
+### Execution Testing
+- **Live Database Connections** to all supported databases
+- **Query Result Visualization** with formatted JSON/table views
+- **Performance Metrics** (execution time, row counts)
+- **Error Handling** with detailed error messages
+
+### Connection Management
+- **Visual Connection Status** indicators
+- **Connection Testing** with health checks
+- **Database Setup Instructions** for each type
+- **Connection Configuration** editing
+
+## 🔧 Available Scripts
+
+### Root Level Commands
+
+```bash
+npm run dev          # Start full development environment
+npm run build        # Build both library and frontend
+npm run test         # Run all tests
+npm run check        # TypeScript checking
+```
+
+### Library Commands
+
+```bash
+cd lib
+npm run build        # Build library
+npm run dev          # Watch mode development
+npm run test         # Run library tests
+npm run test:watch   # Run tests in watch mode
+npm run test:coverage # Generate coverage report
+```
+
+### Client Commands
+
+```bash
+cd client
+npm run dev          # Start frontend dev server
+npm run build        # Build for production
+npm run preview      # Preview production build
+```
+
+## 📊 Use Cases & Applications
 
 ### For Developers
-- **Multi-database Applications** - Support multiple database types in single application
-- **Database Migration** - Translate existing queries to new database platforms
-- **Prototyping** - Quickly test query logic across different databases
-- **Learning** - Understand how queries translate between database systems
+
+**Multi-Database Applications**
+```typescript
+// Support multiple databases in one application
+const userQuery = 'FIND users WHERE status = "active"'
+
+const pgResult = await cm.executeQuery('postgres', userQuery)
+const mongoResult = await cm.executeQuery('mongodb', userQuery)
+const redisResult = await cm.executeQuery('redis', userQuery)
+```
+
+**Database Migration & Testing**
+```typescript
+// Test query compatibility across databases before migration
+const complexQuery = `
+  FIND orders o
+  LEFT JOIN customers c ON o.customer_id = c.id
+  WHERE o.created_at > "2024-01-01"
+  GROUP BY c.region
+  AGGREGATE total: SUM(o.amount)
+`
+
+// Validate across all target databases
+const translations = ['postgresql', 'mongodb', 'elasticsearch'].map(db => 
+  cm.translateQuery(complexQuery, db)
+)
+```
+
+**API Development**
+```typescript
+// Express.js API with database flexibility
+app.post('/api/data', async (req, res) => {
+  const { query, database = 'postgres' } = req.body
+  
+  try {
+    const result = await cm.executeQuery(database, query)
+    res.json(result)
+  } catch (error) {
+    res.status(400).json({ error: error.message })
+  }
+})
+```
 
 ### For Teams
-- **Database Abstraction** - Write database-agnostic application logic
-- **Testing & Validation** - Verify query behavior across multiple databases
-- **Documentation** - Generate database-specific queries from universal syntax
-- **Training** - Learn query patterns across different database technologies
+
+**Database Abstraction Layer**
+- Write application logic once, support multiple databases
+- Easy database switching and A/B testing
+- Simplified data access patterns
+
+**Learning & Training**
+- Understand query patterns across different databases
+- Interactive playground for team training
+- Visual comparison of database-specific syntax
+
+**Documentation & Examples**
+- Generate database-specific queries from universal syntax
+- Maintain consistent query documentation
+- Create portable query examples
+
+## 🔒 Security & Production Considerations
+
+### Query Validation
+```typescript
+// Always validate queries before execution
+import { QueryParser } from 'universal-query-translator'
+
+try {
+  QueryParser.validate(userQuery)
+  const result = await cm.executeQuery(database, userQuery)
+} catch (error) {
+  // Handle invalid queries
+}
+```
+
+### Connection Security
+- Use connection pooling for better performance
+- Implement query timeouts
+- Validate connection configurations
+- Never expose database credentials in client code
+
+### Performance Optimization
+- Cache frequently used connections
+- Implement query result caching
+- Use appropriate LIMIT clauses
+- Monitor query execution metrics
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+**Docker Issues**
+```bash
+# Check container status
+docker compose ps
+
+# View logs
+docker compose logs -f [service-name]
+
+# Restart services
+docker compose restart
+
+# Clean restart
+docker compose down && docker compose up -d
+```
+
+**Library Issues**
+```bash
+# Rebuild library
+cd lib && npm run build
+
+# Run tests
+cd lib && npm run test
+
+# Check TypeScript errors
+npm run check
+```
+
+**Development Issues**
+```bash
+# Clean install
+rm -rf node_modules package-lock.json
+npm install
+
+# Port conflicts
+lsof -ti:5000 | xargs kill -9  # Kill process on port 5000
+```
+
+### Getting Help
+
+1. **Check the documentation** in `lib/README.md` and `lib/DEVELOPER_GUIDE.md`
+2. **Review test cases** in `lib/__tests__/` for usage examples
+3. **Look at playground implementation** in `client/` and `server/`
+4. **Create an issue** with reproduction steps
+
+## 📚 Documentation Links
+
+- **[📦 Library Usage Guide](./lib/README.md)** - Complete API documentation and examples
+- **[🛠️ Library Developer Guide](./lib/DEVELOPER_GUIDE.md)** - Architecture and contribution guide
+- **[🐳 Docker Setup Guide](./install-docker.sh)** - Database environment setup
+- **[🔧 Development Scripts](./start-dev-docker.sh)** - Development environment automation
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our contributing guidelines:
+We welcome contributions to both the library and playground! Please see:
 
-1. **Library Development** - See [Developer Guide](./lib/DEVELOPER_GUIDE.md)
-2. **Platform Features** - Create issues for new platform features
-3. **Database Support** - Help extend support to additional databases
-4. **Documentation** - Improve documentation and examples
+1. **[Library Development Guide](./lib/DEVELOPER_GUIDE.md)** - For library contributions
+2. **Create issues** for bugs or feature requests
+3. **Submit pull requests** with clear descriptions
+4. **Follow coding standards** established in the project
 
 ### Development Workflow
 
 1. Fork the repository
 2. Create a feature branch
-3. Add tests for new functionality
-4. Ensure all tests pass
-5. Update documentation
-6. Submit a pull request
+3. Make changes with appropriate tests
+4. Ensure all tests pass (`npm run test`)
+5. Update documentation as needed
+6. Submit pull request with clear description
 
-## 📜 License
+## 📄 License
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
-## 🔗 Links
+## 🏆 Achievements & Features
 
-- **📦 [NPM Package](https://npmjs.com/package/universal-query-translator)** (After publishing)
-- **📚 [Library Documentation →](./lib/README.md)**
-- **🛠️ [Developer Guide →](./lib/DEVELOPER_GUIDE.md)**
-- **🐛 [Issue Tracker](https://github.com/your-username/universal-query-translator/issues)**
-- **💬 [Discussions](https://github.com/your-username/universal-query-translator/discussions)**
-
-## 🏆 Key Achievements
-
-- **Universal Syntax** - Single query language for 5+ database types
-- **Real Database Testing** - Validated against actual database instances
-- **Developer Experience** - Intuitive API with excellent TypeScript support
-- **Visual Platform** - Full-featured web interface for testing and validation
-- **Comprehensive Documentation** - Complete guides for all use cases
+- ✅ **Universal Query Language** - Single syntax for 5+ database types
+- ✅ **Production Ready Library** - Full TypeScript support with comprehensive tests
+- ✅ **Interactive Playground** - Visual testing environment with real databases
+- ✅ **Docker Environment** - Complete database setup with example data
+- ✅ **Comprehensive Documentation** - Detailed guides for all use cases
+- ✅ **Framework Agnostic** - Works with any Node.js application
+- ✅ **Type Safe** - Runtime validation with Zod schemas
+- ✅ **Performance Focused** - Efficient translation and connection management
 
 ---
 
-**Ready to transform your database queries?** Start with the [Library Documentation](./lib/README.md) or try the interactive platform locally!
+**Ready to transform your database architecture?** 
+
+🚀 **Get Started**: [Library Documentation](./lib/README.md) | [Try the Playground](./start-dev-docker.sh)
+
+📦 **Install Library**: `npm install universal-query-translator`
+
+🎮 **Run Playground**: `./start-dev-docker.sh`
