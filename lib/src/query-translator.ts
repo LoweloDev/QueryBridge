@@ -6,16 +6,7 @@ export class QueryTranslator {
 
     if (query.operation === 'FIND') {
       // SELECT clause
-      if (query.aggregate && query.aggregate.length > 0) {
-        const selectFields = [];
-        if (query.groupBy) {
-          selectFields.push(...query.groupBy);
-        }
-        selectFields.push(...query.aggregate.map(agg =>
-          `${agg.function}(${agg.field}) AS ${agg.alias || agg.field}`
-        ));
-        sql = `SELECT ${selectFields.join(', ')}`;
-      } else if (query.fields && query.fields.length > 0) {
+      if (query.fields && query.fields.length > 0) {
         sql = `SELECT ${query.fields.join(', ')}`;
       } else {
         sql = 'SELECT *';
@@ -66,34 +57,12 @@ export class QueryTranslator {
         sql += ` GROUP BY ${query.groupBy.join(', ')}`;
       }
 
-      // ORDER BY clause (must handle GROUP BY compatibility)
+      // ORDER BY clause
       if (query.orderBy && query.orderBy.length > 0) {
-        const orderFields = query.orderBy.map(order => {
-          // If we have GROUP BY, only allow ordering by grouped columns or aggregated expressions
-          if (query.groupBy && query.groupBy.length > 0) {
-            // Check if the order field is in GROUP BY
-            if (query.groupBy.includes(order.field)) {
-              return `${order.field} ${order.direction}`;
-            }
-            // For aggregated fields, we need to use the aggregate expression
-            if (query.aggregate) {
-              const matchingAgg = query.aggregate.find(agg =>
-                agg.alias === order.field || agg.field === order.field
-              );
-              if (matchingAgg) {
-                const aggExpr = `${matchingAgg.function}(${matchingAgg.field})`;
-                return `${aggExpr} ${order.direction}`;
-              }
-            }
-            // Skip non-grouped, non-aggregated fields when GROUP BY is present
-            return null;
-          }
-          return `${order.field} ${order.direction}`;
-        }).filter(Boolean);
-
-        if (orderFields.length > 0) {
-          sql += ` ORDER BY ${orderFields.join(', ')}`;
-        }
+        const orderFields = query.orderBy.map(order =>
+          `${order.field} ${order.direction}`
+        );
+        sql += ` ORDER BY ${orderFields.join(', ')}`;
       }
 
       // LIMIT clause

@@ -15,5 +15,15 @@ export type {
   DatabaseType,
   ActiveConnection,
   QueryResult,
-  TranslationResult
+  TranslationResult,
+  UQLKeyword,
+  UQLOperator,
+  UQLLogical,
+  UQLDirection,
+  UQLAggregateFunction,
+  UQLQuery,
+  UQLSyntaxHelper
 } from './types';
+
+// Export syntax validation utilities
+export { UQLSyntaxValidator } from './types';

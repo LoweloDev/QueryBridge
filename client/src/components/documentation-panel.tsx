@@ -71,7 +71,7 @@ SELECT name, email FROM public.users;`
         },
         groupBy: {
           universal: `FIND orders
-AGGREGATE COUNT(id) AS total_orders, SUM(amount) AS total_amount
+FIELDS customer_id, COUNT(id) AS total_orders, SUM(amount) AS total_amount
 GROUP BY customer_id`,
           native: `-- SQL Translation
 SELECT customer_id, COUNT(id) AS total_orders, SUM(amount) AS total_amount FROM orders GROUP BY customer_id;`
