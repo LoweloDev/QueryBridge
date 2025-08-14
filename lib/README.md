@@ -70,7 +70,7 @@ LIMIT 100
 | **Limiting** | `LIMIT count` | `LIMIT 50` |
 | **Pagination** | `OFFSET count` | `OFFSET 100` |
 | **Grouping** | `GROUP BY fields` | `GROUP BY department, role` |
-| **Aggregation** | `AGGREGATE functions` | `AGGREGATE total: SUM(amount)` |
+| **Aggregation** | `FIELDS with functions` | `FIELDS COUNT(*) AS total, SUM(amount) AS revenue` |
 
 ### Advanced Examples
 
@@ -108,12 +108,14 @@ GROUP BY users.id, users.name
 #### Aggregations
 ```sql
 FIND sales
+FIELDS 
+  region, 
+  product_category,
+  SUM(amount) AS total_revenue,
+  AVG(order_value) AS avg_order,
+  COUNT(DISTINCT customer_id) AS customer_count,
+  MAX(amount) AS max_sale
 GROUP BY region, product_category
-AGGREGATE 
-  total_revenue: SUM(amount),
-  avg_order: AVG(order_value),
-  customer_count: COUNT(DISTINCT customer_id),
-  max_sale: MAX(amount)
 ORDER BY total_revenue DESC
 ```
 
@@ -135,11 +137,11 @@ ORDER BY total_revenue DESC
 ```typescript
 // Full SQL support with all UQL features
 const result = await cm.executeQuery('postgres', `
-  FIND users u
-  LEFT JOIN orders o ON u.id = o.user_id
-  WHERE u.status = "active"
-  GROUP BY u.id, u.name
-  AGGREGATE order_count: COUNT(o.id)
+  FIND users
+  LEFT JOIN orders ON users.id = orders.user_id
+  FIELDS users.id, users.name, COUNT(orders.id) AS order_count
+  WHERE users.status = "active"
+  GROUP BY users.id, users.name
   ORDER BY order_count DESC
 `)
 ```
@@ -258,6 +260,27 @@ const sql = QueryTranslator.toSQL(ast)
 // Generate Redis commands
 const redisCommands = QueryTranslator.toRedis(ast)
 // Result: [{ command: 'SCAN', args: ['0', 'MATCH', 'users:*'] }]
+```
+
+### UQLSyntaxValidator
+
+TypeScript syntax validation and IntelliSense support for UQL.
+
+```typescript
+import { UQLSyntaxValidator, UQLSyntaxHelper } from 'universal-query-translator'
+
+// Runtime syntax validation
+const validation = UQLSyntaxValidator.validateBasicSyntax('FIND users WHERE status = "active"')
+console.log(validation.valid) // true
+
+// Get keyword suggestions for autocomplete
+const suggestions = UQLSyntaxValidator.getKeywordSuggestions('FIND users')
+console.log(suggestions) // ['FIELDS', 'WHERE', 'GROUP BY', 'ORDER BY', 'LIMIT']
+
+// Development helper for IntelliSense
+const helper: UQLSyntaxHelper = UQLSyntaxValidator.createHelper()
+console.log(helper.keywords) // ['FIND', 'FIELDS', 'WHERE', ...]
+console.log(helper.aggregates) // ['COUNT', 'SUM', 'AVG', 'MIN', 'MAX']
 ```
 
 ## 📊 Response Format
@@ -499,26 +522,28 @@ console.log('Would execute:', translation.query)
 ```typescript
 // Product search with filters
 const productQuery = `
-  FIND products p
-  LEFT JOIN categories c ON p.category_id = c.id
+  FIND products
+  LEFT JOIN categories ON products.category_id = categories.id
   WHERE 
-    p.price BETWEEN 50 AND 500 AND
-    p.in_stock = true AND
-    c.name IN ["electronics", "books"]
-  ORDER BY p.popularity DESC, p.price ASC
+    products.price BETWEEN 50 AND 500 AND
+    products.in_stock = true AND
+    categories.name IN ["electronics", "books"]
+  ORDER BY products.popularity DESC, products.price ASC
   LIMIT 20
 `
 
 // Sales analytics
 const salesQuery = `
-  FIND orders o
-  LEFT JOIN products p ON o.product_id = p.id
-  WHERE o.created_at >= "2024-01-01"
-  GROUP BY p.category, DATE(o.created_at)
-  AGGREGATE 
-    daily_revenue: SUM(o.total),
-    order_count: COUNT(o.id),
-    avg_order: AVG(o.total)
+  FIND orders
+  LEFT JOIN products ON orders.product_id = products.id
+  FIELDS 
+    products.category,
+    DATE(orders.created_at) AS sale_date,
+    SUM(orders.total) AS daily_revenue,
+    COUNT(orders.id) AS order_count,
+    AVG(orders.total) AS avg_order
+  WHERE orders.created_at >= "2024-01-01"
+  GROUP BY products.category, DATE(orders.created_at)
   ORDER BY daily_revenue DESC
 `
 ```
@@ -528,14 +553,17 @@ const salesQuery = `
 ```typescript
 // Active users with engagement metrics
 const userMetrics = `
-  FIND users u
-  LEFT JOIN sessions s ON u.id = s.user_id
-  WHERE s.created_at >= "2024-01-01"
-  GROUP BY u.id, u.name, u.email
-  AGGREGATE 
-    session_count: COUNT(s.id),
-    total_time: SUM(s.duration),
-    last_login: MAX(s.created_at)
+  FIND users
+  LEFT JOIN sessions ON users.id = sessions.user_id
+  FIELDS 
+    users.id, 
+    users.name, 
+    users.email,
+    COUNT(sessions.id) AS session_count,
+    SUM(sessions.duration) AS total_time,
+    MAX(sessions.created_at) AS last_login
+  WHERE sessions.created_at >= "2024-01-01"
+  GROUP BY users.id, users.name, users.email
   ORDER BY session_count DESC
   LIMIT 100
 `

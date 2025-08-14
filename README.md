@@ -161,13 +161,13 @@ LIMIT 50
 
 ```sql
 -- Complex filtering and joins
-FIND users u
-LEFT JOIN orders o ON u.id = o.user_id
+FIND users
+LEFT JOIN orders ON users.id = orders.user_id
+FIELDS users.id, users.name, COUNT(orders.id) AS order_count, SUM(orders.amount) AS total_spent
 WHERE 
-  u.status = "active" AND
-  o.created_at > "2024-01-01"
-GROUP BY u.id, u.name
-AGGREGATE order_count: COUNT(o.id), total_spent: SUM(o.amount)
+  users.status = "active" AND
+  orders.created_at > "2024-01-01"
+GROUP BY users.id, users.name
 ORDER BY total_spent DESC
 LIMIT 100
 ```
@@ -176,11 +176,11 @@ LIMIT 100
 
 **PostgreSQL** (Direct SQL):
 ```sql
-SELECT u.id, u.name, COUNT(o.id) as order_count, SUM(o.amount) as total_spent
-FROM users u
-LEFT JOIN orders o ON u.id = o.user_id  
-WHERE u.status = 'active' AND o.created_at > '2024-01-01'
-GROUP BY u.id, u.name
+SELECT users.id, users.name, COUNT(orders.id) AS order_count, SUM(orders.amount) AS total_spent
+FROM users
+LEFT JOIN orders ON users.id = orders.user_id  
+WHERE users.status = 'active' AND orders.created_at > '2024-01-01'
+GROUP BY users.id, users.name
 ORDER BY total_spent DESC
 LIMIT 100
 ```
@@ -392,11 +392,11 @@ const redisResult = await cm.executeQuery('redis', userQuery)
 ```typescript
 // Test query compatibility across databases before migration
 const complexQuery = `
-  FIND orders o
-  LEFT JOIN customers c ON o.customer_id = c.id
-  WHERE o.created_at > "2024-01-01"
-  GROUP BY c.region
-  AGGREGATE total: SUM(o.amount)
+  FIND orders
+  LEFT JOIN customers ON orders.customer_id = customers.id
+  FIELDS customers.region, SUM(orders.amount) AS total
+  WHERE orders.created_at > "2024-01-01"
+  GROUP BY customers.region
 `
 
 // Validate across all target databases

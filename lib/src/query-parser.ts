@@ -20,7 +20,6 @@ export class QueryParser {
     const result: Partial<QueryLanguage> = {};
     let currentSection = '';
     let whereBuffer = '';
-    let aggregateBuffer = '';
 
     for (const line of lines) {
       const upperLine = line.toUpperCase();
@@ -86,19 +85,11 @@ export class QueryParser {
       } else if (upperLine.startsWith('FIELDS')) {
         const fieldsClause = line.substring(6).trim();
         result.fields = fieldsClause.split(',').map(field => field.trim());
-      } else if (upperLine.startsWith('AGGREGATE')) {
+      } else if (upperLine.startsWith('GROUP BY')) {
         // Process any buffered WHERE clause first
         if (whereBuffer) {
           result.where = this.parseWhere(whereBuffer);
           whereBuffer = '';
-        }
-        currentSection = 'AGGREGATE';
-        aggregateBuffer = line.substring(9).trim();
-      } else if (upperLine.startsWith('GROUP BY')) {
-        // Process any buffered aggregate clause first
-        if (aggregateBuffer) {
-          result.aggregate = this.parseAggregate(aggregateBuffer);
-          aggregateBuffer = '';
         }
         currentSection = 'GROUP_BY';
         const groupClause = line.substring(8).trim();
@@ -109,8 +100,7 @@ export class QueryParser {
       } else if (currentSection === 'WHERE') {
         // Check if this line starts a new section
         if (upperLine.startsWith('ORDER BY') || upperLine.startsWith('LIMIT') ||
-          upperLine.startsWith('AGGREGATE') || upperLine.startsWith('GROUP BY') ||
-          upperLine.startsWith('HAVING')) {
+          upperLine.startsWith('GROUP BY') || upperLine.startsWith('HAVING')) {
           // Process buffered WHERE and start new section
           result.where = this.parseWhere(whereBuffer);
           whereBuffer = '';
@@ -125,9 +115,6 @@ export class QueryParser {
             currentSection = 'LIMIT';
             const limitValue = line.substring(5).trim();
             result.limit = parseInt(limitValue, 10);
-          } else if (upperLine.startsWith('AGGREGATE')) {
-            currentSection = 'AGGREGATE';
-            aggregateBuffer = line.substring(9).trim();
           } else if (upperLine.startsWith('GROUP BY')) {
             currentSection = 'GROUP_BY';
             const groupClause = line.substring(8).trim();
@@ -140,18 +127,12 @@ export class QueryParser {
           // Continue building WHERE buffer
           whereBuffer += ' ' + line;
         }
-      } else if (currentSection === 'AGGREGATE') {
-        // Continue building AGGREGATE buffer
-        aggregateBuffer += ' ' + line;
       }
     }
 
     // Process any remaining buffers
     if (whereBuffer) {
       result.where = this.parseWhere(whereBuffer);
-    }
-    if (aggregateBuffer) {
-      result.aggregate = this.parseAggregate(aggregateBuffer);
     }
 
     return QueryLanguageSchema.parse(result);
@@ -165,7 +146,7 @@ export class QueryParser {
     let quoteChar = '';
 
     // Keywords that start new sections
-    const keywords = ['WHERE', 'ORDER BY', 'LIMIT', 'OFFSET', 'AGGREGATE', 'GROUP BY', 'HAVING', 'JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'INNER JOIN', 'FULL OUTER JOIN'];
+    const keywords = ['WHERE', 'ORDER BY', 'LIMIT', 'OFFSET', 'GROUP BY', 'HAVING', 'JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'INNER JOIN', 'FULL OUTER JOIN'];
 
     for (let i = 0; i < queryString.length; i++) {
       const char = queryString[i];
@@ -281,66 +262,7 @@ export class QueryParser {
     });
   }
 
-  private static parseAggregate(aggregateClause: string) {
-    const aggregates = [];
-    const parts = aggregateClause.split(',');
 
-    for (const part of parts) {
-      const trimmed = part.trim();
-      // Handle "COUNT(id) AS total_orders" format
-      // Handle "alias: FUNCTION(field)" format
-      if (trimmed.includes(':')) {
-        const [alias, aggPart] = trimmed.split(':').map(s => s.trim());
-        const funcMatch = aggPart.match(/(\w+)\((.*?)\)/);
-        if (funcMatch) {
-          const field = funcMatch[2].trim();
-          const func = funcMatch[1].toUpperCase();
-          let finalAlias = alias;
-
-          // Generate proper aliases for common cases
-          if (!finalAlias) {
-            if (field === '*' && func === 'COUNT') {
-              finalAlias = 'count';
-            } else {
-              finalAlias = field;
-            }
-          }
-
-          aggregates.push({
-            function: func as any,
-            field: field,
-            alias: finalAlias
-          });
-        }
-      }
-      // Handle "COUNT(id) AS total_orders" format
-      else {
-        const funcMatch = trimmed.match(/(\w+)\(([^)]*)\)(?:\s+AS\s+(\w+))?/i);
-        if (funcMatch) {
-          const field = funcMatch[2].trim() || '*';
-          const func = funcMatch[1].toUpperCase();
-          let alias = funcMatch[3];
-
-          // Generate proper aliases for common cases
-          if (!alias) {
-            if (field === '*' && func === 'COUNT') {
-              alias = 'count';
-            } else {
-              alias = field;
-            }
-          }
-
-          aggregates.push({
-            function: func as any,
-            field: field,
-            alias: alias
-          });
-        }
-      }
-    }
-
-    return aggregates;
-  }
 
   private static parseJoin(joinClause: string) {
     // Parse JOIN syntax: "JOIN orders ON users.id = orders.user_id"

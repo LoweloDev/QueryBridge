@@ -82,11 +82,12 @@ class QueryParser {
 
 **Key Features**:
 - Single-line and multi-line query support
-- Field selection: `FIND users (name, email)`
+- Field selection: `FIND users (name, email)` or `FIELDS name, email`
 - Schema support: `FIND public.users`
 - Complex WHERE conditions with logical operators
 - JOIN support (INNER, LEFT, RIGHT, FULL)
-- Aggregation and GROUP BY
+- SQL-style aggregation in FIELDS: `FIELDS COUNT(*) AS total, SUM(amount) AS revenue`
+- GROUP BY and HAVING
 - ORDER BY with multiple fields
 - LIMIT and OFFSET
 
