@@ -5,9 +5,10 @@
  * from external applications. It handles query parsing, translation, and execution.
  */
 
-import { QueryLanguage, DatabaseConnection, DatabaseType, ActiveConnection, QueryResult } from "./types";
+import { QueryLanguage, DatabaseConnection, DatabaseType, ActiveConnection, QueryResult, QueryInput, isStringQuery, isQueryLanguageObject } from "./types";
 import { QueryParser } from "./query-parser";
 import { QueryTranslator } from "./query-translator";
+import { QuerySerializer } from "./query-serializer";
 import { ExecuteStatementCommand } from "@aws-sdk/lib-dynamodb";
 import SQLParser from "@synatic/noql";
 import LZString from "lz-string";
@@ -42,20 +43,38 @@ export class ConnectionManager {
 
   /**
    * Execute a universal query against the first active connection
+   * @param query - Either a UQL string or a pre-parsed QueryLanguage object
+   * @param scope - Optional scope variables for query execution
    */
-  async executeQuery(queryString: string, scope?: { [key: string]: any }): Promise<QueryResult> {
+  async executeQuery(query: QueryInput, scope?: { [key: string]: any }): Promise<QueryResult> {
     const connection = this.activeConnections.values().next().value;
     if (this.activeConnections.size > 1) throw new Error("Multiple active connections found, please use executeQueryForConnection instead");
     if (!connection) throw new Error("No active connection found");
-    return this.executeQueryForConnection(connection.config.id, queryString, scope);
+    return this.executeQueryForConnection(connection.config.id, query, scope);
   }
 
   /**
    * Execute a universal query against a registered connection
+   * @param connectionId - The ID of the connection to use
+   * @param query - Either a UQL string or a pre-parsed QueryLanguage object
+   * @param scope - Optional scope variables for query execution
    */
-  async executeQueryForConnection(connectionId: string, queryString: string, scope?: { [key: string]: any }): Promise<QueryResult> {
-    if (this.isEncoded(queryString)) {
-      queryString = this.decode(queryString);
+  async executeQueryForConnection(connectionId: string, query: QueryInput, scope?: { [key: string]: any }): Promise<QueryResult> {
+    let queryString: string;
+    let parsedQuery: QueryLanguage;
+
+    // Handle both string and parsed query inputs
+    if (isStringQuery(query)) {
+      // Handle encoded queries
+      queryString = this.isEncoded(query) ? this.decode(query) : query;
+      // Parse the string query
+      parsedQuery = QueryParser.parse(queryString);
+    } else if (isQueryLanguageObject(query)) {
+      // Query is already parsed - serialize it to string for logging/storage
+      queryString = QuerySerializer.serialize(query);
+      parsedQuery = query;
+    } else {
+      throw new Error('Invalid query input: must be either a string or QueryLanguage object');
     }
 
     const connection = this.activeConnections.get(connectionId);
@@ -63,9 +82,6 @@ export class ConnectionManager {
     if (!connection) {
       throw new Error(`No active connection found for ID: ${connectionId}`);
     }
-
-    // Parse the universal query
-    const parsedQuery = QueryParser.parse(queryString);
 
     // Translate to database-specific format
     let translatedQuery: string | object;
@@ -441,5 +457,37 @@ export class ConnectionManager {
       this.connectionConfigs.delete(connectionId);
     });
     this.activeConnections.clear();
+  }
+
+  /**
+   * Parse a UQL string query into a QueryLanguage object
+   * Useful for users who want to work with typed objects
+   */
+  parseQuery(queryString: string): QueryLanguage {
+    const decoded = this.isEncoded(queryString) ? this.decode(queryString) : queryString;
+    return QueryParser.parse(decoded);
+  }
+
+  /**
+   * Serialize a QueryLanguage object back to UQL string format
+   * Useful for debugging, logging, or converting back to string format
+   */
+  serializeQuery(query: QueryLanguage): string {
+    return QuerySerializer.serialize(query);
+  }
+
+  /**
+   * Validate a QueryLanguage object
+   * Returns validation errors if the object cannot be properly serialized
+   */
+  validateParsedQuery(query: QueryLanguage): { valid: boolean; errors: string[] } {
+    return QuerySerializer.validate(query);
+  }
+
+  /**
+   * Pretty print a QueryLanguage object for debugging
+   */
+  prettyPrintQuery(query: QueryLanguage, indent?: string): string {
+    return QuerySerializer.prettyPrint(query, indent);
   }
 }

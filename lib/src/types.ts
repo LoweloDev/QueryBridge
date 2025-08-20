@@ -216,6 +216,23 @@ export interface UQLSyntaxHelper {
   aggregates: UQLAggregateFunction[];
 }
 
+// Query input types - supporting both string and parsed queries
+export type QueryInput = string | QueryLanguage;
+
+/**
+ * Type guard to check if input is a string query
+ */
+export function isStringQuery(input: QueryInput): input is string {
+  return typeof input === 'string';
+}
+
+/**
+ * Type guard to check if input is a parsed QueryLanguage object
+ */
+export function isQueryLanguageObject(input: QueryInput): input is QueryLanguage {
+  return typeof input === 'object' && input !== null && 'operation' in input;
+}
+
 // Runtime syntax validation helper
 export class UQLSyntaxValidator {
   private static readonly KEYWORDS: UQLKeyword[] = [

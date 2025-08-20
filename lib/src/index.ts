@@ -3,6 +3,7 @@
 
 export { QueryParser } from './query-parser';
 export { QueryTranslator } from './query-translator';
+export { QuerySerializer } from './query-serializer';
 export { ConnectionManager } from './connection-manager';
 
 // Types and schemas
@@ -16,6 +17,7 @@ export type {
   ActiveConnection,
   QueryResult,
   TranslationResult,
+  QueryInput,
   UQLKeyword,
   UQLOperator,
   UQLLogical,
@@ -24,6 +26,9 @@ export type {
   UQLQuery,
   UQLSyntaxHelper
 } from './types';
+
+// Re-export type guards
+export { isStringQuery, isQueryLanguageObject } from './types';
 
 // Export syntax validation utilities
 export { UQLSyntaxValidator } from './types';
